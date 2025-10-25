@@ -343,6 +343,10 @@ export function ChartPanel() {
   };
 
   const handleTimeRangeChange = (range: TimeRange) => {
+    if (timeRange === range) {
+      return;
+    }
+
     setTimeRange(range);
     setShowDatePicker(false);
 
