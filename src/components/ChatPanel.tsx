@@ -24,8 +24,10 @@ export function ChatPanel() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,6 +36,17 @@ export function ChatPanel() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modelPickerRef.current && !modelPickerRef.current.contains(event.target as Node)) {
+        setShowModelPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -217,26 +230,34 @@ export function ChatPanel() {
 
               <div className="h-4 w-px bg-[#2A2A2A]" />
 
-              <div className="relative group">
-                <button className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors">
+              <div ref={modelPickerRef} className="relative">
+                <button
+                  onClick={() => setShowModelPicker(!showModelPicker)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors"
+                >
                   <span className="font-mono">{AI_MODELS.find(m => m.id === selectedModel)?.name}</span>
                   <ChevronDown className="w-3 h-3" />
                 </button>
 
-                <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[9999]">
-                  {AI_MODELS.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => setSelectedModel(model.id)}
-                      className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2A2A2A] transition-colors ${
-                        selectedModel === model.id ? 'bg-[#2A2A2A] text-white' : 'text-gray-400'
-                      }`}
-                    >
-                      <div className="font-medium">{model.name}</div>
-                      <div className="text-[10px] text-gray-500">{model.description}</div>
-                    </button>
-                  ))}
-                </div>
+                {showModelPicker && (
+                  <div className="absolute bottom-full left-0 mb-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[9999]">
+                    {AI_MODELS.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => {
+                          setSelectedModel(model.id);
+                          setShowModelPicker(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2A2A2A] transition-colors ${
+                          selectedModel === model.id ? 'bg-[#2A2A2A] text-white' : 'text-gray-400'
+                        }`}
+                      >
+                        <div className="font-medium">{model.name}</div>
+                        <div className="text-[10px] text-gray-500">{model.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
