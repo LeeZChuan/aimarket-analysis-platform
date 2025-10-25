@@ -2,7 +2,7 @@ import { Lock } from 'lucide-react';
 
 export function LoginView() {
   return (
-    <div className="h-screen bg-[#0D0D0D] flex items-center justify-center">
+    <div className="h-full flex items-center justify-center">
       <div className="w-full max-w-md p-8">
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-8">
           <div className="flex items-center justify-center mb-8">
