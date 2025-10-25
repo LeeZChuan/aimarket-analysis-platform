@@ -231,7 +231,7 @@ export function ChatPanel() {
 
               <div className="h-4 w-px bg-[#2A2A2A]" />
 
-              <div ref={modelPickerRef} className="relative">
+              <div ref={modelPickerRef} className="relative z-[10000]">
                 <button
                   onClick={() => setShowModelPicker(!showModelPicker)}
                   className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors"
@@ -242,7 +242,7 @@ export function ChatPanel() {
                 </button>
 
                 {showModelPicker && (
-                  <div className="absolute bottom-full left-0 mb-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[9999]">
+                  <div className="absolute bottom-full left-0 mb-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px]">
                     {AI_MODELS.map((model) => (
                       <button
                         key={model.id}
