@@ -25,9 +25,11 @@ export function ChatPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
+  const modelButtonRef = useRef<HTMLButtonElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,7 +41,12 @@ export function ChatPanel() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modelPickerRef.current && !modelPickerRef.current.contains(event.target as Node)) {
+      if (
+        modelPickerRef.current &&
+        !modelPickerRef.current.contains(event.target as Node) &&
+        modelButtonRef.current &&
+        !modelButtonRef.current.contains(event.target as Node)
+      ) {
         setShowModelPicker(false);
       }
     };
@@ -47,6 +54,17 @@ export function ChatPanel() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleModelPickerToggle = () => {
+    if (!showModelPicker && modelButtonRef.current) {
+      const rect = modelButtonRef.current.getBoundingClientRect();
+      setPickerPosition({
+        top: rect.top - 8,
+        left: rect.left,
+      });
+    }
+    setShowModelPicker(!showModelPicker);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -119,6 +137,7 @@ export function ChatPanel() {
   };
 
   return (
+    <>
     <div className="w-96 bg-[#1A1A1A] border-l border-[#2A2A2A] flex flex-col h-full">
       <div className="p-4 border-b border-[#2A2A2A]">
         <div className="flex items-center gap-2">
@@ -231,37 +250,15 @@ export function ChatPanel() {
 
               <div className="h-4 w-px bg-[#2A2A2A]" />
 
-              <div ref={modelPickerRef} className="relative z-[10000]">
-                <button
-                  onClick={() => setShowModelPicker(!showModelPicker)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors"
-                  title="选择AI模型"
-                >
-                  <span className="font-mono">{AI_MODELS.find(m => m.id === selectedModel)?.name}</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-
-                {showModelPicker && (
-                  <div className="absolute bottom-full left-0 mb-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px]">
-                    {AI_MODELS.map((model) => (
-                      <button
-                        key={model.id}
-                        onClick={() => {
-                          setSelectedModel(model.id);
-                          setShowModelPicker(false);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2A2A2A] transition-colors ${
-                          selectedModel === model.id ? 'bg-[#2A2A2A] text-white' : 'text-gray-400'
-                        }`}
-                        title={model.description}
-                      >
-                        <div className="font-medium">{model.name}</div>
-                        <div className="text-[10px] text-gray-500">{model.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <button
+                ref={modelButtonRef}
+                onClick={handleModelPickerToggle}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors"
+                title="选择AI模型"
+              >
+                <span className="font-mono">{AI_MODELS.find(m => m.id === selectedModel)?.name}</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
             </div>
 
             <button
@@ -276,5 +273,35 @@ export function ChatPanel() {
         </div>
       </div>
     </div>
+
+    {showModelPicker && (
+      <div
+        ref={modelPickerRef}
+        className="fixed bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[10000]"
+        style={{
+          top: `${pickerPosition.top}px`,
+          left: `${pickerPosition.left}px`,
+          transform: 'translateY(-100%)'
+        }}
+      >
+        {AI_MODELS.map((model) => (
+          <button
+            key={model.id}
+            onClick={() => {
+              setSelectedModel(model.id);
+              setShowModelPicker(false);
+            }}
+            className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2A2A2A] transition-colors ${
+              selectedModel === model.id ? 'bg-[#2A2A2A] text-white' : 'text-gray-400'
+            }`}
+            title={model.description}
+          >
+            <div className="font-medium">{model.name}</div>
+            <div className="text-[10px] text-gray-500">{model.description}</div>
+          </button>
+        ))}
+      </div>
+    )}
+    </>
   );
 }
