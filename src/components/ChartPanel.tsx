@@ -756,12 +756,14 @@ export function ChartPanel() {
                       <button
                         onClick={handleCustomDateApply}
                         className="flex-1 px-3 py-1.5 bg-[#3A9FFF] hover:bg-[#3A9FFF]/80 text-white text-[11px] font-medium rounded transition-colors"
+                        title="应用自定义日期范围"
                       >
                         应用
                       </button>
                       <button
                         onClick={() => setShowDatePicker(false)}
                         className="flex-1 px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#3A3A3A] text-gray-300 text-[11px] font-medium rounded transition-colors"
+                        title="取消自定义日期"
                       >
                         取消
                       </button>
@@ -781,6 +783,7 @@ export function ChartPanel() {
                       ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
                       : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
                   }`}
+                  title={`查看${period === '1D' ? '1天' : period === '5D' ? '5天' : period === '1M' ? '1个月' : period === '3M' ? '3个月' : period === '6M' ? '6个月' : '1年'}的数据`}
                 >
                   {period}
                 </button>
@@ -799,6 +802,7 @@ export function ChartPanel() {
                       : 'bg-[#1A1A1A] text-gray-500 hover:text-gray-300 border border-[#2A2A2A] hover:border-[#3A3A3A]'
                   }`}
                   onClick={() => toggleIndicator(indicator)}
+                  title={`${indicators.includes(indicator) ? '隐藏' : '显示'}${indicator}指标`}
                 >
                   {indicator}
                 </button>

@@ -192,6 +192,7 @@ export function ChatPanel() {
                 <button
                   onClick={() => removeImage(index)}
                   className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="删除图片"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -234,6 +235,7 @@ export function ChatPanel() {
                 <button
                   onClick={() => setShowModelPicker(!showModelPicker)}
                   className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors"
+                  title="选择AI模型"
                 >
                   <span className="font-mono">{AI_MODELS.find(m => m.id === selectedModel)?.name}</span>
                   <ChevronDown className="w-3 h-3" />
@@ -251,6 +253,7 @@ export function ChatPanel() {
                         className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2A2A2A] transition-colors ${
                           selectedModel === model.id ? 'bg-[#2A2A2A] text-white' : 'text-gray-400'
                         }`}
+                        title={model.description}
                       >
                         <div className="font-medium">{model.name}</div>
                         <div className="text-[10px] text-gray-500">{model.description}</div>

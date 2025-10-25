@@ -137,6 +137,7 @@ export function Sidebar() {
                     : 'bg-[#0D0D0D] border border-transparent hover:border-[#2A2A2A]'
                 }`}
                 onClick={() => setSelectedStock(stock)}
+                title={`查看 ${stock.name} (${stock.symbol}) 详情`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -167,6 +168,7 @@ export function Sidebar() {
                         removeFromWatchlist(stock.symbol);
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-[#2A2A2A] rounded"
+                      title="从自选股中移除"
                     >
                       <X className="w-4 h-4 text-gray-500" />
                     </button>
