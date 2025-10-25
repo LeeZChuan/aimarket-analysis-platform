@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { TrendingUp, Lock, X } from 'lucide-react';
+import { TrendingUp, LogOut, User, X } from 'lucide-react';
+import { useStore } from '../store/useStore';
 
 interface NavigationMenuProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface NavigationMenuProps {
 export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const user = useStore((state) => state.user);
+  const logout = useStore((state) => state.logout);
 
   const menuItems = [
     {
@@ -16,15 +19,16 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
       label: '交易面板',
       icon: TrendingUp,
     },
-    {
-      path: '/login',
-      label: '登录',
-      icon: Lock,
-    },
   ];
 
   const handleNavigate = (path: string) => {
     navigate(path);
+    onClose();
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
     onClose();
   };
 
@@ -38,7 +42,7 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
       />
 
       <div
-        className={`fixed left-0 top-0 h-full w-64 bg-[#1A1A1A] border-r border-[#2A2A2A] transform transition-transform duration-300 z-50 ${
+        className={`fixed left-0 top-0 h-full w-64 bg-[#1A1A1A] border-r border-[#2A2A2A] transform transition-transform duration-300 z-50 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -52,7 +56,7 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
           </button>
         </div>
 
-        <nav className="p-2">
+        <nav className="p-2 flex-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -73,6 +77,25 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
             );
           })}
         </nav>
+
+        <div className="border-t border-[#2A2A2A] p-4">
+          <div className="flex items-center gap-3 mb-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-[#3A9FFF]/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-[#3A9FFF]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+              <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm font-medium">退出登录</span>
+          </button>
+        </div>
       </div>
     </>
   );
