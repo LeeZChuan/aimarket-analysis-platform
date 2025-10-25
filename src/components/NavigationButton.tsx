@@ -14,7 +14,7 @@ export function NavigationButton({ onClick }: NavigationButtonProps) {
         boxShadow: '0 0 20px rgba(58, 159, 255, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)'
       }}
     >
-      <Menu className="w-6 h-6 text-white transition-transform group-hover:scale-110 group-hover:rotate-90" />
+      <Menu className="w-6 h-6 text-white transition-transform group-hover:scale-110" />
       <div className="absolute bottom-0 right-0 w-2 h-2 bg-white rounded-full animate-ping" />
     </button>
   );
