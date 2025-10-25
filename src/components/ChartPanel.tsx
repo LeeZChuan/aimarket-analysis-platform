@@ -158,11 +158,13 @@ export function ChartPanel() {
     });
     macdSignalRef.current = macdSignal;
 
+    // 同步十字线
     chart.subscribeCrosshairMove((param) => {
       if (!param.time || !param.seriesData.get(candlestickSeries)) {
         setHoveredPrice(null);
         setHoveredChange(null);
         setHoveredDate(null);
+        subChart.clearCrosshairPosition();
         return;
       }
 
@@ -175,7 +177,20 @@ export function ChartPanel() {
         setHoveredPrice(currentPrice);
         setHoveredChange(change);
         setHoveredDate(param.time as string);
+
+        // 同步副图十字线位置
+        subChart.setCrosshairPosition(0, param.time as any, macdHistogram);
       }
+    });
+
+    subChart.subscribeCrosshairMove((param) => {
+      if (!param.time) {
+        chart.clearCrosshairPosition();
+        return;
+      }
+
+      // 同步主图十字线位置
+      chart.setCrosshairPosition(0, param.time as any, candlestickSeries);
     });
 
     const generateMockData = (days: number) => {
