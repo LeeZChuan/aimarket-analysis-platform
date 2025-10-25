@@ -15,7 +15,6 @@ export function NavigationButton({ onClick }: NavigationButtonProps) {
       }}
     >
       <Menu className="w-6 h-6 text-white transition-transform group-hover:scale-110" />
-      <div className="absolute bottom-0 right-0 w-2 h-2 bg-white rounded-full animate-ping" />
     </button>
   );
 }
