@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '../views/Layout';
 import { TradingView } from '../views/TradingView';
+import { StockDetailView } from '../views/StockDetailView';
 import { LoginView } from '../views/LoginView';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
@@ -18,6 +19,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <TradingView />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'stocks',
+        element: (
+          <ProtectedRoute>
+            <StockDetailView />
           </ProtectedRoute>
         ),
       },

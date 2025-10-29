@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { TrendingUp, LogOut, User, X } from 'lucide-react';
+import { TrendingUp, LogOut, User, X, BarChart3 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 interface NavigationMenuProps {
@@ -18,6 +18,11 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
       path: '/trading',
       label: '交易面板',
       icon: TrendingUp,
+    },
+    {
+      path: '/stocks',
+      label: '个股列表',
+      icon: BarChart3,
     },
   ];
 
