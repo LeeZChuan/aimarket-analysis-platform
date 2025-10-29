@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { createChart, ColorType, IChartApi, Time } from 'lightweight-charts';
+import { createChart, ColorType, LineSeries, IChartApi, Time } from 'lightweight-charts';
 
 interface LineData {
   time: Time;
@@ -55,7 +55,7 @@ export function StockLineChart({ data, height = 600 }: StockLineChartProps) {
 
     chartRef.current = chart;
 
-    const lineSeries = chart.addLineSeries({
+    const lineSeries = chart.addSeries(LineSeries, {
       color: '#3A9FFF',
       lineWidth: 2,
     });
