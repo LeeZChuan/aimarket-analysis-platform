@@ -4,6 +4,7 @@ import { Send, Sparkles, Image as ImageIcon, X, ChevronDown } from 'lucide-react
 import { sendAnalysisRequest } from '../services/aiService';
 import { AIMessageRenderer } from './AIMessageRenderer';
 import { AIMessage } from '../types/ai';
+import { LAYOUT_CONFIG } from '../config/layout';
 
 const AI_MODELS = [
   { id: 'auto', name: 'Auto', description: '自动选择最佳模型' },
@@ -138,7 +139,10 @@ export function ChatPanel() {
 
   return (
     <>
-    <div className="w-96 bg-[#1A1A1A] border-l border-[#2A2A2A] flex flex-col h-full">
+    <div
+      className="bg-[#1A1A1A] border-l border-[#2A2A2A] flex flex-col h-full"
+      style={{ width: `${LAYOUT_CONFIG.chatPanel.width}px` }}
+    >
       <div className="p-4 border-b border-[#2A2A2A]">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[#3A9FFF]" />

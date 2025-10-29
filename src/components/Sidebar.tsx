@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { useState, useEffect } from 'react';
 import { stockService } from '../services/stockService';
 import { Stock, Fund } from '../types/stock';
+import { LAYOUT_CONFIG } from '../config/layout';
 
 type TabType = 'watchlist' | 'stocks' | 'funds';
 
@@ -82,7 +83,10 @@ export function Sidebar() {
     : currentList;
 
   return (
-    <div className="w-80 bg-[#1A1A1A] border-r border-[#2A2A2A] flex flex-col h-full">
+    <div
+      className="bg-[#1A1A1A] border-r border-[#2A2A2A] flex flex-col h-full"
+      style={{ width: `${LAYOUT_CONFIG.sidebar.width}px` }}
+    >
       <div className="p-4 border-b border-[#2A2A2A]">
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
