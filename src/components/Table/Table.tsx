@@ -42,23 +42,51 @@ export function Table({
   }, [dataSource.length, scrollTop, virtualScrollManager]);
 
   const visibleRange = useMemo(() => {
-    return virtualScrollManager.getVisibleRange();
+    const range = virtualScrollManager.getVisibleRange();
+    console.log('[Table] Visible Range:', {
+      scrollTop,
+      start: range.start,
+      end: range.end,
+      offsetY: range.offsetY,
+      totalRows: dataSource.length
+    });
+    return range;
   }, [virtualScrollManager, scrollTop, dataSource.length]);
 
   const { start, end, offsetY } = visibleRange;
   const totalHeight = useMemo(() => virtualScrollManager.getTotalHeight(), [virtualScrollManager, dataSource.length]);
-  const visibleData = useMemo(() => dataSource.slice(start, end), [dataSource, start, end]);
+  const visibleData = useMemo(() => {
+    const data = dataSource.slice(start, end);
+    console.log('[Table] Visible Data:', {
+      start,
+      end,
+      dataLength: data.length,
+      totalDataLength: dataSource.length
+    });
+    return data;
+  }, [dataSource, start, end]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
+    console.log('[Table] Scroll Event:', {
+      scrollTop: target.scrollTop,
+      scrollLeft: target.scrollLeft
+    });
     setScrollTop(target.scrollTop);
     setScrollLeft(target.scrollLeft);
   };
 
   const handleRowClick = (record: any, index: number) => {
+    console.log('[Table] Row Click:', {
+      index,
+      currentScrollTop: bodyRef.current?.scrollTop,
+      stateScrollTop: scrollTop,
+      recordKey: getRowKey(record, index)
+    });
     if (bodyRef.current) {
       const currentScrollTop = bodyRef.current.scrollTop;
       if (currentScrollTop !== scrollTop) {
+        console.log('[Table] Syncing scroll position:', currentScrollTop);
         setScrollTop(currentScrollTop);
       }
     }
@@ -317,6 +345,15 @@ export function Table({
       </div>
     );
   };
+
+  console.log('[Table] Render:', {
+    visibleDataLength: visibleData.length,
+    start,
+    end,
+    offsetY,
+    totalHeight,
+    scrollTop
+  });
 
   return (
     <div ref={containerRef} className={`table-container ${className}`} style={{ height }}>
