@@ -72,7 +72,7 @@ export function TradingView() {
       <div className="flex-1 flex overflow-hidden">
         {showSidebar && (
           <>
-            <div style={{ width: `${sidebarWidth}px`, flexShrink: 0 }}>
+            <div style={{ width: `${sidebarWidth}px`, flexShrink: 0 }} className="h-full">
               <Sidebar />
             </div>
             <div
@@ -84,7 +84,7 @@ export function TradingView() {
             />
           </>
         )}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 h-full">
           <ChartPanel />
         </div>
         {showChat && (
@@ -96,7 +96,7 @@ export function TradingView() {
                 e.preventDefault();
               }}
             />
-            <div style={{ width: `${chatWidth}px`, flexShrink: 0 }}>
+            <div style={{ width: `${chatWidth}px`, flexShrink: 0 }} className="h-full">
               <ChatPanel />
             </div>
           </>
