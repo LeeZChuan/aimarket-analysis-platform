@@ -16,6 +16,7 @@ export interface TableProps {
   headerHeight?: number;
   height?: number;
   rowKey?: string | ((record: any) => string);
+  selectedRowKey?: string;
   onRowClick?: (record: any, index: number) => void;
   className?: string;
 }

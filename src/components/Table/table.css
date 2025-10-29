@@ -84,6 +84,14 @@
   cursor: pointer;
 }
 
+.table-row-selected {
+  background: #2a3f5f !important;
+}
+
+.table-row-selected:hover {
+  background: #324a6e !important;
+}
+
 .table-fixed-left,
 .table-fixed-right {
   position: absolute;

@@ -11,6 +11,7 @@ export function Table({
   headerHeight = 48,
   height = 600,
   rowKey = 'id',
+  selectedRowKey,
   onRowClick,
   className = '',
 }: TableProps) {
@@ -163,14 +164,15 @@ export function Table({
 
   const renderRow = (record: any, rowIndex: number) => {
     const leafColumns = columnManager.getLeafColumns();
-    const key = getRowKey(record, rowIndex);
+    const key = getRowKey(record, start + rowIndex);
+    const isSelected = selectedRowKey === key;
 
     return (
       <tr
         key={key}
         style={{ height: rowHeight }}
         onClick={() => onRowClick?.(record, start + rowIndex)}
-        className="table-row"
+        className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
       >
         {leafColumns.map(col => (
           <td
@@ -210,13 +212,14 @@ export function Table({
                 <td />
               </tr>
               {visibleData.map((record, index) => {
-                const key = getRowKey(record, index);
+                const key = getRowKey(record, start + index);
+                const isSelected = selectedRowKey === key;
                 return (
                   <tr
                     key={key}
                     style={{ height: rowHeight }}
                     onClick={() => onRowClick?.(record, start + index)}
-                    className="table-row"
+                    className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
                   >
                     {leftCols.map(col => (
                       <td
@@ -266,13 +269,14 @@ export function Table({
                 <td />
               </tr>
               {visibleData.map((record, index) => {
-                const key = getRowKey(record, index);
+                const key = getRowKey(record, start + index);
+                const isSelected = selectedRowKey === key;
                 return (
                   <tr
                     key={key}
                     style={{ height: rowHeight }}
                     onClick={() => onRowClick?.(record, start + index)}
-                    className="table-row"
+                    className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
                   >
                     {rightCols.map(col => (
                       <td

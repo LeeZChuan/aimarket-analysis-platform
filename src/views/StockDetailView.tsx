@@ -24,6 +24,7 @@ interface StockData {
 
 export function StockDetailView() {
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
+  const [selectedRowKey, setSelectedRowKey] = useState<string | undefined>(undefined);
 
   const generateMockStockData = (count: number): StockData[] => {
     const stocks = [];
@@ -242,6 +243,7 @@ export function StockDetailView() {
 
   const handleRowClick = (record: StockData) => {
     setSelectedStock(record);
+    setSelectedRowKey(record.id);
   };
 
   return (
@@ -257,6 +259,7 @@ export function StockDetailView() {
           columns={columns}
           dataSource={stockData}
           rowKey="id"
+          selectedRowKey={selectedRowKey}
           height={window.innerHeight - 150}
           rowHeight={48}
           headerHeight={48}
