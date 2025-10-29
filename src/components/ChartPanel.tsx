@@ -38,6 +38,11 @@ export function ChartPanel() {
   useEffect(() => {
     if (!chartContainerRef.current || !subChartContainerRef.current) return;
 
+    const mainWidth = chartContainerRef.current.clientWidth || 800;
+    const mainHeight = chartContainerRef.current.clientHeight || 400;
+    const subWidth = subChartContainerRef.current.clientWidth || 800;
+    const subHeight = subChartContainerRef.current.clientHeight || 200;
+
     // 创建主图（K线图）
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -48,8 +53,8 @@ export function ChartPanel() {
         vertLines: { color: '#1A1A1A' },
         horzLines: { color: '#1A1A1A' },
       },
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
+      width: mainWidth,
+      height: mainHeight,
       timeScale: {
         borderColor: '#2A2A2A',
         timeVisible: false,
@@ -100,8 +105,8 @@ export function ChartPanel() {
         vertLines: { color: '#1A1A1A' },
         horzLines: { color: '#1A1A1A' },
       },
-      width: subChartContainerRef.current.clientWidth,
-      height: subChartContainerRef.current.clientHeight,
+      width: subWidth,
+      height: subHeight,
       timeScale: {
         borderColor: '#2A2A2A',
         timeVisible: true,
@@ -695,7 +700,7 @@ export function ChartPanel() {
   };
 
   return (
-    <div className="flex-1 bg-[#0D0D0D] flex flex-col">
+    <div className="h-full w-full bg-[#0D0D0D] flex flex-col">
       <div className="border-b border-[#2A2A2A] px-4 py-3">
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-4">
@@ -825,10 +830,10 @@ export function ChartPanel() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
-        <div ref={chartContainerRef} className="flex-[2]" />
+      <div className="flex-1 flex flex-col min-h-0">
+        <div ref={chartContainerRef} className="flex-[2] min-h-0" />
         <div className="h-px bg-[#2A2A2A]" />
-        <div ref={subChartContainerRef} className="flex-1" />
+        <div ref={subChartContainerRef} className="flex-1 min-h-0" />
       </div>
     </div>
   );
