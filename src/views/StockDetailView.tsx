@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Table } from '../components/Table';
-import { StockLineChart } from '../components/StockLineChart';
+import { LineVolumeChart } from '../components/LineVolumeChart';
+import { ChartTabs } from '../components/ChartTabs';
 import { ColumnConfig } from '../components/Table/types';
-import { Time } from 'lightweight-charts';
+import { generateLineChartData, generateVolumeData } from '../mock/chartData';
 
 interface StockData {
   id: string;
@@ -65,31 +66,17 @@ export function StockDetailView() {
 
   const stockData = useMemo(() => generateMockStockData(2000), []);
 
-  const generateLineChartData = () => {
-    if (!selectedStock) {
-      const baseValue = 100;
-      return Array.from({ length: 100 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (100 - i));
-        return {
-          time: date.toISOString().split('T')[0] as Time,
-          value: baseValue + (Math.random() - 0.5) * 20,
-        };
-      });
-    }
+  const lineChartData = useMemo(() => {
+    const stockId = selectedStock?.id || 'default';
+    const basePrice = selectedStock?.price || 100;
+    return generateLineChartData(stockId, basePrice, 100);
+  }, [selectedStock?.id, selectedStock?.price]);
 
-    const baseValue = selectedStock.price;
-    return Array.from({ length: 100 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (100 - i));
-      return {
-        time: date.toISOString().split('T')[0] as Time,
-        value: baseValue + (Math.random() - 0.5) * (baseValue * 0.1),
-      };
-    });
-  };
-
-  const lineChartData = useMemo(() => generateLineChartData(), [selectedStock]);
+  const volumeData = useMemo(() => {
+    const stockId = selectedStock?.id || 'default';
+    const baseVolume = selectedStock?.volume || 1000000;
+    return generateVolumeData(stockId, 100, baseVolume);
+  }, [selectedStock?.id, selectedStock?.volume]);
 
   const columns: ColumnConfig[] = [
     {
@@ -246,6 +233,10 @@ export function StockDetailView() {
     setSelectedRowKey(record.id);
   };
 
+  const chartHeight = window.innerHeight - 180;
+  const lineVolumeHeight = Math.floor(chartHeight * 0.4);
+  const klineHeight = Math.floor(chartHeight * 0.55);
+
   return (
     <div className="h-full w-full bg-[#0D0D0D] flex gap-4 p-4">
       <div className="flex-1 min-w-0">
@@ -266,29 +257,43 @@ export function StockDetailView() {
           onRowClick={handleRowClick}
         />
       </div>
-      <div className="w-[500px]">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-white">
-            {selectedStock ? `${selectedStock.name} (${selectedStock.code})` : '行情走势'}
-          </h2>
-          {selectedStock && (
-            <div className="flex items-baseline gap-4 mt-2">
-              <span className="text-2xl font-bold text-white">
-                {selectedStock.price.toFixed(2)}
-              </span>
-              <span
-                className={`text-lg ${
-                  selectedStock.change >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'
-                }`}
-              >
-                {selectedStock.change >= 0 ? '+' : ''}
-                {selectedStock.change.toFixed(2)} ({selectedStock.changePercent.toFixed(2)}%)
-              </span>
-            </div>
-          )}
+      <div className="w-[600px] flex flex-col gap-4">
+        <div className="border border-[#2A2A2A] rounded overflow-hidden">
+          <div className="bg-[#1A1A1A] px-4 py-3 border-b border-[#2A2A2A]">
+            <h2 className="text-lg font-bold text-white">
+              {selectedStock ? `${selectedStock.name} (${selectedStock.code})` : '个股走势'}
+            </h2>
+            {selectedStock && (
+              <div className="flex items-baseline gap-4 mt-2">
+                <span className="text-2xl font-bold text-white">
+                  {selectedStock.price.toFixed(2)}
+                </span>
+                <span
+                  className={`text-lg ${
+                    selectedStock.change >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'
+                  }`}
+                >
+                  {selectedStock.change >= 0 ? '+' : ''}
+                  {selectedStock.change.toFixed(2)} ({selectedStock.changePercent.toFixed(2)}%)
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="p-4">
+            <LineVolumeChart
+              lineData={lineChartData}
+              volumeData={volumeData}
+              height={lineVolumeHeight}
+            />
+          </div>
         </div>
-        <div className="border border-[#2A2A2A] rounded">
-          <StockLineChart data={lineChartData} height={window.innerHeight - 180} />
+
+        <div className="flex-1 border border-[#2A2A2A] rounded overflow-hidden">
+          <ChartTabs
+            stockId={selectedStock?.id}
+            stockPrice={selectedStock?.price}
+            height={klineHeight}
+          />
         </div>
       </div>
     </div>
