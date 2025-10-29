@@ -1,12 +1,12 @@
 export const LAYOUT_CONFIG = {
   sidebar: {
-    defaultWidth: 320,
+    defaultWidth: 205,
     minWidth: 200,
     maxWidth: 600,
     defaultVisible: true,
   },
   chatPanel: {
-    defaultWidth: 384,
+    defaultWidth: 285,
     minWidth: 280,
     maxWidth: 600,
     defaultVisible: true,
