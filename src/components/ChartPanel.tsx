@@ -290,8 +290,21 @@ export function ChartPanel() {
 
     window.addEventListener('resize', handleResize);
 
+    // 使用 ResizeObserver 监听容器大小变化
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    if (chartContainerRef.current) {
+      resizeObserver.observe(chartContainerRef.current);
+    }
+    if (subChartContainerRef.current) {
+      resizeObserver.observe(subChartContainerRef.current);
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       chart.remove();
       subChart.remove();
       indicatorSeriesRef.current.clear();
