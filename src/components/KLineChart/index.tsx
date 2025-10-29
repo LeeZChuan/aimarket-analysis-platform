@@ -4,6 +4,9 @@ import {
   ColorType,
   IChartApi,
   ISeriesApi,
+  CandlestickSeries,
+  LineSeries,
+  HistogramSeries,
 } from 'lightweight-charts';
 import { KLineChartData } from '../../types/chart';
 
@@ -63,7 +66,7 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
 
       chartRef.current = chart;
 
-      const candlestickSeries = chart.addCandlestickSeries({
+      const candlestickSeries = chart.addSeries(CandlestickSeries, {
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderUpColor: '#26a69a',
@@ -75,7 +78,7 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
 
       candlestickSeriesRef.current = candlestickSeries;
 
-      const ma5Series = chart.addLineSeries({
+      const ma5Series = chart.addSeries(LineSeries, {
         color: '#FF6B6B',
         lineWidth: 1,
         priceScaleId: 'right',
@@ -85,7 +88,7 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
 
       ma5SeriesRef.current = ma5Series;
 
-      const ma10Series = chart.addLineSeries({
+      const ma10Series = chart.addSeries(LineSeries, {
         color: '#4ECDC4',
         lineWidth: 1,
         priceScaleId: 'right',
@@ -95,7 +98,7 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
 
       ma10SeriesRef.current = ma10Series;
 
-      const ma20Series = chart.addLineSeries({
+      const ma20Series = chart.addSeries(LineSeries, {
         color: '#FFE66D',
         lineWidth: 1,
         priceScaleId: 'right',
@@ -105,7 +108,7 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
 
       ma20SeriesRef.current = ma20Series;
 
-      const volumeSeries = chart.addHistogramSeries({
+      const volumeSeries = chart.addSeries(HistogramSeries, {
         priceFormat: {
           type: 'volume',
         },
