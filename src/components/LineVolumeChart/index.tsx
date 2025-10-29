@@ -4,8 +4,6 @@ import {
   ColorType,
   IChartApi,
   ISeriesApi,
-  LineSeriesPartialOptions,
-  HistogramSeriesPartialOptions,
 } from 'lightweight-charts';
 import { LineChartData, VolumeChartData } from '../../types/chart';
 
@@ -67,22 +65,22 @@ export function LineVolumeChart({
 
       chartRef.current = chart;
 
-      const lineSeries = chart.addSeries('Line' as any, {
+      const lineSeries = chart.addLineSeries({
         color: '#3A9FFF',
         lineWidth: 2,
         priceScaleId: 'right',
-      } as LineSeriesPartialOptions);
+      });
 
-      lineSeriesRef.current = lineSeries as any;
+      lineSeriesRef.current = lineSeries;
 
-      const volumeSeries = chart.addSeries('Histogram' as any, {
+      const volumeSeries = chart.addHistogramSeries({
         priceFormat: {
           type: 'volume',
         },
         priceScaleId: 'volume',
-      } as HistogramSeriesPartialOptions);
+      });
 
-      volumeSeriesRef.current = volumeSeries as any;
+      volumeSeriesRef.current = volumeSeries;
 
       chart.priceScale('volume').applyOptions({
         scaleMargins: {

@@ -4,9 +4,6 @@ import {
   ColorType,
   IChartApi,
   ISeriesApi,
-  CandlestickSeriesPartialOptions,
-  LineSeriesPartialOptions,
-  HistogramSeriesPartialOptions,
 } from 'lightweight-charts';
 import { KLineChartData } from '../../types/chart';
 
@@ -66,7 +63,7 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
 
       chartRef.current = chart;
 
-      const candlestickSeries = chart.addSeries('Candlestick' as any, {
+      const candlestickSeries = chart.addCandlestickSeries({
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderUpColor: '#26a69a',
@@ -74,48 +71,48 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
         wickUpColor: '#26a69a',
         wickDownColor: '#ef5350',
         priceScaleId: 'right',
-      } as CandlestickSeriesPartialOptions);
+      });
 
-      candlestickSeriesRef.current = candlestickSeries as any;
+      candlestickSeriesRef.current = candlestickSeries;
 
-      const ma5Series = chart.addSeries('Line' as any, {
+      const ma5Series = chart.addLineSeries({
         color: '#FF6B6B',
         lineWidth: 1,
         priceScaleId: 'right',
         lastValueVisible: false,
         priceLineVisible: false,
-      } as LineSeriesPartialOptions);
+      });
 
-      ma5SeriesRef.current = ma5Series as any;
+      ma5SeriesRef.current = ma5Series;
 
-      const ma10Series = chart.addSeries('Line' as any, {
+      const ma10Series = chart.addLineSeries({
         color: '#4ECDC4',
         lineWidth: 1,
         priceScaleId: 'right',
         lastValueVisible: false,
         priceLineVisible: false,
-      } as LineSeriesPartialOptions);
+      });
 
-      ma10SeriesRef.current = ma10Series as any;
+      ma10SeriesRef.current = ma10Series;
 
-      const ma20Series = chart.addSeries('Line' as any, {
+      const ma20Series = chart.addLineSeries({
         color: '#FFE66D',
         lineWidth: 1,
         priceScaleId: 'right',
         lastValueVisible: false,
         priceLineVisible: false,
-      } as LineSeriesPartialOptions);
+      });
 
-      ma20SeriesRef.current = ma20Series as any;
+      ma20SeriesRef.current = ma20Series;
 
-      const volumeSeries = chart.addSeries('Histogram' as any, {
+      const volumeSeries = chart.addHistogramSeries({
         priceFormat: {
           type: 'volume',
         },
         priceScaleId: 'volume',
-      } as HistogramSeriesPartialOptions);
+      });
 
-      volumeSeriesRef.current = volumeSeries as any;
+      volumeSeriesRef.current = volumeSeries;
 
       chart.priceScale('volume').applyOptions({
         scaleMargins: {
