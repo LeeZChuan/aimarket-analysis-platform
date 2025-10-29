@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { useStore } from '../store/useStore';
+import { useStore } from '../../store/useStore';
 import { Send, Sparkles, Image as ImageIcon, X, ChevronDown } from 'lucide-react';
-import { sendAnalysisRequest } from '../services/aiService';
-import { AIMessageRenderer } from './AIMessageRenderer';
-import { AIMessage } from '../types/ai';
-import { LAYOUT_CONFIG } from '../config/layout';
+import { sendAnalysisRequest } from '../../services/aiService';
+import { AIMessageRenderer } from '../AIMessageRenderer';
+import { AIMessage } from '../../types/ai';
+import { LAYOUT_CONFIG } from '../../config/layout';
 
 const AI_MODELS = [
   { id: 'auto', name: 'Auto', description: '自动选择最佳模型' },

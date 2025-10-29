@@ -1,9 +1,9 @@
 import { Search, TrendingUp, X, Star, BarChart3, PieChart } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { useStore } from '../../store/useStore';
 import { useState, useEffect } from 'react';
-import { stockService } from '../services/stockService';
-import { Stock, Fund } from '../types/stock';
-import { LAYOUT_CONFIG } from '../config/layout';
+import { stockService } from '../../services/stockService';
+import { Stock, Fund } from '../../types/stock';
+import { LAYOUT_CONFIG } from '../../config/layout';
 
 type TabType = 'watchlist' | 'stocks' | 'funds';
 

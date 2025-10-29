@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickSeries, LineSeries, HistogramSeries, ISeriesApi, Time, IChartApi, LineData, HistogramData } from 'lightweight-charts';
-import { useStore } from '../store/useStore';
+import { useStore } from '../../store/useStore';
 import { Calendar, TrendingUp } from 'lucide-react';
 
 type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';

@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TrendingUp, LogOut, User, X, BarChart3 } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { useStore } from '../../store/useStore';
 
 interface NavigationMenuProps {
   isOpen: boolean;
