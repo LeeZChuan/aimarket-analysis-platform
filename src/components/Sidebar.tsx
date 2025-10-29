@@ -83,10 +83,7 @@ export function Sidebar() {
     : currentList;
 
   return (
-    <div
-      className="bg-[#1A1A1A] border-r border-[#2A2A2A] flex flex-col h-full"
-      style={{ width: `${LAYOUT_CONFIG.sidebar.width}px` }}
-    >
+    <div className="bg-[#1A1A1A] flex flex-col h-full w-full">
       <div className="p-4 border-b border-[#2A2A2A]">
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />

@@ -139,10 +139,7 @@ export function ChatPanel() {
 
   return (
     <>
-    <div
-      className="bg-[#1A1A1A] border-l border-[#2A2A2A] flex flex-col h-full"
-      style={{ width: `${LAYOUT_CONFIG.chatPanel.width}px` }}
-    >
+    <div className="bg-[#1A1A1A] flex flex-col h-full w-full">
       <div className="p-4 border-b border-[#2A2A2A]">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[#3A9FFF]" />
