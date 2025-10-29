@@ -41,14 +41,28 @@ export function Table({
     });
   }, [dataSource.length, scrollTop, virtualScrollManager]);
 
-  const { start, end, offsetY } = virtualScrollManager.getVisibleRange();
-  const totalHeight = virtualScrollManager.getTotalHeight();
-  const visibleData = dataSource.slice(start, end);
+  const visibleRange = useMemo(() => {
+    return virtualScrollManager.getVisibleRange();
+  }, [virtualScrollManager, scrollTop, dataSource.length]);
+
+  const { start, end, offsetY } = visibleRange;
+  const totalHeight = useMemo(() => virtualScrollManager.getTotalHeight(), [virtualScrollManager, dataSource.length]);
+  const visibleData = useMemo(() => dataSource.slice(start, end), [dataSource, start, end]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     setScrollTop(target.scrollTop);
     setScrollLeft(target.scrollLeft);
+  };
+
+  const handleRowClick = (record: any, index: number) => {
+    if (bodyRef.current) {
+      const currentScrollTop = bodyRef.current.scrollTop;
+      if (currentScrollTop !== scrollTop) {
+        setScrollTop(currentScrollTop);
+      }
+    }
+    onRowClick?.(record, index);
   };
 
   const getRowKey = (record: any, index: number): string => {
@@ -171,7 +185,7 @@ export function Table({
       <tr
         key={key}
         style={{ height: rowHeight }}
-        onClick={() => onRowClick?.(record, start + rowIndex)}
+        onClick={() => handleRowClick(record, start + rowIndex)}
         className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
       >
         {leafColumns.map(col => (
@@ -218,7 +232,7 @@ export function Table({
                   <tr
                     key={key}
                     style={{ height: rowHeight }}
-                    onClick={() => onRowClick?.(record, start + index)}
+                    onClick={() => handleRowClick(record, start + index)}
                     className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
                   >
                     {leftCols.map(col => (
@@ -275,7 +289,7 @@ export function Table({
                   <tr
                     key={key}
                     style={{ height: rowHeight }}
-                    onClick={() => onRowClick?.(record, start + index)}
+                    onClick={() => handleRowClick(record, start + index)}
                     className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
                   >
                     {rightCols.map(col => (
