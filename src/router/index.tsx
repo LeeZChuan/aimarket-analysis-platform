@@ -1,8 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '../views/Layout';
-import { TradingView } from '../views/TradingView';
-import { StockDetailView } from '../views/StockDetailView';
-import { LoginView } from '../views/LoginView';
+import { TradingView } from '../views/TradingView/index';
+import { StockDetailView } from '../views/StockDetailView/index';
+import { LoginView } from '../views/LoginView/index';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 export const router = createBrowserRouter([
