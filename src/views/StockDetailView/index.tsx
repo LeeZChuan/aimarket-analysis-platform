@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Table } from '../components/Table';
-import { LineVolumeChart } from '../components/LineVolumeChart';
-import { ChartTabs } from '../components/ChartTabs';
-import { ColumnConfig } from '../components/Table/types';
-import { generateLineChartData, generateVolumeData } from '../mock/chartData';
+import { Table } from '../../components/Table';
+import { LineVolumeChart } from '../../components/LineVolumeChart';
+import { ChartTabs } from '../../components/ChartTabs';
+import { ColumnConfig } from '../../components/Table/types';
+import { generateLineChartData, generateVolumeData } from '../../mock/chartData';
 
 interface StockData {
   id: string;

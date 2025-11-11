@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
-import { ChartPanel } from '../components/ChartPanel';
-import { ChatPanel } from '../components/ChatPanel';
-import { LAYOUT_CONFIG } from '../config/layout';
+import { Sidebar } from '../../components/Sidebar';
+import { ChartPanel } from '../../components/ChartPanel';
+import { ChatPanel } from '../../components/ChatPanel';
+import { LAYOUT_CONFIG } from '../../config/layout';
 
 export function TradingView() {
   const [showSidebar, setShowSidebar] = useState(LAYOUT_CONFIG.sidebar.defaultVisible);

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock } from 'lucide-react';
-import { useStore } from '../store/useStore';
-import { authService } from '../services/authService';
+import { useStore } from '../../store/useStore';
+import { authService } from '../../services/authService';
 
 export function LoginView() {
   const [email, setEmail] = useState('');
