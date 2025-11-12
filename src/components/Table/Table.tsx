@@ -17,8 +17,10 @@ export function Table({
 }: TableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>();
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [hoveredRowKey, setHoveredRowKey] = useState<string | null>(null);
 
   const columnManager = useMemo(() => new ColumnManager(columns), [columns]);
 
@@ -53,9 +55,26 @@ export function Table({
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    setScrollTop(target.scrollTop);
-    setScrollLeft(target.scrollLeft);
+    const newScrollTop = target.scrollTop;
+    const newScrollLeft = target.scrollLeft;
+
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+
+    rafRef.current = requestAnimationFrame(() => {
+      setScrollTop(newScrollTop);
+      setScrollLeft(newScrollLeft);
+    });
   };
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   const handleRowClick = (record: any, index: number) => {
     onRowClick?.(record, index);
@@ -138,51 +157,21 @@ export function Table({
     );
   };
 
-  const renderFixedRightHeader = () => {
-    const rightCols = columnManager.getFixedRightColumns();
-    if (rightCols.length === 0) return null;
-
-    const headerRows = columnManager.getHeaderRows();
-
-    return (
-      <div
-        className="table-fixed-right"
-        style={{ width: columnManager.getFixedRightWidth(), right: 0 }}
-      >
-        <table className="table-element">
-          <thead className="table-thead">
-            {headerRows.map((row, rowIndex) => (
-              <tr key={rowIndex} style={{ height: headerHeight }}>
-                {row
-                  .filter(col => {
-                    const leafCols = columnManager.getLeafColumns();
-                    if (col.children) {
-                      return leafCols.some(
-                        leaf => leaf.parent === col && leaf.fixed === 'right'
-                      );
-                    }
-                    return col.fixed === 'right';
-                  })
-                  .map(col => renderHeaderCell(col))}
-              </tr>
-            ))}
-          </thead>
-        </table>
-      </div>
-    );
-  };
 
   const renderRow = (record: any, rowIndex: number) => {
     const leafColumns = columnManager.getLeafColumns();
     const key = getRowKey(record, start + rowIndex);
     const isSelected = selectedRowKey === key;
+    const isHovered = hoveredRowKey === key;
 
     return (
       <tr
         key={key}
         style={{ height: rowHeight }}
         onClick={() => handleRowClick(record, start + rowIndex)}
-        className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
+        onMouseEnter={() => setHoveredRowKey(key)}
+        onMouseLeave={() => setHoveredRowKey(null)}
+        className={`table-row ${isSelected ? 'table-row-selected' : ''} ${isHovered ? 'table-row-hovered' : ''}`}
       >
         {leafColumns.map(col => (
           <td
@@ -224,12 +213,15 @@ export function Table({
               {visibleData.map((record, index) => {
                 const key = getRowKey(record, start + index);
                 const isSelected = selectedRowKey === key;
+                const isHovered = hoveredRowKey === key;
                 return (
                   <tr
                     key={key}
                     style={{ height: rowHeight }}
                     onClick={() => handleRowClick(record, start + index)}
-                    className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
+                    onMouseEnter={() => setHoveredRowKey(key)}
+                    onMouseLeave={() => setHoveredRowKey(null)}
+                    className={`table-row ${isSelected ? 'table-row-selected' : ''} ${isHovered ? 'table-row-hovered' : ''}`}
                   >
                     {leftCols.map(col => (
                       <td
@@ -257,67 +249,10 @@ export function Table({
     );
   };
 
-  const renderFixedRightBody = () => {
-    const rightCols = columnManager.getFixedRightColumns();
-    if (rightCols.length === 0) return null;
-
-    return (
-      <div
-        className="table-fixed-right table-fixed-body"
-        style={{
-          width: columnManager.getFixedRightWidth(),
-          right: 0,
-          top: headerHeight * columnManager.getMaxLevel(),
-          height: height - headerHeight * columnManager.getMaxLevel(),
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ transform: `translateY(-${scrollTop}px)` }}>
-          <table className="table-element">
-            <tbody>
-              <tr style={{ height: offsetY }}>
-                <td />
-              </tr>
-              {visibleData.map((record, index) => {
-                const key = getRowKey(record, start + index);
-                const isSelected = selectedRowKey === key;
-                return (
-                  <tr
-                    key={key}
-                    style={{ height: rowHeight }}
-                    onClick={() => handleRowClick(record, start + index)}
-                    className={`table-row ${isSelected ? 'table-row-selected' : ''}`}
-                  >
-                    {rightCols.map(col => (
-                      <td
-                        key={col.key}
-                        style={{
-                          width: col.width,
-                          minWidth: col.width,
-                          textAlign: col.align || 'left',
-                        }}
-                        className="table-td"
-                      >
-                        {renderCell(col, record, index)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-              <tr style={{ height: totalHeight - offsetY - visibleData.length * rowHeight }}>
-                <td />
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div ref={containerRef} className={`table-container ${className}`} style={{ height }}>
       {renderFixedLeftHeader()}
-      {renderFixedRightHeader()}
       <div
         ref={bodyRef}
         className="table-body"
@@ -338,7 +273,6 @@ export function Table({
         </table>
       </div>
       {renderFixedLeftBody()}
-      {renderFixedRightBody()}
     </div>
   );
 }

@@ -223,7 +223,6 @@ export function StockDetailView() {
       dataIndex: 'amount',
       width: 120,
       align: 'right',
-      fixed: 'right',
       render: (value: number) => `${(value / 100000000).toFixed(2)}亿`,
     },
   ];

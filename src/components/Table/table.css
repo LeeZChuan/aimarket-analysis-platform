@@ -76,24 +76,23 @@
 }
 
 .table-row {
-  transition: background-color 0.2s;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-.table-row:hover {
-  background: #1a1a1a;
-  cursor: pointer;
+.table-row-hovered {
+  background: #1a1a1a !important;
 }
 
 .table-row-selected {
   background: #2a3f5f !important;
 }
 
-.table-row-selected:hover {
+.table-row-selected.table-row-hovered {
   background: #324a6e !important;
 }
 
-.table-fixed-left,
-.table-fixed-right {
+.table-fixed-left {
   position: absolute;
   top: 0;
   background: #0d0d0d;
@@ -101,15 +100,10 @@
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.3);
 }
 
-.table-fixed-right {
-  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.3);
-}
-
 .table-fixed-body {
   z-index: 2;
 }
 
-.table-fixed-left .table-thead,
-.table-fixed-right .table-thead {
+.table-fixed-left .table-thead {
   background: #1a1a1a;
 }
