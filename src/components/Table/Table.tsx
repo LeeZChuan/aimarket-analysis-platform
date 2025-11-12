@@ -95,15 +95,28 @@ export function Table({
     return value;
   };
 
+  const getColumnActualWidth = (col: FlattenColumn): number => {
+    if (col.colSpan === 1) {
+      return col.width;
+    }
+    if (col.children && col.children.length > 0) {
+      return col.children.reduce((sum, child) => {
+        return sum + (child.children ? getColumnActualWidth(child as FlattenColumn) : child.width);
+      }, 0);
+    }
+    return col.width * col.colSpan;
+  };
+
   const renderHeaderCell = (col: FlattenColumn) => {
+    const actualWidth = getColumnActualWidth(col);
     return (
       <th
         key={col.key}
         colSpan={col.colSpan}
         rowSpan={col.rowSpan}
         style={{
-          width: col.colSpan === 1 ? col.width : col.colSpan * col.width,
-          minWidth: col.colSpan === 1 ? col.width : col.colSpan * col.width,
+          width: actualWidth,
+          minWidth: actualWidth,
           textAlign: col.align || 'left',
         }}
         className="table-th"
