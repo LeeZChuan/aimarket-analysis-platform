@@ -24,31 +24,24 @@ export function Table({
 
   const columnManager = useMemo(() => new ColumnManager(columns), [columns]);
 
-  const virtualScrollManager = useMemo(
-    () =>
-      new VirtualScrollManager({
-        rowHeight,
-        totalRows: dataSource.length,
-        visibleRows: Math.ceil((height - headerHeight * columnManager.getMaxLevel()) / rowHeight),
-        scrollTop: 0,
-        containerHeight: height,
-      }),
-    [dataSource.length, rowHeight, height, headerHeight, columnManager]
+  const visibleRows = useMemo(
+    () => Math.ceil((height - headerHeight * columnManager.getMaxLevel()) / rowHeight),
+    [height, headerHeight, columnManager, rowHeight]
   );
 
-  useEffect(() => {
-    virtualScrollManager.updateConfig({
-      totalRows: dataSource.length,
-      scrollTop,
-    });
-  }, [dataSource.length, scrollTop, virtualScrollManager]);
-
   const visibleRange = useMemo(() => {
-    return virtualScrollManager.getVisibleRange();
-  }, [virtualScrollManager, scrollTop, dataSource.length]);
+    const bufferRows = Math.ceil(visibleRows * 0.5);
+    const startIndex = Math.floor(scrollTop / rowHeight);
+    const start = Math.max(0, startIndex - bufferRows);
+    const end = Math.min(dataSource.length, startIndex + visibleRows + bufferRows);
+    const offsetY = start * rowHeight;
+    return { start, end, offsetY };
+  }, [scrollTop, rowHeight, visibleRows, dataSource.length]);
 
   const { start, end, offsetY } = visibleRange;
-  const totalHeight = useMemo(() => virtualScrollManager.getTotalHeight(), [virtualScrollManager, dataSource.length]);
+
+  const totalHeight = useMemo(() => dataSource.length * rowHeight, [dataSource.length, rowHeight]);
+
   const visibleData = useMemo(() => {
     return dataSource.slice(start, end);
   }, [dataSource, start, end]);
