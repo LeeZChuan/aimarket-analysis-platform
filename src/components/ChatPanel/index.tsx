@@ -101,33 +101,19 @@ export function ChatPanel() {
         />
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeConversation ? (
-            <ChatMessageList messages={activeConversation.messages} isLoading={isLoading} />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">创建新对话开始分析</p>
-                <button
-                  onClick={handleNewConversation}
-                  className="mt-4 px-4 py-2 bg-[#3A9FFF] text-white rounded-lg hover:bg-[#2A8FEF] transition-colors"
-                >
-                  新建对话
-                </button>
-              </div>
-            </div>
-          )}
+          <ChatMessageList
+            messages={activeConversation?.messages || []}
+            isLoading={isLoading}
+          />
         </div>
 
-        {activeConversationId && (
-          <ChatInput
-            onSend={handleSend}
-            isLoading={isLoading}
-            selectedModel={selectedModel}
-            availableModels={AI_MODELS}
-            onModelChange={setSelectedModel}
-          />
-        )}
+        <ChatInput
+          onSend={handleSend}
+          isLoading={isLoading}
+          selectedModel={selectedModel}
+          availableModels={AI_MODELS}
+          onModelChange={setSelectedModel}
+        />
       </div>
 
       {showHistory && (
