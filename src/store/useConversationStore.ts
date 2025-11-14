@@ -59,6 +59,37 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   useLocalMode: true,
 
   setActiveConversation: async (conversationId: string) => {
+    const { useLocalMode, localConversations } = get();
+
+    if (useLocalMode && conversationId.startsWith('local_')) {
+      const localConv = localConversations.get(conversationId);
+      if (localConv) {
+        const fullConversation: ConversationWithMessages = {
+          id: localConv.id,
+          userId: 'local',
+          title: localConv.title,
+          status: ConversationStatus.ACTIVE,
+          metadata: {
+            stockSymbol: localConv.stockSymbol,
+            stockName: localConv.stockName,
+            stockPrice: localConv.stockPrice,
+            tags: [],
+            lastActivity: localConv.lastActivity,
+            messageCount: localConv.messages.length,
+          },
+          createdAt: localConv.createdAt,
+          updatedAt: localConv.lastActivity,
+          messages: localConv.messages,
+        };
+
+        set({
+          activeConversationId: conversationId,
+          activeConversation: fullConversation,
+        });
+      }
+      return;
+    }
+
     const { openTabs } = get();
     const existingTab = openTabs.find((tab) => tab.id === conversationId);
 
@@ -251,10 +282,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       const localConv = localConversations.get(activeConversationId);
       if (localConv) {
-        localConv.messages.push(newMessage);
-        localConv.lastActivity = now;
+        const updatedLocalConv: LocalConversation = {
+          ...localConv,
+          messages: [...localConv.messages, newMessage],
+          lastActivity: now,
+        };
         const newLocalConversations = new Map(localConversations);
-        newLocalConversations.set(activeConversationId, localConv);
+        newLocalConversations.set(activeConversationId, updatedLocalConv);
 
         set((state) => ({
           localConversations: newLocalConversations,
@@ -332,9 +366,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     if (useLocalMode && conversationId.startsWith('local_')) {
       const localConv = localConversations.get(conversationId);
       if (localConv) {
-        localConv.title = title;
+        const updatedLocalConv: LocalConversation = {
+          ...localConv,
+          title,
+        };
         const newLocalConversations = new Map(localConversations);
-        newLocalConversations.set(conversationId, localConv);
+        newLocalConversations.set(conversationId, updatedLocalConv);
 
         set((state) => ({
           localConversations: newLocalConversations,
@@ -379,12 +416,42 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       if (isClosingActive && newTabs.length > 0) {
         const newActiveId = newTabs[newTabs.length - 1].id;
-        conversationService.getConversation(newActiveId).then((conversation) => {
-          set({
-            activeConversationId: newActiveId,
-            activeConversation: conversation,
+
+        if (state.useLocalMode && newActiveId.startsWith('local_')) {
+          const localConv = state.localConversations.get(newActiveId);
+          if (localConv) {
+            const fullConversation: ConversationWithMessages = {
+              id: localConv.id,
+              userId: 'local',
+              title: localConv.title,
+              status: ConversationStatus.ACTIVE,
+              metadata: {
+                stockSymbol: localConv.stockSymbol,
+                stockName: localConv.stockName,
+                stockPrice: localConv.stockPrice,
+                tags: [],
+                lastActivity: localConv.lastActivity,
+                messageCount: localConv.messages.length,
+              },
+              createdAt: localConv.createdAt,
+              updatedAt: localConv.lastActivity,
+              messages: localConv.messages,
+            };
+
+            return {
+              openTabs: newTabs,
+              activeConversationId: newActiveId,
+              activeConversation: fullConversation,
+            };
+          }
+        } else {
+          conversationService.getConversation(newActiveId).then((conversation) => {
+            set({
+              activeConversationId: newActiveId,
+              activeConversation: conversation,
+            });
           });
-        });
+        }
 
         return {
           openTabs: newTabs,
