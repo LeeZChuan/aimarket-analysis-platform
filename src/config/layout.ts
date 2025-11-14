@@ -1,7 +1,7 @@
 export const LAYOUT_CONFIG = {
   sidebar: {
-    defaultWidth: 205,
-    minWidth: 200,
+    defaultWidth: 250,
+    minWidth: 250,
     maxWidth: 600,
     defaultVisible: true,
   },
