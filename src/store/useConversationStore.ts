@@ -182,12 +182,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         stockSymbol: localConv.stockSymbol,
       };
 
-      set({
+      set((state) => ({
         localConversations: newLocalConversations,
-        openTabs: [...get().openTabs, tabItem],
+        openTabs: [...state.openTabs, tabItem],
         activeConversationId: newId,
         activeConversation: fullConversation,
-      });
+        conversationList: [tabItem, ...state.conversationList],
+      }));
       return;
     }
 
@@ -241,6 +242,34 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   loadConversations: async (filter?: ConversationFilter) => {
+    const { useLocalMode, localConversations } = get();
+
+    if (useLocalMode) {
+      const localList: ConversationListItem[] = Array.from(localConversations.values()).map(
+        (conv) => ({
+          id: conv.id,
+          title: conv.title,
+          lastActivity: conv.lastActivity,
+          messageCount: conv.messages.length,
+          stockSymbol: conv.stockSymbol,
+          lastMessage:
+            conv.messages.length > 0
+              ? typeof conv.messages[conv.messages.length - 1].content === 'string'
+                ? conv.messages[conv.messages.length - 1].content.substring(0, 100)
+                : 'AI Message'
+              : undefined,
+        })
+      );
+
+      localList.sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
+
+      set({
+        conversationList: localList,
+        isLoading: false,
+      });
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
       const result = await conversationService.getConversations(filter);
@@ -478,6 +507,24 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   deleteConversation: async (conversationId: string) => {
+    const { useLocalMode, localConversations } = get();
+
+    if (useLocalMode && conversationId.startsWith('local_')) {
+      const newLocalConversations = new Map(localConversations);
+      newLocalConversations.delete(conversationId);
+
+      set((state) => ({
+        localConversations: newLocalConversations,
+        openTabs: state.openTabs.filter((tab) => tab.id !== conversationId),
+        conversationList: state.conversationList.filter((conv) => conv.id !== conversationId),
+        activeConversationId:
+          state.activeConversationId === conversationId ? null : state.activeConversationId,
+        activeConversation:
+          state.activeConversationId === conversationId ? null : state.activeConversation,
+      }));
+      return;
+    }
+
     try {
       await conversationService.deleteConversation(conversationId);
 
