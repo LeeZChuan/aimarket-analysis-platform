@@ -17,7 +17,7 @@ const AI_MODELS = [
 ];
 
 export function ChatPanel() {
-  const { selectedModel, setSelectedModel, selectedStock, user } = useStore();
+  const { selectedModel, setSelectedModel, selectedStock } = useStore();
   const {
     activeConversationId,
     activeConversation,
@@ -28,24 +28,18 @@ export function ChatPanel() {
     updateConversationTitle,
     closeTab,
     openTab,
+    initializeDefaultConversation,
   } = useConversationStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    if (!activeConversationId && openTabs.length === 0 && user) {
-      createNewConversation({
-        title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
-        stockSymbol: selectedStock?.symbol,
-        stockName: selectedStock?.name,
-        stockPrice: selectedStock?.price,
-      });
-    }
-  }, [activeConversationId, openTabs.length, user, createNewConversation, selectedStock]);
+    initializeDefaultConversation();
+  }, [initializeDefaultConversation]);
 
   const handleSend = async (message: string, images?: string[]) => {
-    if (!activeConversationId || !user || isLoading) return;
+    if (!activeConversationId || isLoading) return;
 
     await addMessageToActive('user', message);
     setIsLoading(true);
