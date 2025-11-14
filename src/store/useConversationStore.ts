@@ -311,8 +311,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       const localConv = localConversations.get(activeConversationId);
       if (localConv) {
+        const isFirstUserMessage = role === 'user' && localConv.messages.filter(m => m.role === 'user').length === 0;
+        const newTitle = isFirstUserMessage && typeof content === 'string'
+          ? content.substring(0, 50)
+          : localConv.title;
+
         const updatedLocalConv: LocalConversation = {
           ...localConv,
+          title: newTitle,
           messages: [...localConv.messages, newMessage],
           lastActivity: now,
         };
@@ -324,6 +330,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           activeConversation: state.activeConversation
             ? {
                 ...state.activeConversation,
+                title: newTitle,
                 messages: [...state.activeConversation.messages, newMessage],
                 metadata: {
                   ...state.activeConversation.metadata,
@@ -336,11 +343,23 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             tab.id === activeConversationId
               ? {
                   ...tab,
+                  title: newTitle,
                   messageCount: tab.messageCount + 1,
                   lastActivity: now,
                   lastMessage: typeof content === 'string' ? content.substring(0, 100) : 'AI Message',
                 }
               : tab
+          ),
+          conversationList: state.conversationList.map((conv) =>
+            conv.id === activeConversationId
+              ? {
+                  ...conv,
+                  title: newTitle,
+                  messageCount: conv.messageCount + 1,
+                  lastActivity: now,
+                  lastMessage: typeof content === 'string' ? content.substring(0, 100) : 'AI Message',
+                }
+              : conv
           ),
         }));
       }
