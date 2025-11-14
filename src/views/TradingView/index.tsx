@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Sidebar } from '../../components/Sidebar';
 import { ChartPanel } from '../../components/ChartPanel';
-import { ChatPanel } from '../../components/ChatPanel';
+import { ChatPanel } from '../../components/AIAssistant';
 import { LAYOUT_CONFIG } from '../../config/layout';
 
 export function TradingView() {

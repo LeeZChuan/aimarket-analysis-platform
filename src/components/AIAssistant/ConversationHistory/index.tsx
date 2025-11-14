@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Search, Trash2, Clock } from 'lucide-react';
-import { ConversationListItem, ConversationFilter } from '../../types/conversation';
-import { useConversationStore } from '../../store/useConversationStore';
+import { ConversationListItem, ConversationFilter } from '../../../types/conversation';
+import { useConversationStore } from '../../../store/useConversationStore';
 
 interface ConversationHistoryProps {
   onClose: () => void;

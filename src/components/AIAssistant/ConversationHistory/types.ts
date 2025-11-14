@@ -1,4 +1,4 @@
-import { ConversationListItem } from '../../types/conversation';
+import { ConversationListItem } from '../../../types/conversation';
 
 export interface ConversationHistoryProps {
   onClose: () => void;

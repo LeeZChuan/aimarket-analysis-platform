@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Edit2, History } from 'lucide-react';
-import { ConversationListItem } from '../../types/conversation';
+import { ConversationListItem } from '../../../types/conversation';
 
 interface ConversationTabBarProps {
   openTabs: ConversationListItem[];

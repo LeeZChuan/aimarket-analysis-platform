@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import { useStore } from '../../store/useStore';
-import { useConversationStore } from '../../store/useConversationStore';
-import { sendAnalysisRequest } from '../../services/aiService';
+import { useStore } from '../../../store/useStore';
+import { useConversationStore } from '../../../store/useConversationStore';
+import { sendAnalysisRequest } from '../../../services/aiService';
 import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
-import { ConversationListItem } from '../../types/conversation';
+import { ConversationListItem } from '../../../types/conversation';
 
 const AI_MODELS = [
   { id: 'auto', name: 'Auto', description: '自动选择最佳模型' },

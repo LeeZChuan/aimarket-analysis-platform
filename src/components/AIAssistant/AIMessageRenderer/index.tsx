@@ -1,6 +1,6 @@
-import { AIMessage, AIMessageType, AIMessageBlock, AIMessageRenderer as AIMessageRendererType } from '../../types/ai';
-import { MarkdownRenderer } from '../MarkdownRenderer';
-import { TypewriterText } from '../TypewriterText';
+import { AIMessage, AIMessageType, AIMessageBlock, AIMessageRenderer as AIMessageRendererType } from '../../../types/ai';
+import { MarkdownRenderer } from '../../MarkdownRenderer';
+import { TypewriterText } from '../../TypewriterText';
 import { Image as ImageIcon } from 'lucide-react';
 
 interface AIMessageRendererProps {

@@ -1,8 +1,8 @@
 import { useRef, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { AIMessageRenderer } from '../AIMessageRenderer';
-import { ConversationMessage } from '../../types/conversation';
-import { AIMessage } from '../../types/ai';
+import { ConversationMessage } from '../../../types/conversation';
+import { AIMessage } from '../../../types/ai';
 
 interface ChatMessageListProps {
   messages: ConversationMessage[];

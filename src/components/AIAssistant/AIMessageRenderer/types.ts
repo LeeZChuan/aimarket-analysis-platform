@@ -1,4 +1,4 @@
-import { AIMessage, AIMessageRenderer as AIMessageRendererType } from '../../types/ai';
+import { AIMessage, AIMessageRenderer as AIMessageRendererType } from '../../../types/ai';
 
 /**
  * AIMessageRenderer 组件属性

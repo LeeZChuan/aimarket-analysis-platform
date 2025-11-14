@@ -1,4 +1,4 @@
-import { AIMessage } from '../../types/ai';
+import { AIMessage } from '../../../types/ai';
 
 /**
  * AI 模型配置
