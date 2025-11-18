@@ -1,7 +1,7 @@
-import { Time } from 'lightweight-charts';
 import {
   LineChartData,
   VolumeChartData,
+  KLineData,
   CandlestickData,
   KLineChartData,
   MALineData,
@@ -24,13 +24,14 @@ export function generateLineChartData(
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - (days - i));
+    date.setHours(0, 0, 0, 0);
 
     const randomValue = generatePseudoRandom(seed + i);
     const volatility = basePrice * 0.15;
     const value = basePrice + (randomValue - 0.5) * volatility;
 
     data.push({
-      time: date.toISOString().split('T')[0] as Time,
+      timestamp: date.getTime(),
       value: Math.max(value, basePrice * 0.5),
     });
   }
@@ -49,12 +50,13 @@ export function generateVolumeData(
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - (days - i));
+    date.setHours(0, 0, 0, 0);
 
     const randomValue = generatePseudoRandom(seed + i);
     const volume = baseVolume * (0.5 + randomValue);
 
     data.push({
-      time: date.toISOString().split('T')[0] as Time,
+      timestamp: date.getTime(),
       value: Math.floor(volume),
       color: randomValue > 0.5 ? '#26a69a' : '#ef5350',
     });
@@ -63,7 +65,7 @@ export function generateVolumeData(
   return data;
 }
 
-function calculateMA(data: CandlestickData[], period: number): MALineData[] {
+function calculateMA(data: KLineData[], period: number): MALineData[] {
   const result: MALineData[] = [];
 
   for (let i = 0; i < data.length; i++) {
@@ -77,7 +79,7 @@ function calculateMA(data: CandlestickData[], period: number): MALineData[] {
     }
 
     result.push({
-      time: data[i].time,
+      timestamp: data[i].timestamp,
       value: sum / period,
     });
   }
@@ -90,7 +92,7 @@ export function generateKLineData(
   basePrice: number,
   days: number = 100
 ): KLineChartData {
-  const candlestick: CandlestickData[] = [];
+  const candlestick: KLineData[] = [];
   const volume: VolumeChartData[] = [];
   const seed = stockId.charCodeAt(0) * 3000;
 
@@ -99,7 +101,8 @@ export function generateKLineData(
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - (days - i));
-    const timeStr = date.toISOString().split('T')[0] as Time;
+    date.setHours(0, 0, 0, 0);
+    const timestamp = date.getTime();
 
     const random1 = generatePseudoRandom(seed + i * 3);
     const random2 = generatePseudoRandom(seed + i * 3 + 1);
@@ -116,18 +119,20 @@ export function generateKLineData(
     const high = Math.max(open, close) * (1 + highOffset);
     const low = Math.min(open, close) * (1 - lowOffset);
 
+    const baseVolume = 1000000;
+    const volumeValue = baseVolume * (0.5 + random4);
+
     candlestick.push({
-      time: timeStr,
+      timestamp,
       open: Number(open.toFixed(2)),
       high: Number(high.toFixed(2)),
       low: Number(low.toFixed(2)),
       close: Number(close.toFixed(2)),
+      volume: Math.floor(volumeValue),
     });
 
-    const baseVolume = 1000000;
-    const volumeValue = baseVolume * (0.5 + random4);
     volume.push({
-      time: timeStr,
+      timestamp,
       value: Math.floor(volumeValue),
       color: close >= open ? '#26a69a' : '#ef5350',
     });

@@ -1,32 +1,34 @@
-import { Time } from 'lightweight-charts';
-
 export interface LineChartData {
-  time: Time;
+  timestamp: number;
   value: number;
 }
 
 export interface VolumeChartData {
-  time: Time;
+  timestamp: number;
   value: number;
   color?: string;
 }
 
-export interface CandlestickData {
-  time: Time;
+export interface KLineData {
+  timestamp: number;
   open: number;
   high: number;
   low: number;
   close: number;
+  volume?: number;
+  turnover?: number;
 }
 
+export interface CandlestickData extends KLineData {}
+
 export interface MALineData {
-  time: Time;
+  timestamp: number;
   value: number;
 }
 
 export interface KLineChartData {
-  candlestick: CandlestickData[];
-  volume: VolumeChartData[];
+  candlestick: KLineData[];
+  volume?: VolumeChartData[];
   ma5?: MALineData[];
   ma10?: MALineData[];
   ma20?: MALineData[];
