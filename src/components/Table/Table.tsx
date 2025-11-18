@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { TableProps, FlattenColumn } from './types';
+import { TableProps, FlattenColumn, ColumnConfig, SortOrder } from './types';
 import { VirtualScrollManager } from './VirtualScrollManager';
 import { ColumnManager } from './ColumnManager';
+import { SortManager } from './SortManager';
+import { DragManager } from './DragManager';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import './table.css';
 
 export function Table({
-  columns,
+  columns: initialColumns,
   dataSource,
   rowHeight = 48,
   headerHeight = 48,
@@ -13,6 +16,8 @@ export function Table({
   rowKey = 'id',
   selectedRowKey,
   onRowClick,
+  onSortChange,
+  onColumnOrderChange,
   className = '',
 }: TableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,8 +26,33 @@ export function Table({
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [hoveredRowKey, setHoveredRowKey] = useState<string | null>(null);
+  const [columns, setColumns] = useState<ColumnConfig[]>(initialColumns);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
+  const [dragState, setDragState] = useState<{dragIndex: number | null; dropIndex: number | null}>({dragIndex: null, dropIndex: null});
 
-  const columnManager = useMemo(() => new ColumnManager(columns), [columns]);
+  const sortManager = useRef(new SortManager());
+  const dragManager = useRef(new DragManager());
+
+  const columnManager = useMemo(() => {
+    dragManager.current.setColumns(columns);
+    return new ColumnManager(columns);
+  }, [columns]);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+  }, [initialColumns]);
+
+  const sortedData = useMemo(() => {
+    if (!sortKey || !sortOrder) {
+      return dataSource;
+    }
+    const column = columns.find(col => col.key === sortKey);
+    if (!column) {
+      return dataSource;
+    }
+    return sortManager.current.sortData(dataSource, column, sortOrder);
+  }, [dataSource, sortKey, sortOrder, columns]);
 
   const visibleRows = useMemo(
     () => Math.ceil((height - headerHeight * columnManager.getMaxLevel()) / rowHeight),
@@ -33,18 +63,67 @@ export function Table({
     const bufferRows = Math.ceil(visibleRows * 0.5);
     const startIndex = Math.floor(scrollTop / rowHeight);
     const start = Math.max(0, startIndex - bufferRows);
-    const end = Math.min(dataSource.length, startIndex + visibleRows + bufferRows);
+    const end = Math.min(sortedData.length, startIndex + visibleRows + bufferRows);
     const offsetY = start * rowHeight;
     return { start, end, offsetY };
-  }, [scrollTop, rowHeight, visibleRows, dataSource.length]);
+  }, [scrollTop, rowHeight, visibleRows, sortedData.length]);
 
   const { start, end, offsetY } = visibleRange;
 
-  const totalHeight = useMemo(() => dataSource.length * rowHeight, [dataSource.length, rowHeight]);
+  const totalHeight = useMemo(() => sortedData.length * rowHeight, [sortedData.length, rowHeight]);
 
   const visibleData = useMemo(() => {
-    return dataSource.slice(start, end);
-  }, [dataSource, start, end]);
+    return sortedData.slice(start, end);
+  }, [sortedData, start, end]);
+
+  const handleSort = (column: FlattenColumn) => {
+    const sortConfig = sortManager.current.getSortConfig(column);
+    if (!sortConfig) return;
+
+    const newOrder = sortManager.current.toggleSort(column.key);
+    setSortKey(newOrder ? column.key : null);
+    setSortOrder(newOrder);
+
+    if (onSortChange) {
+      onSortChange(newOrder ? { columnKey: column.key, order: newOrder } : null);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, columnIndex: number) => {
+    const leafColumns = columnManager.getLeafColumns();
+    if (!dragManager.current.isDraggable(columns[columnIndex])) return;
+
+    dragManager.current.startDrag(columnIndex);
+    setDragState({ dragIndex: columnIndex, dropIndex: null });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnIndex: number) => {
+    e.preventDefault();
+    if (dragState.dragIndex === null) return;
+
+    dragManager.current.updateDropTarget(columnIndex);
+    setDragState(prev => ({ ...prev, dropIndex: columnIndex }));
+  };
+
+  const handleDrop = (e: React.DragEvent, columnIndex: number) => {
+    e.preventDefault();
+    const newColumns = dragManager.current.endDrag();
+
+    if (newColumns) {
+      setColumns(newColumns);
+      if (onColumnOrderChange) {
+        onColumnOrderChange(newColumns);
+      }
+    }
+
+    setDragState({ dragIndex: null, dropIndex: null });
+  };
+
+  const handleDragEnd = () => {
+    dragManager.current.resetDrag();
+    setDragState({ dragIndex: null, dropIndex: null });
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -100,32 +179,77 @@ export function Table({
     return col.width * col.colSpan;
   };
 
-  const renderHeaderCell = (col: FlattenColumn) => {
+  const renderSortIcon = (col: FlattenColumn) => {
+    const sortConfig = sortManager.current.getSortConfig(col);
+    if (!sortConfig) return null;
+
+    const currentOrder = sortManager.current.getSortOrder(col.key);
+
+    if (!currentOrder) {
+      return <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />;
+    }
+
+    if (currentOrder === 'ascend') {
+      return <ArrowUp className="w-3.5 h-3.5 ml-1 text-blue-400" />;
+    }
+
+    return <ArrowDown className="w-3.5 h-3.5 ml-1 text-blue-400" />;
+  };
+
+  const renderHeaderCell = (col: FlattenColumn, columnIndex?: number) => {
     const actualWidth = getColumnActualWidth(col);
+    const sortConfig = sortManager.current.getSortConfig(col);
+    const isSortable = !!sortConfig;
+    const isDraggable = col.draggable && !col.fixed;
+    const isDragging = dragState.dragIndex === columnIndex;
+    const isDropTarget = dragState.dropIndex === columnIndex;
+
     return (
       <th
         key={col.key}
         colSpan={col.colSpan}
         rowSpan={col.rowSpan}
+        draggable={isDraggable}
+        onDragStart={(e) => columnIndex !== undefined && handleDragStart(e, columnIndex)}
+        onDragOver={(e) => columnIndex !== undefined && handleDragOver(e, columnIndex)}
+        onDrop={(e) => columnIndex !== undefined && handleDrop(e, columnIndex)}
+        onDragEnd={handleDragEnd}
         style={{
           width: actualWidth,
           minWidth: actualWidth,
           textAlign: col.align || 'left',
         }}
-        className="table-th"
+        className={`table-th group ${
+          isSortable ? 'cursor-pointer hover:bg-[#2A2A2A]' : ''
+        } ${
+          isDraggable ? 'cursor-move' : ''
+        } ${
+          isDragging ? 'opacity-50' : ''
+        } ${
+          isDropTarget ? 'border-l-2 border-blue-400' : ''
+        }`}
+        onClick={() => isSortable && handleSort(col)}
       >
-        {col.title}
+        <div className="flex items-center justify-between">
+          <span>{col.title}</span>
+          {isSortable && renderSortIcon(col)}
+        </div>
       </th>
     );
   };
 
   const renderHeader = () => {
     const headerRows = columnManager.getHeaderRows();
+    const leafColumns = columnManager.getLeafColumns();
+
     return (
       <thead className="table-thead">
         {headerRows.map((row, rowIndex) => (
           <tr key={rowIndex} style={{ height: headerHeight }}>
-            {row.map(col => renderHeaderCell(col))}
+            {row.map((col) => {
+              const leafIndex = leafColumns.findIndex(leaf => leaf.key === col.key);
+              return renderHeaderCell(col, leafIndex >= 0 ? leafIndex : undefined);
+            })}
           </tr>
         ))}
       </thead>
@@ -154,7 +278,11 @@ export function Table({
                     }
                     return col.fixed === 'left';
                   })
-                  .map(col => renderHeaderCell(col))}
+                  .map((col) => {
+                    const leafCols = columnManager.getLeafColumns();
+                    const leafIndex = leafCols.findIndex(leaf => leaf.key === col.key);
+                    return renderHeaderCell(col, leafIndex >= 0 ? leafIndex : undefined);
+                  })}
               </tr>
             ))}
           </thead>

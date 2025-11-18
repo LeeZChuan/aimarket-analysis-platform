@@ -85,6 +85,7 @@ export function StockDetailView() {
       dataIndex: 'code',
       width: 100,
       fixed: 'left',
+      sortable: true,
     },
     {
       key: 'name',
@@ -92,6 +93,7 @@ export function StockDetailView() {
       dataIndex: 'name',
       width: 120,
       fixed: 'left',
+      sortable: true,
     },
     {
       key: 'priceInfo',
@@ -105,6 +107,8 @@ export function StockDetailView() {
           dataIndex: 'price',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => (
             <span className="font-medium">{value.toFixed(2)}</span>
           ),
@@ -115,6 +119,8 @@ export function StockDetailView() {
           dataIndex: 'change',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => (
             <span className={value >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'}>
               {value >= 0 ? '+' : ''}{value.toFixed(2)}
@@ -127,6 +133,8 @@ export function StockDetailView() {
           dataIndex: 'changePercent',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => (
             <span className={value >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'}>
               {value >= 0 ? '+' : ''}{value.toFixed(2)}%
@@ -139,6 +147,8 @@ export function StockDetailView() {
           dataIndex: 'volume',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => (
             <span>{(value / 10000).toFixed(0)}万</span>
           ),
@@ -197,6 +207,8 @@ export function StockDetailView() {
           dataIndex: 'marketCap',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => `${(value / 100000000).toFixed(0)}亿`,
         },
         {
@@ -205,6 +217,8 @@ export function StockDetailView() {
           dataIndex: 'pe',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => value.toFixed(2),
         },
         {
@@ -213,6 +227,8 @@ export function StockDetailView() {
           dataIndex: 'pb',
           width: 100,
           align: 'right',
+          sortable: true,
+          draggable: true,
           render: (value: number) => value.toFixed(2),
         },
       ],
@@ -242,7 +258,7 @@ export function StockDetailView() {
         <div className="mb-4">
           <h2 className="text-xl font-bold text-white">个股列表</h2>
           <p className="text-sm text-gray-400 mt-1">
-            共 {stockData.length} 只股票，支持虚拟滚动和固定列
+            共 {stockData.length} 只股票，支持虚拟滚动、固定列、排序和列拖拽
           </p>
         </div>
         <Table

@@ -109,3 +109,23 @@
 .table-fixed-left .table-thead {
   background: #1a1a1a;
 }
+
+.table-th.cursor-pointer {
+  transition: background-color 0.15s ease;
+}
+
+.table-th.cursor-move {
+  transition: opacity 0.15s ease;
+}
+
+.table-th.cursor-move:active {
+  cursor: grabbing;
+}
+
+.table-th[draggable="true"] {
+  cursor: grab;
+}
+
+.table-th[draggable="true"]:active {
+  cursor: grabbing;
+}

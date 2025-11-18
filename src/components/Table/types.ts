@@ -1,4 +1,23 @@
 /**
+ * 排序方向
+ */
+export type SortOrder = 'ascend' | 'descend' | null;
+
+/**
+ * 排序配置
+ */
+export interface SortConfig {
+  /** 是否启用排序 */
+  sortable: boolean;
+  /** 默认排序方向 */
+  defaultSortOrder?: SortOrder;
+  /** 自定义排序函数 */
+  sorter?: (a: any, b: any) => number;
+  /** 是否支持多列排序 */
+  multiple?: number;
+}
+
+/**
  * 列配置
  */
 export interface ColumnConfig {
@@ -18,6 +37,18 @@ export interface ColumnConfig {
   children?: ColumnConfig[];
   /** 自定义渲染函数 */
   render?: (value: any, record: any, index: number) => React.ReactNode;
+  /** 排序配置 */
+  sortable?: boolean | SortConfig;
+  /** 是否可拖拽 */
+  draggable?: boolean;
+}
+
+/**
+ * 排序状态
+ */
+export interface SortState {
+  columnKey: string;
+  order: SortOrder;
 }
 
 /**
@@ -42,6 +73,10 @@ export interface TableProps {
   onRowClick?: (record: any, index: number) => void;
   /** 自定义类名 */
   className?: string;
+  /** 排序变化回调 */
+  onSortChange?: (sortState: SortState | null) => void;
+  /** 列顺序变化回调 */
+  onColumnOrderChange?: (newColumns: ColumnConfig[]) => void;
 }
 
 /**
