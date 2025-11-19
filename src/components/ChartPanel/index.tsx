@@ -201,6 +201,9 @@ export function ChartPanel() {
       if (chart) {
         chartRef.current = chart;
 
+        chart.createIndicator('VOL', true);
+        setIndicators(['VOL']);
+
         chart.subscribeAction('crosshair', (data) => {
           if (data && data.kLineData) {
             const kline = data.kLineData as KLineData;
@@ -467,14 +470,19 @@ export function ChartPanel() {
       if (isMainIndicator) {
         chartRef.current.removeIndicator('candle_pane', indicator);
       } else {
-        chartRef.current.removeIndicator(undefined, indicator);
+        const allPanes = chartRef.current.getPanes();
+        allPanes.forEach(pane => {
+          if (pane.id !== 'candle_pane') {
+            chartRef.current!.removeIndicator(pane.id, indicator);
+          }
+        });
       }
       setIndicators((prev) => prev.filter((i) => i !== indicator));
     } else {
       if (isMainIndicator) {
         chartRef.current.createIndicator(indicator, false, { id: 'candle_pane' });
       } else {
-        chartRef.current.createIndicator(indicator);
+        chartRef.current.createIndicator(indicator, true);
       }
       setIndicators((prev) => [...prev, indicator]);
     }
