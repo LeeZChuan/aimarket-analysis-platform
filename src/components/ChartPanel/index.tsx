@@ -1,10 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
-import { init, dispose, registerIndicator } from 'klinecharts';
-import type { Chart, KLineData, IndicatorCreate } from 'klinecharts';
+import { init, dispose } from 'klinecharts';
+import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
-import { Calendar } from 'lucide-react';
+import {
+  Calendar,
+  TrendingUp,
+  Activity,
+  BarChart3,
+  Minus,
+  TrendingDown,
+  Circle,
+  Square,
+  Triangle,
+  ArrowRight,
+  Pencil,
+  Type,
+  Eraser,
+} from 'lucide-react';
 
 type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';
+
+type DrawingTool =
+  | 'none'
+  | 'horizontalRayLine'
+  | 'horizontalSegment'
+  | 'horizontalStraightLine'
+  | 'verticalRayLine'
+  | 'verticalSegment'
+  | 'verticalStraightLine'
+  | 'rayLine'
+  | 'segment'
+  | 'straightLine'
+  | 'priceLine'
+  | 'priceChannelLine'
+  | 'parallelStraightLine'
+  | 'fibonacciLine'
+  | 'rect'
+  | 'circle'
+  | 'arc'
+  | 'triangle'
+  | 'text';
+
+interface IndicatorOption {
+  name: string;
+  label: string;
+  description: string;
+}
 
 export function ChartPanel() {
   const { selectedStock, dateRange, setDateRange } = useStore();
@@ -13,12 +54,47 @@ export function ChartPanel() {
   const [indicators, setIndicators] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('6M');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
   const [hoveredChange, setHoveredChange] = useState<number | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<DrawingTool>('none');
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const indicatorMenuRef = useRef<HTMLDivElement>(null);
+
+  const mainIndicators: IndicatorOption[] = [
+    { name: 'MA', label: 'MA', description: '移动平均线' },
+    { name: 'EMA', label: 'EMA', description: '指数移动平均' },
+    { name: 'BOLL', label: 'BOLL', description: '布林带' },
+    { name: 'SAR', label: 'SAR', description: '抛物线转向' },
+  ];
+
+  const subIndicators: IndicatorOption[] = [
+    { name: 'VOL', label: 'VOL', description: '成交量' },
+    { name: 'MACD', label: 'MACD', description: '指数平滑异同移动平均线' },
+    { name: 'RSI', label: 'RSI', description: '相对强弱指标' },
+    { name: 'KDJ', label: 'KDJ', description: '随机指标' },
+    { name: 'CCI', label: 'CCI', description: '顺势指标' },
+    { name: 'DMI', label: 'DMI', description: '动向指标' },
+  ];
+
+  const drawingTools: { tool: DrawingTool; icon: any; label: string }[] = [
+    { tool: 'horizontalStraightLine', icon: Minus, label: '水平线' },
+    { tool: 'verticalStraightLine', icon: Minus, label: '垂直线' },
+    { tool: 'straightLine', icon: Minus, label: '直线' },
+    { tool: 'rayLine', icon: ArrowRight, label: '射线' },
+    { tool: 'segment', icon: Minus, label: '线段' },
+    { tool: 'priceLine', icon: TrendingUp, label: '价格线' },
+    { tool: 'priceChannelLine', icon: TrendingDown, label: '价格通道' },
+    { tool: 'parallelStraightLine', icon: Minus, label: '平行线' },
+    { tool: 'fibonacciLine', icon: Activity, label: '斐波那契' },
+    { tool: 'rect', icon: Square, label: '矩形' },
+    { tool: 'circle', icon: Circle, label: '圆形' },
+    { tool: 'triangle', icon: Triangle, label: '三角形' },
+    { tool: 'text', icon: Type, label: '文本' },
+  ];
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -126,10 +202,8 @@ export function ChartPanel() {
     const chart = chartRef.current;
 
     indicators.forEach((indicator) => {
-      if (indicator === 'MA') {
-        chart.createIndicator('MA', false, { id: 'candle_pane' });
-      } else if (indicator === 'BOLL') {
-        chart.createIndicator('BOLL', false, { id: 'candle_pane' });
+      if (['MA', 'EMA', 'BOLL', 'SAR'].includes(indicator)) {
+        chart.createIndicator(indicator, false, { id: 'candle_pane' });
       } else {
         chart.createIndicator(indicator);
       }
@@ -278,157 +352,291 @@ export function ChartPanel() {
       if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
         setShowDatePicker(false);
       }
+      if (indicatorMenuRef.current && !indicatorMenuRef.current.contains(event.target as Node)) {
+        setShowIndicatorMenu(false);
+      }
     };
 
-    if (showDatePicker) {
+    if (showDatePicker || showIndicatorMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDatePicker]);
+  }, [showDatePicker, showIndicatorMenu]);
 
   const toggleIndicator = (indicator: string) => {
-    setIndicators((prev) =>
-      prev.includes(indicator)
-        ? prev.filter((i) => i !== indicator)
-        : [...prev, indicator]
-    );
+    if (!chartRef.current) return;
+
+    if (indicators.includes(indicator)) {
+      chartRef.current.removeIndicator('candle_pane', indicator);
+      setIndicators((prev) => prev.filter((i) => i !== indicator));
+    } else {
+      const isMainIndicator = mainIndicators.some(i => i.name === indicator);
+      if (isMainIndicator) {
+        chartRef.current.createIndicator(indicator, false, { id: 'candle_pane' });
+      } else {
+        chartRef.current.createIndicator(indicator);
+      }
+      setIndicators((prev) => [...prev, indicator]);
+    }
+  };
+
+  const handleDrawingTool = (tool: DrawingTool) => {
+    if (!chartRef.current) return;
+
+    if (tool === 'none') {
+      chartRef.current.createOverlay({ name: '' });
+      setActiveTool('none');
+    } else {
+      chartRef.current.createOverlay({ name: tool });
+      setActiveTool(tool);
+    }
+  };
+
+  const clearAllOverlays = () => {
+    if (!chartRef.current) return;
+    chartRef.current.removeOverlay();
+    setActiveTool('none');
   };
 
   return (
-    <div className="h-full w-full bg-[#0D0D0D] flex flex-col">
-      <div className="border-b border-[#2A2A2A] px-4 py-3">
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-4">
-            <div className="flex items-baseline gap-2">
-              <h1 className="text-xl font-bold text-white">
-                {selectedStock?.symbol || 'AAPL'}
-              </h1>
-              <p className="text-xs text-gray-500">
-                {selectedStock?.name || 'Apple Inc.'}
-              </p>
-            </div>
-            <div className="h-5 w-px bg-[#2A2A2A]" />
-            <div className="flex items-baseline gap-3">
-              <span className="text-2xl font-mono font-bold text-white">
-                ${(hoveredPrice !== null ? hoveredPrice : (selectedStock?.price || 178.72)).toFixed(2)}
-              </span>
-              <span
-                className={`text-sm font-semibold ${
-                  (hoveredChange !== null ? hoveredChange : (selectedStock?.change || 2.34)) >= 0
-                    ? 'text-[#00D09C]'
-                    : 'text-[#FF4976]'
-                }`}
-              >
-                {(hoveredChange !== null ? hoveredChange : (selectedStock?.change || 2.34)) >= 0 ? '+' : ''}
-                {(hoveredChange !== null ? hoveredChange : (selectedStock?.change || 2.34)).toFixed(2)}%
-              </span>
-              {hoveredDate && (
-                <span className="text-xs text-gray-500 ml-1">
-                  {hoveredDate}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="h-full w-full bg-[#0D0D0D] flex">
+      <div className="w-12 bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1">
+        <button
+          onClick={() => handleDrawingTool('none')}
+          className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
+            activeTool === 'none'
+              ? 'bg-[#3A9FFF] text-white'
+              : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
+          }`}
+          title="选择工具"
+        >
+          <ArrowRight className="w-4 h-4" />
+        </button>
 
-        <div className="flex items-center justify-between">
-          <div></div>
-          <div className="flex items-center gap-2">
-            <div className="relative" ref={datePickerRef}>
-              <button
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="px-2 py-0.5 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-[10px] text-gray-400 hover:text-white hover:border-[#3A9FFF] transition-colors flex items-center gap-1"
-                title={`${dateRange.start} ~ ${dateRange.end}`}
-              >
-                <Calendar className="w-3 h-3" />
-                <span className="hidden xl:inline">{dateRange.start.slice(5)} ~ {dateRange.end.slice(5)}</span>
-              </button>
+        <div className="h-px w-8 bg-[#2A2A2A] my-1" />
 
-              {showDatePicker && (
-                <div className="absolute top-full left-0 mt-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[280px]">
-                  <div className="space-y-2">
-                    <div>
-                      <label className="text-[10px] text-gray-400 block mb-1">开始日期</label>
-                      <input
-                        type="date"
-                        value={customStartDate}
-                        onChange={(e) => setCustomStartDate(e.target.value)}
-                        className="w-full px-2 py-1 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[11px] text-white focus:border-[#3A9FFF] focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-gray-400 block mb-1">结束日期</label>
-                      <input
-                        type="date"
-                        value={customEndDate}
-                        onChange={(e) => setCustomEndDate(e.target.value)}
-                        className="w-full px-2 py-1 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[11px] text-white focus:border-[#3A9FFF] focus:outline-none"
-                      />
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={handleCustomDateApply}
-                        className="flex-1 px-3 py-1.5 bg-[#3A9FFF] hover:bg-[#3A9FFF]/80 text-white text-[11px] font-medium rounded transition-colors"
-                        title="应用自定义日期范围"
-                      >
-                        应用
-                      </button>
-                      <button
-                        onClick={() => setShowDatePicker(false)}
-                        className="flex-1 px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#3A3A3A] text-gray-300 text-[11px] font-medium rounded transition-colors"
-                        title="取消自定义日期"
-                      >
-                        取消
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+        {drawingTools.slice(0, 9).map(({ tool, icon: Icon, label }) => (
+          <button
+            key={tool}
+            onClick={() => handleDrawingTool(tool)}
+            className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
+              activeTool === tool
+                ? 'bg-[#3A9FFF] text-white'
+                : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
+            }`}
+            title={label}
+          >
+            <Icon className="w-4 h-4" />
+          </button>
+        ))}
 
-            <div className="flex gap-0.5">
-              {(['1D', '5D', '1M', '3M', '6M', '1Y'] as TimeRange[]).map((period) => (
-                <button
-                  key={period}
-                  onClick={() => handleTimeRangeChange(period)}
-                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
-                    timeRange === period
-                      ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
-                      : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
-                  }`}
-                  title={`查看${period === '1D' ? '1天' : period === '5D' ? '5天' : period === '1M' ? '1个月' : period === '3M' ? '3个月' : period === '6M' ? '6个月' : '1年'}的数据`}
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
+        <div className="h-px w-8 bg-[#2A2A2A] my-1" />
 
-            <div className="h-4 w-px bg-[#2A2A2A] mx-1" />
+        {drawingTools.slice(9).map(({ tool, icon: Icon, label }) => (
+          <button
+            key={tool}
+            onClick={() => handleDrawingTool(tool)}
+            className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
+              activeTool === tool
+                ? 'bg-[#3A9FFF] text-white'
+                : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
+            }`}
+            title={label}
+          >
+            <Icon className="w-4 h-4" />
+          </button>
+        ))}
 
-            <div className="flex gap-0.5">
-              {['BOLL', 'RSI', 'KDJ'].map((indicator) => (
-                <button
-                  key={indicator}
-                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
-                    indicators.includes(indicator)
-                      ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
-                      : 'bg-[#1A1A1A] text-gray-500 hover:text-gray-300 border border-[#2A2A2A] hover:border-[#3A3A3A]'
-                  }`}
-                  onClick={() => toggleIndicator(indicator)}
-                  title={`${indicators.includes(indicator) ? '隐藏' : '显示'}${indicator}指标`}
-                >
-                  {indicator}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+
+        <button
+          onClick={clearAllOverlays}
+          className="w-9 h-9 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          title="清除所有绘图"
+        >
+          <Eraser className="w-4 h-4" />
+        </button>
       </div>
 
-      <div ref={chartContainerRef} className="flex-1 min-h-0" />
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="border-b border-[#2A2A2A] px-4 py-3">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-4">
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-xl font-bold text-white">
+                  {selectedStock?.symbol || 'AAPL'}
+                </h1>
+                <p className="text-xs text-gray-500">
+                  {selectedStock?.name || 'Apple Inc.'}
+                </p>
+              </div>
+              <div className="h-5 w-px bg-[#2A2A2A]" />
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl font-mono font-bold text-white">
+                  ${(hoveredPrice !== null ? hoveredPrice : (selectedStock?.price || 178.72)).toFixed(2)}
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    (hoveredChange !== null ? hoveredChange : (selectedStock?.change || 2.34)) >= 0
+                      ? 'text-[#00D09C]'
+                      : 'text-[#FF4976]'
+                  }`}
+                >
+                  {(hoveredChange !== null ? hoveredChange : (selectedStock?.change || 2.34)) >= 0 ? '+' : ''}
+                  {(hoveredChange !== null ? hoveredChange : (selectedStock?.change || 2.34)).toFixed(2)}%
+                </span>
+                {hoveredDate && (
+                  <span className="text-xs text-gray-500 ml-1">
+                    {hoveredDate}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div></div>
+            <div className="flex items-center gap-2">
+              <div className="relative" ref={datePickerRef}>
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="px-2 py-0.5 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-[10px] text-gray-400 hover:text-white hover:border-[#3A9FFF] transition-colors flex items-center gap-1"
+                  title={`${dateRange.start} ~ ${dateRange.end}`}
+                >
+                  <Calendar className="w-3 h-3" />
+                  <span className="hidden xl:inline">{dateRange.start.slice(5)} ~ {dateRange.end.slice(5)}</span>
+                </button>
+
+                {showDatePicker && (
+                  <div className="absolute top-full left-0 mt-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[280px]">
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-[10px] text-gray-400 block mb-1">开始日期</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="w-full px-2 py-1 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[11px] text-white focus:border-[#3A9FFF] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-400 block mb-1">结束日期</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="w-full px-2 py-1 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[11px] text-white focus:border-[#3A9FFF] focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={handleCustomDateApply}
+                          className="flex-1 px-3 py-1.5 bg-[#3A9FFF] hover:bg-[#3A9FFF]/80 text-white text-[11px] font-medium rounded transition-colors"
+                          title="应用自定义日期范围"
+                        >
+                          应用
+                        </button>
+                        <button
+                          onClick={() => setShowDatePicker(false)}
+                          className="flex-1 px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#3A3A3A] text-gray-300 text-[11px] font-medium rounded transition-colors"
+                          title="取消自定义日期"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-0.5">
+                {(['1D', '5D', '1M', '3M', '6M', '1Y'] as TimeRange[]).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => handleTimeRangeChange(period)}
+                    className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
+                      timeRange === period
+                        ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
+                    }`}
+                    title={`查看${period === '1D' ? '1天' : period === '5D' ? '5天' : period === '1M' ? '1个月' : period === '3M' ? '3个月' : period === '6M' ? '6个月' : '1年'}的数据`}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-px bg-[#2A2A2A] mx-1" />
+
+              <div className="relative" ref={indicatorMenuRef}>
+                <button
+                  onClick={() => setShowIndicatorMenu(!showIndicatorMenu)}
+                  className="px-2 py-0.5 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-[10px] text-gray-400 hover:text-white hover:border-[#3A9FFF] transition-colors flex items-center gap-1"
+                  title="技术指标"
+                >
+                  <BarChart3 className="w-3 h-3" />
+                  <span>指标</span>
+                </button>
+
+                {showIndicatorMenu && (
+                  <div className="absolute top-full right-0 mt-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[240px]">
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="text-[10px] text-gray-500 mb-2 font-medium">主图指标</h3>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {mainIndicators.map((indicator) => (
+                            <button
+                              key={indicator.name}
+                              onClick={() => toggleIndicator(indicator.name)}
+                              className={`px-2 py-1.5 text-[10px] font-medium rounded transition-all text-left ${
+                                indicators.includes(indicator.name)
+                                  ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
+                                  : 'bg-[#0D0D0D] text-gray-400 hover:text-white border border-[#2A2A2A] hover:border-[#3A3A3A]'
+                              }`}
+                              title={indicator.description}
+                            >
+                              <div className="font-semibold">{indicator.label}</div>
+                              <div className="text-[9px] opacity-70">{indicator.description}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-[#2A2A2A]" />
+
+                      <div>
+                        <h3 className="text-[10px] text-gray-500 mb-2 font-medium">副图指标</h3>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {subIndicators.map((indicator) => (
+                            <button
+                              key={indicator.name}
+                              onClick={() => toggleIndicator(indicator.name)}
+                              className={`px-2 py-1.5 text-[10px] font-medium rounded transition-all text-left ${
+                                indicators.includes(indicator.name)
+                                  ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
+                                  : 'bg-[#0D0D0D] text-gray-400 hover:text-white border border-[#2A2A2A] hover:border-[#3A3A3A]'
+                              }`}
+                              title={indicator.description}
+                            >
+                              <div className="font-semibold">{indicator.label}</div>
+                              <div className="text-[9px] opacity-70">{indicator.description}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div ref={chartContainerRef} className="flex-1 min-h-0" />
+      </div>
     </div>
   );
 }
