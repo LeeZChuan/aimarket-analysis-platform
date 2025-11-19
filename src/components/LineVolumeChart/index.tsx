@@ -1,12 +1,6 @@
 import { useEffect, useRef } from 'react';
-import {
-  createChart,
-  ColorType,
-  IChartApi,
-  ISeriesApi,
-  LineSeries,
-  HistogramSeries,
-} from 'lightweight-charts';
+import { init, dispose } from 'klinecharts';
+import type { Chart, KLineData } from 'klinecharts';
 import { LineChartData, VolumeChartData } from '../../types/chart';
 
 interface LineVolumeChartProps {
@@ -21,114 +15,95 @@ export function LineVolumeChart({
   height = 400,
 }: LineVolumeChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const lineSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const chartRef = useRef<Chart | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     if (!chartRef.current) {
-      const chart = createChart(chartContainerRef.current, {
-        layout: {
-          background: { type: ColorType.Solid, color: '#0D0D0D' },
-          textColor: '#D9D9D9',
-        },
-        grid: {
-          vertLines: { color: '#1A1A1A' },
-          horzLines: { color: '#1A1A1A' },
-        },
-        width: chartContainerRef.current.clientWidth,
-        height: height,
-        timeScale: {
-          borderColor: '#2A2A2A',
-          timeVisible: true,
-        },
-        rightPriceScale: {
-          borderColor: '#2A2A2A',
-        },
-        crosshair: {
-          mode: 1,
-          vertLine: {
-            width: 1,
-            color: '#3A9FFF',
-            style: 0,
-            labelBackgroundColor: '#3A9FFF',
+      const chart = init(chartContainerRef.current, {
+        styles: {
+          grid: {
+            horizontal: {
+              color: '#1A1A1A',
+            },
+            vertical: {
+              color: '#1A1A1A',
+            },
           },
-          horzLine: {
-            width: 1,
-            color: '#3A9FFF',
-            style: 0,
-            labelBackgroundColor: '#3A9FFF',
+          candle: {
+            type: 'area',
+            area: {
+              lineSize: 2,
+              lineColor: '#3A9FFF',
+              value: 'close',
+              backgroundColor: [
+                {
+                  offset: 0,
+                  color: 'rgba(58, 159, 255, 0.01)',
+                },
+                {
+                  offset: 1,
+                  color: 'rgba(58, 159, 255, 0.2)',
+                },
+              ],
+            },
           },
         },
       });
 
-      chartRef.current = chart;
+      if (chart) {
+        chartRef.current = chart;
 
-      const lineSeries = chart.addSeries(LineSeries, {
-        color: '#3A9FFF',
-        lineWidth: 2,
-        priceScaleId: 'right',
-      });
+        chart.createIndicator('VOL');
 
-      lineSeriesRef.current = lineSeries;
+        const resizeObserver = new ResizeObserver(() => {
+          if (chartContainerRef.current && chartRef.current) {
+            chartRef.current.resize();
+          }
+        });
 
-      const volumeSeries = chart.addSeries(HistogramSeries, {
-        priceFormat: {
-          type: 'volume',
-        },
-        priceScaleId: 'volume',
-      });
-
-      volumeSeriesRef.current = volumeSeries;
-
-      chart.priceScale('volume').applyOptions({
-        scaleMargins: {
-          top: 0.7,
-          bottom: 0,
-        },
-      });
-
-      const handleResize = () => {
-        if (chartContainerRef.current && chartRef.current) {
-          chartRef.current.applyOptions({
-            width: chartContainerRef.current.clientWidth,
-          });
+        if (chartContainerRef.current) {
+          resizeObserver.observe(chartContainerRef.current);
         }
-      };
 
-      resizeObserverRef.current = new ResizeObserver(handleResize);
-      if (chartContainerRef.current) {
-        resizeObserverRef.current.observe(chartContainerRef.current);
+        return () => {
+          resizeObserver.disconnect();
+        };
       }
     }
 
     return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-      }
-      if (chartRef.current) {
-        chartRef.current.remove();
+      if (chartRef.current && chartContainerRef.current) {
+        dispose(chartContainerRef.current);
         chartRef.current = null;
-        lineSeriesRef.current = null;
-        volumeSeriesRef.current = null;
       }
     };
   }, [height]);
 
   useEffect(() => {
-    if (lineSeriesRef.current && lineData.length > 0) {
-      lineSeriesRef.current.setData(lineData);
-    }
-  }, [lineData]);
+    if (!chartRef.current || lineData.length === 0) return;
 
-  useEffect(() => {
-    if (volumeSeriesRef.current && volumeData.length > 0) {
-      volumeSeriesRef.current.setData(volumeData);
-    }
-  }, [volumeData]);
+    const klineData: KLineData[] = lineData.map((item, index) => {
+      const volume = volumeData[index]?.value || 0;
+      return {
+        timestamp: item.timestamp,
+        open: item.value,
+        high: item.value,
+        low: item.value,
+        close: item.value,
+        volume,
+      };
+    });
 
-  return <div ref={chartContainerRef} className="w-full" />;
+    chartRef.current.applyNewData(klineData);
+  }, [lineData, volumeData]);
+
+  return (
+    <div
+      ref={chartContainerRef}
+      className="w-full"
+      style={{ height: `${height}px` }}
+    />
+  );
 }

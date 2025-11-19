@@ -1,5 +1,3 @@
-import { Time } from 'lightweight-charts';
-
 /**
  * 时间范围类型
  * - 1D: 1天
@@ -16,8 +14,8 @@ export type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';
  * K线蜡烛图数据
  */
 export interface CandleData {
-  /** 时间戳 */
-  time: Time;
+  /** 时间戳（毫秒） */
+  timestamp: number;
   /** 开盘价 */
   open: number;
   /** 最高价 */
@@ -38,9 +36,9 @@ export type IndicatorType = 'MA' | 'MACD' | 'RSI' | 'KDJ' | 'BOLL';
  */
 export interface MACDData {
   /** MACD线 (DIF) */
-  macd: Array<{ time: Time; value: number }>;
+  macd: Array<{ timestamp: number; value: number }>;
   /** 信号线 (DEA) */
-  signal: Array<{ time: Time; value: number }>;
+  signal: Array<{ timestamp: number; value: number }>;
   /** 柱状图 (MACD柱) */
-  histogram: Array<{ time: Time; value: number; color: string }>;
+  histogram: Array<{ timestamp: number; value: number; color: string }>;
 }

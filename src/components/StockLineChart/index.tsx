@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { createChart, ColorType, LineSeries, IChartApi, Time } from 'lightweight-charts';
+import { init, dispose } from 'klinecharts';
+import type { Chart, KLineData } from 'klinecharts';
 
 interface LineData {
-  time: Time;
+  timestamp: number;
   value: number;
 }
 
@@ -13,71 +14,70 @@ interface StockLineChartProps {
 
 export function StockLineChart({ data, height = 600 }: StockLineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
+  const chartRef = useRef<Chart | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0D0D0D' },
-        textColor: '#D9D9D9',
-      },
-      grid: {
-        vertLines: { color: '#1A1A1A' },
-        horzLines: { color: '#1A1A1A' },
-      },
-      width: chartContainerRef.current.clientWidth,
-      height: height,
-      timeScale: {
-        borderColor: '#2A2A2A',
-        timeVisible: true,
-      },
-      rightPriceScale: {
-        borderColor: '#2A2A2A',
-      },
-      crosshair: {
-        mode: 1,
-        vertLine: {
-          width: 1,
-          color: '#3A9FFF',
-          style: 0,
-          labelBackgroundColor: '#3A9FFF',
+    const chart = init(chartContainerRef.current, {
+      styles: {
+        grid: {
+          horizontal: {
+            color: '#1A1A1A',
+          },
+          vertical: {
+            color: '#1A1A1A',
+          },
         },
-        horzLine: {
-          width: 1,
-          color: '#3A9FFF',
-          style: 0,
-          labelBackgroundColor: '#3A9FFF',
+        candle: {
+          type: 'area',
+          area: {
+            lineSize: 2,
+            lineColor: '#3A9FFF',
+            value: 'close',
+            backgroundColor: [
+              {
+                offset: 0,
+                color: 'rgba(58, 159, 255, 0.01)',
+              },
+              {
+                offset: 1,
+                color: 'rgba(58, 159, 255, 0.2)',
+              },
+            ],
+          },
         },
       },
     });
 
     chartRef.current = chart;
 
-    const lineSeries = chart.addSeries(LineSeries, {
-      color: '#3A9FFF',
-      lineWidth: 2,
+    const klineData: KLineData[] = data.map((item) => ({
+      timestamp: item.timestamp,
+      open: item.value,
+      high: item.value,
+      low: item.value,
+      close: item.value,
+      volume: 0,
+    }));
+
+    chart.applyNewData(klineData);
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.resize();
+      }
     });
 
-    lineSeries.setData(data);
-
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-      }
-    };
-
-    const resizeObserver = new ResizeObserver(handleResize);
     if (chartContainerRef.current) {
       resizeObserver.observe(chartContainerRef.current);
     }
 
     return () => {
       resizeObserver.disconnect();
-      chart.remove();
+      if (chartContainerRef.current) {
+        dispose(chartContainerRef.current);
+      }
     };
   }, [data, height]);
 

@@ -1,11 +1,9 @@
-import { Time } from 'lightweight-charts';
-
 /**
  * 折线图数据点
  */
 export interface LineData {
-  /** 时间戳 */
-  time: Time;
+  /** 时间戳（毫秒） */
+  timestamp: number;
   /** 数值 */
   value: number;
 }
