@@ -18,6 +18,8 @@ import {
   Eraser,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';
@@ -72,6 +74,7 @@ export function ChartPanel() {
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
   const [tooltip, setTooltip] = useState<TooltipState>({ show: false, text: '', x: 0, y: 0 });
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(true);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const indicatorMenuRef = useRef<HTMLDivElement>(null);
 
@@ -441,7 +444,8 @@ export function ChartPanel() {
         </div>
       )}
 
-      <div className="w-12 bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1">
+      {isSidebarExpanded && (
+        <div className="w-12 bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1">
         <button
           onClick={() => handleDrawingTool('none')}
           onMouseEnter={(e) => showTooltip('选择工具', e)}
@@ -501,13 +505,26 @@ export function ChartPanel() {
         >
           <Eraser className="w-4 h-4" />
         </button>
-      </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col min-w-0">
         <div className="border-b border-[#2A2A2A]">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+                  onMouseEnter={(e) => showTooltip(isSidebarExpanded ? '收起工具栏' : '展开工具栏', e)}
+                  onMouseLeave={hideTooltip}
+                  className="w-9 h-9 flex items-center justify-center rounded bg-[#3A9FFF] text-white hover:bg-[#3A9FFF]/80 transition-colors flex-shrink-0"
+                >
+                  {isSidebarExpanded ? (
+                    <ChevronLeft className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
                 <div className="flex items-baseline gap-2">
                   <h1 className="text-xl font-bold text-white">
                     {selectedStock?.symbol || 'AAPL'}
