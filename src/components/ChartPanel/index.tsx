@@ -67,6 +67,7 @@ export function ChartPanel() {
   const { selectedStock, dateRange, setDateRange } = useStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
+  const indicatorIdsRef = useRef<Map<string, string>>(new Map());
   const [indicators, setIndicators] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('6M');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -201,8 +202,11 @@ export function ChartPanel() {
       if (chart) {
         chartRef.current = chart;
 
-        chart.createIndicator('VOL', true);
-        setIndicators(['VOL']);
+        const volId = chart.createIndicator('VOL', true);
+        if (volId) {
+          indicatorIdsRef.current.set('VOL', volId);
+          setIndicators(['VOL']);
+        }
 
         chart.subscribeAction('crosshair', (data) => {
           if (data && data.kLineData) {
@@ -467,24 +471,23 @@ export function ChartPanel() {
     const isMainIndicator = mainIndicators.some(i => i.name === indicator);
 
     if (indicators.includes(indicator)) {
-      if (isMainIndicator) {
-        chartRef.current.removeIndicator('candle_pane', indicator);
-      } else {
-        const allPanes = chartRef.current.getPanes();
-        allPanes.forEach(pane => {
-          if (pane.id !== 'candle_pane') {
-            chartRef.current!.removeIndicator(pane.id, indicator);
-          }
-        });
+      const indicatorId = indicatorIdsRef.current.get(indicator);
+      if (indicatorId) {
+        chartRef.current.removeIndicator(indicatorId);
+        indicatorIdsRef.current.delete(indicator);
       }
       setIndicators((prev) => prev.filter((i) => i !== indicator));
     } else {
+      let indicatorId: string | null = null;
       if (isMainIndicator) {
-        chartRef.current.createIndicator(indicator, false, { id: 'candle_pane' });
+        indicatorId = chartRef.current.createIndicator(indicator, false, { id: 'candle_pane' });
       } else {
-        chartRef.current.createIndicator(indicator, true);
+        indicatorId = chartRef.current.createIndicator(indicator, true);
       }
-      setIndicators((prev) => [...prev, indicator]);
+      if (indicatorId) {
+        indicatorIdsRef.current.set(indicator, indicatorId);
+        setIndicators((prev) => [...prev, indicator]);
+      }
     }
   };
 
