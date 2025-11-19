@@ -201,12 +201,6 @@ export function ChartPanel() {
       if (chart) {
         chartRef.current = chart;
 
-        const defaultIndicators = ['MA', 'VOL', 'MACD'];
-        chart.createIndicator('MA', false, { id: 'candle_pane' });
-        chart.createIndicator('VOL');
-        chart.createIndicator('MACD');
-        setIndicators(defaultIndicators);
-
         chart.subscribeAction('crosshair', (data) => {
           if (data && data.kLineData) {
             const kline = data.kLineData as KLineData;
