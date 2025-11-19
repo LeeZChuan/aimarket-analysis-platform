@@ -20,6 +20,9 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Hash,
+  MessageSquare,
+  Tag,
 } from 'lucide-react';
 
 type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';
@@ -39,6 +42,8 @@ type DrawingTool =
   | 'priceChannelLine'
   | 'parallelStraightLine'
   | 'fibonacciLine'
+  | 'simpleAnnotation'
+  | 'simpleTag'
   | 'rect'
   | 'circle'
   | 'arc'
@@ -75,11 +80,26 @@ export function ChartPanel() {
   const [tooltip, setTooltip] = useState<TooltipState>({ show: false, text: '', x: 0, y: 0 });
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(true);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
-  const [showLineMenu, setShowLineMenu] = useState(false);
-  const [selectedLineTool, setSelectedLineTool] = useState<DrawingTool>('straightLine');
+  const [showHorizontalLineMenu, setShowHorizontalLineMenu] = useState(false);
+  const [showVerticalLineMenu, setShowVerticalLineMenu] = useState(false);
+  const [showGeneralLineMenu, setShowGeneralLineMenu] = useState(false);
+  const [showPriceLineMenu, setShowPriceLineMenu] = useState(false);
+  const [showShapeMenu, setShowShapeMenu] = useState(false);
+  const [showAnnotationMenu, setShowAnnotationMenu] = useState(false);
+  const [selectedHorizontalLine, setSelectedHorizontalLine] = useState<DrawingTool>('horizontalStraightLine');
+  const [selectedVerticalLine, setSelectedVerticalLine] = useState<DrawingTool>('verticalStraightLine');
+  const [selectedGeneralLine, setSelectedGeneralLine] = useState<DrawingTool>('straightLine');
+  const [selectedPriceLine, setSelectedPriceLine] = useState<DrawingTool>('priceLine');
+  const [selectedShape, setSelectedShape] = useState<DrawingTool>('rect');
+  const [selectedAnnotation, setSelectedAnnotation] = useState<DrawingTool>('simpleAnnotation');
   const datePickerRef = useRef<HTMLDivElement>(null);
   const indicatorMenuRef = useRef<HTMLDivElement>(null);
-  const lineMenuRef = useRef<HTMLDivElement>(null);
+  const horizontalLineMenuRef = useRef<HTMLDivElement>(null);
+  const verticalLineMenuRef = useRef<HTMLDivElement>(null);
+  const generalLineMenuRef = useRef<HTMLDivElement>(null);
+  const priceLineMenuRef = useRef<HTMLDivElement>(null);
+  const shapeMenuRef = useRef<HTMLDivElement>(null);
+  const annotationMenuRef = useRef<HTMLDivElement>(null);
 
   const mainIndicators: IndicatorOption[] = [
     { name: 'MA', label: 'MA', description: '移动平均线' },
@@ -97,22 +117,43 @@ export function ChartPanel() {
     { name: 'DMI', label: 'DMI', description: '动向指标' },
   ];
 
-  const lineTools: { tool: DrawingTool; icon: any; label: string }[] = [
-    { tool: 'horizontalStraightLine', icon: Minus, label: '水平线' },
-    { tool: 'verticalStraightLine', icon: Minus, label: '垂直线' },
+  const horizontalLineTools: { tool: DrawingTool; icon: any; label: string }[] = [
+    { tool: 'horizontalStraightLine', icon: Minus, label: '水平直线' },
+    { tool: 'horizontalRayLine', icon: ArrowRight, label: '水平射线' },
+    { tool: 'horizontalSegment', icon: Minus, label: '水平线段' },
+  ];
+
+  const verticalLineTools: { tool: DrawingTool; icon: any; label: string }[] = [
+    { tool: 'verticalStraightLine', icon: Minus, label: '垂直直线' },
+    { tool: 'verticalRayLine', icon: ArrowRight, label: '垂直射线' },
+    { tool: 'verticalSegment', icon: Minus, label: '垂直线段' },
+  ];
+
+  const generalLineTools: { tool: DrawingTool; icon: any; label: string }[] = [
     { tool: 'straightLine', icon: Minus, label: '直线' },
     { tool: 'rayLine', icon: ArrowRight, label: '射线' },
     { tool: 'segment', icon: Minus, label: '线段' },
   ];
 
-  const drawingTools: { tool: DrawingTool; icon: any; label: string }[] = [
+  const priceLineTools: { tool: DrawingTool; icon: any; label: string }[] = [
     { tool: 'priceLine', icon: TrendingUp, label: '价格线' },
     { tool: 'priceChannelLine', icon: TrendingDown, label: '价格通道' },
     { tool: 'parallelStraightLine', icon: Minus, label: '平行线' },
-    { tool: 'fibonacciLine', icon: Activity, label: '斐波那契' },
+  ];
+
+  const shapeTools: { tool: DrawingTool; icon: any; label: string }[] = [
     { tool: 'rect', icon: Square, label: '矩形' },
     { tool: 'circle', icon: Circle, label: '圆形' },
     { tool: 'triangle', icon: Triangle, label: '三角形' },
+  ];
+
+  const annotationTools: { tool: DrawingTool; icon: any; label: string }[] = [
+    { tool: 'simpleAnnotation', icon: MessageSquare, label: '注释' },
+    { tool: 'simpleTag', icon: Tag, label: '标签' },
+  ];
+
+  const otherTools: { tool: DrawingTool; icon: any; label: string }[] = [
+    { tool: 'fibonacciLine', icon: Activity, label: '斐波那契' },
     { tool: 'text', icon: Type, label: '文本' },
   ];
 
@@ -390,19 +431,36 @@ export function ChartPanel() {
       if (indicatorMenuRef.current && !indicatorMenuRef.current.contains(event.target as Node)) {
         setShowIndicatorMenu(false);
       }
-      if (lineMenuRef.current && !lineMenuRef.current.contains(event.target as Node)) {
-        setShowLineMenu(false);
+      if (horizontalLineMenuRef.current && !horizontalLineMenuRef.current.contains(event.target as Node)) {
+        setShowHorizontalLineMenu(false);
+      }
+      if (verticalLineMenuRef.current && !verticalLineMenuRef.current.contains(event.target as Node)) {
+        setShowVerticalLineMenu(false);
+      }
+      if (generalLineMenuRef.current && !generalLineMenuRef.current.contains(event.target as Node)) {
+        setShowGeneralLineMenu(false);
+      }
+      if (priceLineMenuRef.current && !priceLineMenuRef.current.contains(event.target as Node)) {
+        setShowPriceLineMenu(false);
+      }
+      if (shapeMenuRef.current && !shapeMenuRef.current.contains(event.target as Node)) {
+        setShowShapeMenu(false);
+      }
+      if (annotationMenuRef.current && !annotationMenuRef.current.contains(event.target as Node)) {
+        setShowAnnotationMenu(false);
       }
     };
 
-    if (showDatePicker || showIndicatorMenu || showLineMenu) {
+    if (showDatePicker || showIndicatorMenu || showHorizontalLineMenu || showVerticalLineMenu ||
+        showGeneralLineMenu || showPriceLineMenu || showShapeMenu || showAnnotationMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDatePicker, showIndicatorMenu, showLineMenu]);
+  }, [showDatePicker, showIndicatorMenu, showHorizontalLineMenu, showVerticalLineMenu,
+      showGeneralLineMenu, showPriceLineMenu, showShapeMenu, showAnnotationMenu]);
 
   const toggleIndicator = (indicator: string) => {
     if (!chartRef.current) return;
@@ -433,16 +491,71 @@ export function ChartPanel() {
     }
   };
 
-  const handleLineToolSelect = (tool: DrawingTool) => {
-    setSelectedLineTool(tool);
+  const handleToolSelect = (
+    tool: DrawingTool,
+    setter: React.Dispatch<React.SetStateAction<DrawingTool>>,
+    menuSetter: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
+    setter(tool);
     handleDrawingTool(tool);
-    setShowLineMenu(false);
+    menuSetter(false);
   };
 
   const clearAllOverlays = () => {
     if (!chartRef.current) return;
     chartRef.current.removeOverlay();
     setActiveTool('none');
+  };
+
+  const renderToolButton = (
+    tools: { tool: DrawingTool; icon: any; label: string }[],
+    selectedTool: DrawingTool,
+    showMenu: boolean,
+    setShowMenu: React.Dispatch<React.SetStateAction<boolean>>,
+    setSelectedTool: React.Dispatch<React.SetStateAction<DrawingTool>>,
+    menuRef: React.RefObject<HTMLDivElement>,
+    tooltipText: string
+  ) => {
+    const currentTool = tools.find(t => t.tool === selectedTool);
+    const Icon = currentTool?.icon || Minus;
+    const isActive = tools.some(t => t.tool === activeTool);
+
+    return (
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          onMouseEnter={(e) => showTooltip(currentTool?.label || tooltipText, e)}
+          onMouseLeave={hideTooltip}
+          className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
+            isActive ? 'bg-[#3A9FFF] text-white' : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
+          }`}
+        >
+          <div className="flex items-center gap-0.5">
+            <Icon className="w-3.5 h-3.5" />
+            <ChevronRight className="w-2 h-2" />
+          </div>
+        </button>
+
+        {showMenu && (
+          <div className="absolute left-full top-0 ml-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl py-1 z-50 min-w-[120px]">
+            {tools.map(({ tool, icon: ToolIcon, label }) => (
+              <button
+                key={tool}
+                onClick={() => handleToolSelect(tool, setSelectedTool, setShowMenu)}
+                className={`w-full px-3 py-2 flex items-center gap-2 text-left transition-colors ${
+                  selectedTool === tool
+                    ? 'bg-[#3A9FFF]/20 text-[#3A9FFF]'
+                    : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+                }`}
+              >
+                <ToolIcon className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs">{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const showTooltip = (text: string, event: React.MouseEvent<HTMLButtonElement>) => {
@@ -492,48 +605,49 @@ export function ChartPanel() {
           <>
             <div className="h-px w-8 bg-[#2A2A2A] my-1" />
 
-            <div className="relative" ref={lineMenuRef}>
-              <button
-                onClick={() => setShowLineMenu(!showLineMenu)}
-                onMouseEnter={(e) => showTooltip(lineTools.find(t => t.tool === selectedLineTool)?.label || '直线工具', e)}
-                onMouseLeave={hideTooltip}
-                className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
-                  lineTools.some(t => t.tool === activeTool)
-                    ? 'bg-[#3A9FFF] text-white'
-                    : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
-                }`}
-              >
-                <div className="flex items-center gap-0.5">
-                  {(() => {
-                    const selectedTool = lineTools.find(t => t.tool === selectedLineTool);
-                    const Icon = selectedTool?.icon || Minus;
-                    return <Icon className="w-3.5 h-3.5" />;
-                  })()}
-                  <ChevronRight className="w-2 h-2" />
-                </div>
-              </button>
+            {renderToolButton(
+              horizontalLineTools,
+              selectedHorizontalLine,
+              showHorizontalLineMenu,
+              setShowHorizontalLineMenu,
+              setSelectedHorizontalLine,
+              horizontalLineMenuRef,
+              '水平线工具'
+            )}
 
-              {showLineMenu && (
-                <div className="absolute left-full top-0 ml-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl py-1 z-50 min-w-[120px]">
-                  {lineTools.map(({ tool, icon: Icon, label }) => (
-                    <button
-                      key={tool}
-                      onClick={() => handleLineToolSelect(tool)}
-                      className={`w-full px-3 py-2 flex items-center gap-2 text-left transition-colors ${
-                        selectedLineTool === tool
-                          ? 'bg-[#3A9FFF]/20 text-[#3A9FFF]'
-                          : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="text-xs">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {renderToolButton(
+              verticalLineTools,
+              selectedVerticalLine,
+              showVerticalLineMenu,
+              setShowVerticalLineMenu,
+              setSelectedVerticalLine,
+              verticalLineMenuRef,
+              '垂直线工具'
+            )}
 
-            {drawingTools.map(({ tool, icon: Icon, label }) => (
+            {renderToolButton(
+              generalLineTools,
+              selectedGeneralLine,
+              showGeneralLineMenu,
+              setShowGeneralLineMenu,
+              setSelectedGeneralLine,
+              generalLineMenuRef,
+              '线条工具'
+            )}
+
+            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+
+            {renderToolButton(
+              priceLineTools,
+              selectedPriceLine,
+              showPriceLineMenu,
+              setShowPriceLineMenu,
+              setSelectedPriceLine,
+              priceLineMenuRef,
+              '价格线工具'
+            )}
+
+            {otherTools.map(({ tool, icon: Icon, label }) => (
               <button
                 key={tool}
                 onClick={() => handleDrawingTool(tool)}
@@ -548,6 +662,28 @@ export function ChartPanel() {
                 <Icon className="w-4 h-4" />
               </button>
             ))}
+
+            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+
+            {renderToolButton(
+              shapeTools,
+              selectedShape,
+              showShapeMenu,
+              setShowShapeMenu,
+              setSelectedShape,
+              shapeMenuRef,
+              '形状工具'
+            )}
+
+            {renderToolButton(
+              annotationTools,
+              selectedAnnotation,
+              showAnnotationMenu,
+              setShowAnnotationMenu,
+              setSelectedAnnotation,
+              annotationMenuRef,
+              '标注工具'
+            )}
 
             <div className="h-px w-8 bg-[#2A2A2A] my-1" />
 
