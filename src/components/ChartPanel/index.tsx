@@ -266,20 +266,6 @@ export function ChartPanel() {
   }, [selectedStock]);
 
   useEffect(() => {
-    if (!chartRef.current) return;
-
-    const chart = chartRef.current;
-
-    indicators.forEach((indicator) => {
-      if (['MA', 'EMA', 'BOLL', 'SAR'].includes(indicator)) {
-        chart.createIndicator(indicator, false, { id: 'candle_pane' });
-      } else {
-        chart.createIndicator(indicator);
-      }
-    });
-  }, [indicators]);
-
-  useEffect(() => {
     if (chartRef.current) {
       const resizeChart = () => {
         chartRef.current?.resize();
