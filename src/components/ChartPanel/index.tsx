@@ -102,10 +102,10 @@ export function ChartPanel() {
     { tool: 'verticalStraightLine', icon: Minus, label: '垂直线' },
     { tool: 'straightLine', icon: Minus, label: '直线' },
     { tool: 'rayLine', icon: ArrowRight, label: '射线' },
+    { tool: 'segment', icon: Minus, label: '线段' },
   ];
 
   const drawingTools: { tool: DrawingTool; icon: any; label: string }[] = [
-    { tool: 'segment', icon: Minus, label: '线段' },
     { tool: 'priceLine', icon: TrendingUp, label: '价格线' },
     { tool: 'priceChannelLine', icon: TrendingDown, label: '价格通道' },
     { tool: 'parallelStraightLine', icon: Minus, label: '平行线' },
@@ -497,18 +497,20 @@ export function ChartPanel() {
                 onClick={() => setShowLineMenu(!showLineMenu)}
                 onMouseEnter={(e) => showTooltip(lineTools.find(t => t.tool === selectedLineTool)?.label || '直线工具', e)}
                 onMouseLeave={hideTooltip}
-                className={`w-9 h-9 flex items-center justify-center rounded transition-colors relative ${
+                className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
                   lineTools.some(t => t.tool === activeTool)
                     ? 'bg-[#3A9FFF] text-white'
                     : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
                 }`}
               >
-                {(() => {
-                  const selectedTool = lineTools.find(t => t.tool === selectedLineTool);
-                  const Icon = selectedTool?.icon || Minus;
-                  return <Icon className="w-4 h-4" />;
-                })()}
-                <ChevronRight className="w-2.5 h-2.5 absolute bottom-0.5 right-0.5" />
+                <div className="flex items-center gap-0.5">
+                  {(() => {
+                    const selectedTool = lineTools.find(t => t.tool === selectedLineTool);
+                    const Icon = selectedTool?.icon || Minus;
+                    return <Icon className="w-3.5 h-3.5" />;
+                  })()}
+                  <ChevronRight className="w-2 h-2" />
+                </div>
               </button>
 
               {showLineMenu && (
