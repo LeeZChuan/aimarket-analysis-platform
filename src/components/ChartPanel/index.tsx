@@ -202,10 +202,12 @@ export function ChartPanel() {
       if (chart) {
         chartRef.current = chart;
 
-        const volId = chart.createIndicator('VOL', true);
-        if (volId) {
-          indicatorIdsRef.current.set('VOL', volId);
-          setIndicators(['VOL']);
+        if (!indicatorIdsRef.current.has('VOL')) {
+          const volId = chart.createIndicator('VOL', true);
+          if (volId) {
+            indicatorIdsRef.current.set('VOL', volId);
+            setIndicators(['VOL']);
+          }
         }
 
         chart.subscribeAction('crosshair', (data) => {
@@ -256,6 +258,8 @@ export function ChartPanel() {
       if (chartRef.current && chartContainerRef.current) {
         dispose(chartContainerRef.current);
         chartRef.current = null;
+        indicatorIdsRef.current.clear();
+        setIndicators([]);
       }
     };
   }, [selectedStock]);
