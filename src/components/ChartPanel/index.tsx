@@ -224,6 +224,14 @@ export function ChartPanel() {
     });
   }, [indicators]);
 
+  useEffect(() => {
+    if (chartRef.current) {
+      setTimeout(() => {
+        chartRef.current?.resize();
+      }, 300);
+    }
+  }, [isSidebarExpanded]);
+
   const getTimeRangeDays = (range: TimeRange): number => {
     switch (range) {
       case '1D': return 1;
