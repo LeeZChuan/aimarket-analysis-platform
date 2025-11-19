@@ -1,33 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, CandlestickSeries, LineSeries, HistogramSeries, ISeriesApi, Time, IChartApi, LineData, HistogramData } from 'lightweight-charts';
+import { init, dispose, registerIndicator } from 'klinecharts';
+import type { Chart, KLineData, IndicatorCreate } from 'klinecharts';
 import { useStore } from '../../store/useStore';
-import { Calendar, TrendingUp } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';
-
-interface CandleData {
-  time: Time;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
 
 export function ChartPanel() {
   const { selectedStock, dateRange, setDateRange } = useStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const subChartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const subChartRef = useRef<IChartApi | null>(null);
-  const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const macdLineRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const macdSignalRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const macdHistogramRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const indicatorSeriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
+  const chartRef = useRef<Chart | null>(null);
   const [indicators, setIndicators] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('6M');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [chartData, setChartData] = useState<CandleData[]>([]);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
@@ -36,316 +21,120 @@ export function ChartPanel() {
   const datePickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!chartContainerRef.current || !subChartContainerRef.current) return;
+    if (!chartContainerRef.current) return;
 
-    const mainWidth = chartContainerRef.current.clientWidth || 800;
-    const mainHeight = chartContainerRef.current.clientHeight || 400;
-    const subWidth = subChartContainerRef.current.clientWidth || 800;
-    const subHeight = subChartContainerRef.current.clientHeight || 200;
-
-    // 创建主图（K线图）
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0D0D0D' },
-        textColor: '#D9D9D9',
-      },
-      grid: {
-        vertLines: { color: '#1A1A1A' },
-        horzLines: { color: '#1A1A1A' },
-      },
-      width: mainWidth,
-      height: mainHeight,
-      timeScale: {
-        borderColor: '#2A2A2A',
-        timeVisible: false,
-        fixLeftEdge: true,
-        fixRightEdge: true,
-      },
-      rightPriceScale: {
-        borderColor: '#2A2A2A',
-        autoScale: true,
-      },
-      crosshair: {
-        mode: 1,
-        vertLine: {
-          width: 1,
-          color: '#3A9FFF',
-          style: 0,
-          labelBackgroundColor: '#3A9FFF',
+    if (!chartRef.current) {
+      const chart = init(chartContainerRef.current, {
+        styles: {
+          grid: {
+            horizontal: {
+              color: '#1A1A1A',
+            },
+            vertical: {
+              color: '#1A1A1A',
+            },
+          },
+          candle: {
+            type: 'candle_solid',
+            bar: {
+              upColor: '#00D09C',
+              downColor: '#FF4976',
+              upBorderColor: '#00D09C',
+              downBorderColor: '#FF4976',
+              upWickColor: '#00D09C',
+              downWickColor: '#FF4976',
+            },
+          },
+          indicator: {
+            lastValueMark: {
+              show: false,
+            },
+            tooltip: {
+              showRule: 'always',
+              showType: 'rect',
+              text: {
+                size: 12,
+                color: '#D9D9D9',
+              },
+            },
+          },
         },
-        horzLine: {
-          width: 1,
-          color: '#3A9FFF',
-          style: 0,
-          labelBackgroundColor: '#3A9FFF',
-        },
-      },
-    });
+      });
 
-    chartRef.current = chart;
+      if (chart) {
+        chartRef.current = chart;
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#00D09C',
-      downColor: '#FF4976',
-      borderUpColor: '#00D09C',
-      borderDownColor: '#FF4976',
-      wickUpColor: '#00D09C',
-      wickDownColor: '#FF4976',
-    });
+        chart.createIndicator('MA', false, { id: 'candle_pane' });
+        chart.createIndicator('VOL');
+        chart.createIndicator('MACD');
 
-    candlestickSeriesRef.current = candlestickSeries;
+        chart.subscribeAction('crosshair', (data) => {
+          if (data && data.kLineData) {
+            const kline = data.kLineData as KLineData;
+            const basePrice = selectedStock?.price || 178.72;
+            const change = ((kline.close - basePrice) / basePrice) * 100;
 
-    // 创建副图（MACD指标）
-    const subChart = createChart(subChartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0D0D0D' },
-        textColor: '#D9D9D9',
-      },
-      grid: {
-        vertLines: { color: '#1A1A1A' },
-        horzLines: { color: '#1A1A1A' },
-      },
-      width: subWidth,
-      height: subHeight,
-      timeScale: {
-        borderColor: '#2A2A2A',
-        timeVisible: true,
-        fixLeftEdge: true,
-        fixRightEdge: true,
-      },
-      rightPriceScale: {
-        borderColor: '#2A2A2A',
-        autoScale: true,
-      },
-      crosshair: {
-        mode: 1,
-        vertLine: {
-          width: 1,
-          color: '#3A9FFF',
-          style: 0,
-          labelBackgroundColor: '#3A9FFF',
-        },
-        horzLine: {
-          width: 1,
-          color: '#3A9FFF',
-          style: 0,
-          labelBackgroundColor: '#3A9FFF',
-        },
-      },
-    });
-
-    subChartRef.current = subChart;
-
-    // MACD柱状图
-    const macdHistogram = subChart.addSeries(HistogramSeries, {
-      color: '#26a69a',
-      priceFormat: {
-        type: 'price',
-        precision: 4,
-        minMove: 0.0001,
-      },
-    });
-    macdHistogramRef.current = macdHistogram;
-
-    // MACD DIF线
-    const macdLine = subChart.addSeries(LineSeries, {
-      color: '#2962FF',
-      lineWidth: 2,
-      title: 'DIF',
-    });
-    macdLineRef.current = macdLine;
-
-    // MACD DEA信号线
-    const macdSignal = subChart.addSeries(LineSeries, {
-      color: '#FF6D00',
-      lineWidth: 2,
-      title: 'DEA',
-    });
-    macdSignalRef.current = macdSignal;
-
-    // 同步十字线
-    chart.subscribeCrosshairMove((param) => {
-      if (!param.time || !param.seriesData.get(candlestickSeries)) {
-        setHoveredPrice(null);
-        setHoveredChange(null);
-        setHoveredDate(null);
-        subChart.clearCrosshairPosition();
-        return;
-      }
-
-      const data = param.seriesData.get(candlestickSeries) as any;
-      if (data) {
-        const currentPrice = data.close;
-        const basePrice = selectedStock?.price || 178.72;
-        const change = ((currentPrice - basePrice) / basePrice) * 100;
-
-        setHoveredPrice(currentPrice);
-        setHoveredChange(change);
-        setHoveredDate(param.time as string);
-
-        // 同步副图十字线位置
-        subChart.setCrosshairPosition(0, param.time as any, macdHistogram);
-      }
-    });
-
-    subChart.subscribeCrosshairMove((param) => {
-      if (!param.time) {
-        chart.clearCrosshairPosition();
-        return;
-      }
-
-      // 同步主图十字线位置
-      chart.setCrosshairPosition(0, param.time as any, candlestickSeries);
-    });
-
-    const generateMockData = (days: number) => {
-      const data = [];
-      let basePrice = selectedStock?.price || 150;
-      const endDate = new Date();
-      const startDate = new Date(endDate);
-      startDate.setDate(startDate.getDate() - days);
-
-      for (let i = 0; i < days; i++) {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-
-        const volatility = basePrice * 0.02;
-        const open = basePrice + (Math.random() - 0.5) * volatility;
-        const close = open + (Math.random() - 0.5) * volatility;
-        const high = Math.max(open, close) + Math.random() * volatility;
-        const low = Math.min(open, close) - Math.random() * volatility;
-
-        data.push({
-          time: date.toISOString().split('T')[0] as Time,
-          open,
-          high,
-          low,
-          close,
+            setHoveredPrice(kline.close);
+            setHoveredChange(change);
+            setHoveredDate(new Date(kline.timestamp).toISOString().split('T')[0]);
+          } else {
+            setHoveredPrice(null);
+            setHoveredChange(null);
+            setHoveredDate(null);
+          }
         });
 
-        basePrice = close;
-      }
-
-      return data;
-    };
-
-    const days = getTimeRangeDays(timeRange);
-    const mockData = generateMockData(days);
-    candlestickSeries.setData(mockData);
-    setChartData(mockData);
-
-    // 计算并设置MACD数据
-    const macdData = calculateMACDValues(mockData);
-    if (macdData.histogram.length > 0) {
-      macdHistogram.setData(macdData.histogram);
-      macdLine.setData(macdData.macd);
-      macdSignal.setData(macdData.signal);
-    }
-
-    // 数据加载完成后再设置时间轴同步
-    let isMainChartSyncing = false;
-    let isSubChartSyncing = false;
-
-    chart.timeScale().subscribeVisibleTimeRangeChange((timeRange) => {
-      if (!timeRange || isSubChartSyncing) return;
-      try {
-        isMainChartSyncing = true;
-        subChart.timeScale().setVisibleRange(timeRange as any);
-      } catch (e) {
-        // 忽略同步错误
-      } finally {
-        isMainChartSyncing = false;
-      }
-    });
-
-    subChart.timeScale().subscribeVisibleTimeRangeChange((timeRange) => {
-      if (!timeRange || isMainChartSyncing) return;
-      try {
-        isSubChartSyncing = true;
-        chart.timeScale().setVisibleRange(timeRange as any);
-      } catch (e) {
-        // 忽略同步错误
-      } finally {
-        isSubChartSyncing = false;
-      }
-    });
-
-    if (mockData.length > 0 && !dateRange.start) {
-      const startDate = mockData[0].time as string;
-      const endDate = mockData[mockData.length - 1].time as string;
-      setDateRange({ start: startDate, end: endDate });
-      setCustomStartDate(startDate);
-      setCustomEndDate(endDate);
-    }
-
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
+        const resizeObserver = new ResizeObserver(() => {
+          if (chartContainerRef.current && chartRef.current) {
+            chartRef.current.resize();
+          }
         });
+
+        if (chartContainerRef.current) {
+          resizeObserver.observe(chartContainerRef.current);
+        }
+
+        const days = getTimeRangeDays(timeRange);
+        const mockData = generateMockData(days);
+        chart.applyNewData(mockData);
+
+        if (mockData.length > 0 && !dateRange.start) {
+          const startDate = new Date(mockData[0].timestamp).toISOString().split('T')[0];
+          const endDate = new Date(mockData[mockData.length - 1].timestamp).toISOString().split('T')[0];
+          setDateRange({ start: startDate, end: endDate });
+          setCustomStartDate(startDate);
+          setCustomEndDate(endDate);
+        }
+
+        return () => {
+          resizeObserver.disconnect();
+        };
       }
-      if (subChartContainerRef.current && subChartRef.current) {
-        subChartRef.current.applyOptions({
-          width: subChartContainerRef.current.clientWidth,
-          height: subChartContainerRef.current.clientHeight,
-        });
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // 使用 ResizeObserver 监听容器大小变化
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize();
-    });
-
-    if (chartContainerRef.current) {
-      resizeObserver.observe(chartContainerRef.current);
-    }
-    if (subChartContainerRef.current) {
-      resizeObserver.observe(subChartContainerRef.current);
     }
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
-      chart.remove();
-      subChart.remove();
-      indicatorSeriesRef.current.clear();
+      if (chartRef.current && chartContainerRef.current) {
+        dispose(chartContainerRef.current);
+        chartRef.current = null;
+      }
     };
-  }, [selectedStock, timeRange]);
+  }, [selectedStock]);
 
   useEffect(() => {
-    if (!chartRef.current || chartData.length === 0) return;
+    if (!chartRef.current) return;
 
     const chart = chartRef.current;
-    const currentIndicators = indicatorSeriesRef.current;
 
     indicators.forEach((indicator) => {
-      if (!currentIndicators.has(indicator)) {
-        const lineSeries = chart.addSeries(LineSeries, {
-          color: getIndicatorColor(indicator),
-          lineWidth: 2,
-          title: indicator,
-        });
-        currentIndicators.set(indicator, lineSeries);
-
-        const indicatorData = calculateIndicator(indicator, chartData);
-        lineSeries.setData(indicatorData);
+      if (indicator === 'MA') {
+        chart.createIndicator('MA', false, { id: 'candle_pane' });
+      } else if (indicator === 'BOLL') {
+        chart.createIndicator('BOLL', false, { id: 'candle_pane' });
+      } else {
+        chart.createIndicator(indicator);
       }
     });
-
-    Array.from(currentIndicators.keys()).forEach((indicator) => {
-      if (!indicators.includes(indicator)) {
-        const series = currentIndicators.get(indicator);
-        if (series) {
-          chart.removeSeries(series);
-          currentIndicators.delete(indicator);
-        }
-      }
-    });
-  }, [indicators, chartData]);
+  }, [indicators]);
 
   const getTimeRangeDays = (range: TimeRange): number => {
     switch (range) {
@@ -360,46 +149,97 @@ export function ChartPanel() {
     }
   };
 
-  const handleTimeRangeChange = (range: TimeRange) => {
-    if (timeRange === range) {
-      return;
+  const generateMockData = (days: number): KLineData[] => {
+    const data: KLineData[] = [];
+    let basePrice = selectedStock?.price || 150;
+    const endDate = new Date();
+    endDate.setHours(0, 0, 0, 0);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - days);
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+
+      if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+      const volatility = basePrice * 0.02;
+      const open = basePrice + (Math.random() - 0.5) * volatility;
+      const close = open + (Math.random() - 0.5) * volatility;
+      const high = Math.max(open, close) + Math.random() * volatility;
+      const low = Math.min(open, close) - Math.random() * volatility;
+      const volume = Math.floor(1000000 + Math.random() * 5000000);
+
+      data.push({
+        timestamp: date.getTime(),
+        open: Number(open.toFixed(2)),
+        high: Number(high.toFixed(2)),
+        low: Number(low.toFixed(2)),
+        close: Number(close.toFixed(2)),
+        volume,
+      });
+
+      basePrice = close;
     }
+
+    return data;
+  };
+
+  const generateMockDataForDateRange = (startDate: Date, endDate: Date): KLineData[] => {
+    const data: KLineData[] = [];
+    let basePrice = selectedStock?.price || 150;
+    const currentDate = new Date(startDate);
+    currentDate.setHours(0, 0, 0, 0);
+
+    while (currentDate <= endDate) {
+      if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+        const volatility = 0.02;
+        const change = (Math.random() - 0.5) * basePrice * volatility;
+        const open = basePrice;
+        const close = basePrice + change;
+        const high = Math.max(open, close) * (1 + Math.random() * 0.01);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+        const volume = Math.floor(1000000 + Math.random() * 5000000);
+
+        data.push({
+          timestamp: currentDate.getTime(),
+          open: Number(open.toFixed(2)),
+          high: Number(high.toFixed(2)),
+          low: Number(low.toFixed(2)),
+          close: Number(close.toFixed(2)),
+          volume,
+        });
+
+        basePrice = close;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return data;
+  };
+
+  const handleTimeRangeChange = (range: TimeRange) => {
+    if (timeRange === range) return;
 
     setTimeRange(range);
     setShowDatePicker(false);
 
-    if (candlestickSeriesRef.current) {
+    if (chartRef.current) {
       const days = getTimeRangeDays(range);
       const endDate = new Date();
       const startDate = new Date(endDate);
       startDate.setDate(startDate.getDate() - days);
 
       const mockData = generateMockDataForDateRange(startDate, endDate);
-      candlestickSeriesRef.current.setData(mockData);
-      setChartData(mockData);
+      chartRef.current.applyNewData(mockData);
 
-      // 更新MACD数据
-      if (macdLineRef.current && macdSignalRef.current && macdHistogramRef.current) {
-        const macdData = calculateMACDValues(mockData);
-        if (macdData.histogram.length > 0) {
-          macdHistogramRef.current.setData(macdData.histogram);
-          macdLineRef.current.setData(macdData.macd);
-          macdSignalRef.current.setData(macdData.signal);
-        }
+      if (mockData.length > 0) {
+        const startDateStr = new Date(mockData[0].timestamp).toISOString().split('T')[0];
+        const endDateStr = new Date(mockData[mockData.length - 1].timestamp).toISOString().split('T')[0];
+        setDateRange({ start: startDateStr, end: endDateStr });
+        setCustomStartDate(startDateStr);
+        setCustomEndDate(endDateStr);
       }
-
-      const startDateStr = mockData[0].time as string;
-      const endDateStr = mockData[mockData.length - 1].time as string;
-      setDateRange({ start: startDateStr, end: endDateStr });
-      setCustomStartDate(startDateStr);
-      setCustomEndDate(endDateStr);
-
-      indicatorSeriesRef.current.forEach((series) => {
-        if (chartRef.current) {
-          chartRef.current.removeSeries(series);
-        }
-      });
-      indicatorSeriesRef.current.clear();
     }
   };
 
@@ -418,60 +258,12 @@ export function ChartPanel() {
     setDateRange({ start: customStartDate, end: customEndDate });
     setTimeRange('ALL');
 
-    if (candlestickSeriesRef.current) {
+    if (chartRef.current) {
       const mockData = generateMockDataForDateRange(start, end);
-      candlestickSeriesRef.current.setData(mockData);
-      setChartData(mockData);
-
-      // 更新MACD数据
-      if (macdLineRef.current && macdSignalRef.current && macdHistogramRef.current) {
-        const macdData = calculateMACDValues(mockData);
-        if (macdData.histogram.length > 0) {
-          macdHistogramRef.current.setData(macdData.histogram);
-          macdLineRef.current.setData(macdData.macd);
-          macdSignalRef.current.setData(macdData.signal);
-        }
-      }
-
-      indicatorSeriesRef.current.forEach((series) => {
-        if (chartRef.current) {
-          chartRef.current.removeSeries(series);
-        }
-      });
-      indicatorSeriesRef.current.clear();
+      chartRef.current.applyNewData(mockData);
     }
 
     setShowDatePicker(false);
-  };
-
-  const generateMockDataForDateRange = (startDate: Date, endDate: Date) => {
-    const data = [];
-    let basePrice = selectedStock?.price || 150;
-    const currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
-        const volatility = 0.02;
-        const change = (Math.random() - 0.5) * basePrice * volatility;
-        const open = basePrice;
-        const close = basePrice + change;
-        const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-
-        data.push({
-          time: currentDate.toISOString().split('T')[0] as Time,
-          open,
-          high,
-          low,
-          close,
-        });
-
-        basePrice = close;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return data;
   };
 
   useEffect(() => {
@@ -503,200 +295,6 @@ export function ChartPanel() {
         ? prev.filter((i) => i !== indicator)
         : [...prev, indicator]
     );
-  };
-
-  const getIndicatorColor = (indicator: string): string => {
-    const colors: Record<string, string> = {
-      'MA': '#FFB800',
-      'MACD': '#00D09C',
-      'RSI': '#FF4976',
-      'KDJ': '#3A9FFF',
-      'BOLL': '#A855F7',
-    };
-    return colors[indicator] || '#FFFFFF';
-  };
-
-  const calculateIndicator = (indicator: string, data: CandleData[]): LineData[] => {
-    switch (indicator) {
-      case 'MA':
-        return calculateMA(data, 20);
-      case 'MACD':
-        return calculateMACD(data);
-      case 'RSI':
-        return calculateRSI(data, 14);
-      case 'KDJ':
-        return calculateKDJ(data);
-      case 'BOLL':
-        return calculateBOLL(data, 20);
-      default:
-        return [];
-    }
-  };
-
-  const calculateMA = (data: CandleData[], period: number): LineData[] => {
-    const result: LineData[] = [];
-    for (let i = period - 1; i < data.length; i++) {
-      const sum = data.slice(i - period + 1, i + 1).reduce((acc, d) => acc + d.close, 0);
-      result.push({
-        time: data[i].time,
-        value: sum / period,
-      });
-    }
-    return result;
-  };
-
-  const calculateMACD = (data: CandleData[]): LineData[] => {
-    const ema12 = calculateEMA(data, 12);
-    const ema26 = calculateEMA(data, 26);
-    const result: LineData[] = [];
-
-    for (let i = 0; i < Math.min(ema12.length, ema26.length); i++) {
-      result.push({
-        time: data[i + 26 - 1].time,
-        value: ema12[i] - ema26[i],
-      });
-    }
-    return result;
-  };
-
-  const calculateEMA = (data: CandleData[], period: number): number[] => {
-    const k = 2 / (period + 1);
-    const ema: number[] = [];
-    ema[0] = data[0].close;
-
-    for (let i = 1; i < data.length; i++) {
-      ema[i] = data[i].close * k + ema[i - 1] * (1 - k);
-    }
-    return ema.slice(period - 1);
-  };
-
-  const calculateRSI = (data: CandleData[], period: number): LineData[] => {
-    const result: LineData[] = [];
-
-    for (let i = period; i < data.length; i++) {
-      let gains = 0;
-      let losses = 0;
-
-      for (let j = i - period; j < i; j++) {
-        const change = data[j + 1].close - data[j].close;
-        if (change > 0) gains += change;
-        else losses -= change;
-      }
-
-      const avgGain = gains / period;
-      const avgLoss = losses / period;
-      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-      const rsi = 100 - (100 / (1 + rs));
-
-      result.push({
-        time: data[i].time,
-        value: rsi,
-      });
-    }
-    return result;
-  };
-
-  const calculateKDJ = (data: CandleData[]): LineData[] => {
-    const period = 9;
-    const result: LineData[] = [];
-
-    for (let i = period - 1; i < data.length; i++) {
-      const slice = data.slice(i - period + 1, i + 1);
-      const low = Math.min(...slice.map(d => d.low));
-      const high = Math.max(...slice.map(d => d.high));
-      const close = data[i].close;
-
-      const rsv = high === low ? 50 : ((close - low) / (high - low)) * 100;
-
-      result.push({
-        time: data[i].time,
-        value: rsv,
-      });
-    }
-    return result;
-  };
-
-  const calculateBOLL = (data: CandleData[], period: number): LineData[] => {
-    const ma = calculateMA(data, period);
-    const result: LineData[] = [];
-
-    for (let i = 0; i < ma.length; i++) {
-      const dataIndex = i + period - 1;
-      result.push({
-        time: ma[i].time,
-        value: ma[i].value,
-      });
-    }
-    return result;
-  };
-
-  const calculateMACDValues = (data: CandleData[]): {
-    macd: LineData[];
-    signal: LineData[];
-    histogram: HistogramData[];
-  } => {
-    if (data.length < 34) {
-      return { macd: [], signal: [], histogram: [] };
-    }
-
-    const ema12 = calculateEMA(data, 12);
-    const ema26 = calculateEMA(data, 26);
-
-    if (ema12.length === 0 || ema26.length === 0) {
-      return { macd: [], signal: [], histogram: [] };
-    }
-
-    const macdLine: number[] = [];
-    const minLength = Math.min(ema12.length, ema26.length);
-
-    for (let i = 0; i < minLength; i++) {
-      macdLine.push(ema12[i] - ema26[i]);
-    }
-
-    if (macdLine.length < 9) {
-      return { macd: [], signal: [], histogram: [] };
-    }
-
-    const signalLine = calculateEMAFromArray(macdLine, 9);
-
-    const macd: LineData[] = [];
-    const signal: LineData[] = [];
-    const histogram: HistogramData[] = [];
-
-    const ema26StartIndex = 26 - 1;
-    const signalStartIndex = 9 - 1;
-
-    for (let i = 0; i < signalLine.length; i++) {
-      const dataIndex = ema26StartIndex + signalStartIndex + i;
-
-      if (dataIndex >= data.length) break;
-
-      const time = data[dataIndex].time;
-      const macdValue = macdLine[signalStartIndex + i];
-      const signalValue = signalLine[i];
-      const histValue = macdValue - signalValue;
-
-      macd.push({ time, value: macdValue });
-      signal.push({ time, value: signalValue });
-      histogram.push({
-        time,
-        value: histValue,
-        color: histValue >= 0 ? '#26a69a' : '#ef5350',
-      });
-    }
-
-    return { macd, signal, histogram };
-  };
-
-  const calculateEMAFromArray = (data: number[], period: number): number[] => {
-    const k = 2 / (period + 1);
-    const ema: number[] = [];
-    ema[0] = data[0];
-
-    for (let i = 1; i < data.length; i++) {
-      ema[i] = data[i] * k + ema[i - 1] * (1 - k);
-    }
-    return ema.slice(period - 1);
   };
 
   return (
@@ -811,7 +409,7 @@ export function ChartPanel() {
             <div className="h-4 w-px bg-[#2A2A2A] mx-1" />
 
             <div className="flex gap-0.5">
-              {['MA', 'MACD', 'RSI', 'KDJ', 'BOLL'].map((indicator) => (
+              {['BOLL', 'RSI', 'KDJ'].map((indicator) => (
                 <button
                   key={indicator}
                   className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
@@ -830,11 +428,7 @@ export function ChartPanel() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0">
-        <div ref={chartContainerRef} className="flex-[2] min-h-0" />
-        <div className="h-px bg-[#2A2A2A]" />
-        <div ref={subChartContainerRef} className="flex-1 min-h-0" />
-      </div>
+      <div ref={chartContainerRef} className="flex-1 min-h-0" />
     </div>
   );
 }
