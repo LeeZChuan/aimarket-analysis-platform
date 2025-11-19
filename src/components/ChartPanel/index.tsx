@@ -75,8 +75,11 @@ export function ChartPanel() {
   const [tooltip, setTooltip] = useState<TooltipState>({ show: false, text: '', x: 0, y: 0 });
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(true);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [showLineMenu, setShowLineMenu] = useState(false);
+  const [selectedLineTool, setSelectedLineTool] = useState<DrawingTool>('straightLine');
   const datePickerRef = useRef<HTMLDivElement>(null);
   const indicatorMenuRef = useRef<HTMLDivElement>(null);
+  const lineMenuRef = useRef<HTMLDivElement>(null);
 
   const mainIndicators: IndicatorOption[] = [
     { name: 'MA', label: 'MA', description: '移动平均线' },
@@ -94,11 +97,14 @@ export function ChartPanel() {
     { name: 'DMI', label: 'DMI', description: '动向指标' },
   ];
 
-  const drawingTools: { tool: DrawingTool; icon: any; label: string }[] = [
+  const lineTools: { tool: DrawingTool; icon: any; label: string }[] = [
     { tool: 'horizontalStraightLine', icon: Minus, label: '水平线' },
     { tool: 'verticalStraightLine', icon: Minus, label: '垂直线' },
     { tool: 'straightLine', icon: Minus, label: '直线' },
     { tool: 'rayLine', icon: ArrowRight, label: '射线' },
+  ];
+
+  const drawingTools: { tool: DrawingTool; icon: any; label: string }[] = [
     { tool: 'segment', icon: Minus, label: '线段' },
     { tool: 'priceLine', icon: TrendingUp, label: '价格线' },
     { tool: 'priceChannelLine', icon: TrendingDown, label: '价格通道' },
@@ -384,16 +390,19 @@ export function ChartPanel() {
       if (indicatorMenuRef.current && !indicatorMenuRef.current.contains(event.target as Node)) {
         setShowIndicatorMenu(false);
       }
+      if (lineMenuRef.current && !lineMenuRef.current.contains(event.target as Node)) {
+        setShowLineMenu(false);
+      }
     };
 
-    if (showDatePicker || showIndicatorMenu) {
+    if (showDatePicker || showIndicatorMenu || showLineMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDatePicker, showIndicatorMenu]);
+  }, [showDatePicker, showIndicatorMenu, showLineMenu]);
 
   const toggleIndicator = (indicator: string) => {
     if (!chartRef.current) return;
@@ -422,6 +431,12 @@ export function ChartPanel() {
       chartRef.current.createOverlay({ name: tool });
       setActiveTool(tool);
     }
+  };
+
+  const handleLineToolSelect = (tool: DrawingTool) => {
+    setSelectedLineTool(tool);
+    handleDrawingTool(tool);
+    setShowLineMenu(false);
   };
 
   const clearAllOverlays = () => {
@@ -477,25 +492,46 @@ export function ChartPanel() {
           <>
             <div className="h-px w-8 bg-[#2A2A2A] my-1" />
 
-            {drawingTools.slice(0, 9).map(({ tool, icon: Icon, label }) => (
+            <div className="relative" ref={lineMenuRef}>
               <button
-                key={tool}
-                onClick={() => handleDrawingTool(tool)}
-                onMouseEnter={(e) => showTooltip(label, e)}
+                onClick={() => setShowLineMenu(!showLineMenu)}
+                onMouseEnter={(e) => showTooltip(lineTools.find(t => t.tool === selectedLineTool)?.label || '直线工具', e)}
                 onMouseLeave={hideTooltip}
-                className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
-                  activeTool === tool
+                className={`w-9 h-9 flex items-center justify-center rounded transition-colors relative ${
+                  lineTools.some(t => t.tool === activeTool)
                     ? 'bg-[#3A9FFF] text-white'
                     : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                {(() => {
+                  const selectedTool = lineTools.find(t => t.tool === selectedLineTool);
+                  const Icon = selectedTool?.icon || Minus;
+                  return <Icon className="w-4 h-4" />;
+                })()}
+                <ChevronRight className="w-2.5 h-2.5 absolute bottom-0.5 right-0.5" />
               </button>
-            ))}
 
-            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+              {showLineMenu && (
+                <div className="absolute left-full top-0 ml-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl py-1 z-50 min-w-[120px]">
+                  {lineTools.map(({ tool, icon: Icon, label }) => (
+                    <button
+                      key={tool}
+                      onClick={() => handleLineToolSelect(tool)}
+                      className={`w-full px-3 py-2 flex items-center gap-2 text-left transition-colors ${
+                        selectedLineTool === tool
+                          ? 'bg-[#3A9FFF]/20 text-[#3A9FFF]'
+                          : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-xs">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            {drawingTools.slice(9).map(({ tool, icon: Icon, label }) => (
+            {drawingTools.map(({ tool, icon: Icon, label }) => (
               <button
                 key={tool}
                 onClick={() => handleDrawingTool(tool)}
