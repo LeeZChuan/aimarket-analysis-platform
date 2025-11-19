@@ -204,6 +204,7 @@ export function ChartPanel() {
 
         if (!indicatorIdsRef.current.has('VOL')) {
           const volId = chart.createIndicator('VOL', true);
+          console.log('🎬 Initial VOL indicator created with ID:', volId);
           if (volId) {
             indicatorIdsRef.current.set('VOL', volId);
             setIndicators(['VOL']);
@@ -475,11 +476,22 @@ export function ChartPanel() {
     const isMainIndicator = mainIndicators.some(i => i.name === indicator);
 
     if (indicators.includes(indicator)) {
-      const indicatorId = indicatorIdsRef.current.get(indicator);
-      if (indicatorId) {
-        chartRef.current.removeIndicator({ id: indicatorId });
-        indicatorIdsRef.current.delete(indicator);
+      console.log('🔍 Removing indicator:', indicator);
+      console.log('📊 Current indicators:', Array.from(indicatorIdsRef.current.entries()));
+
+      if (isMainIndicator) {
+        chartRef.current.removeIndicator('candle_pane', indicator);
+        console.log('✅ Removed from main pane:', indicator);
+      } else {
+        const allPanes = chartRef.current.getPanes();
+        allPanes.forEach(pane => {
+          if (pane.id !== 'candle_pane') {
+            chartRef.current!.removeIndicator(pane.id, indicator);
+            console.log('✅ Removed from pane:', pane.id, indicator);
+          }
+        });
       }
+      indicatorIdsRef.current.delete(indicator);
       setIndicators((prev) => prev.filter((i) => i !== indicator));
     } else {
       let indicatorId: string | null = null;
@@ -488,6 +500,8 @@ export function ChartPanel() {
       } else {
         indicatorId = chartRef.current.createIndicator(indicator, true);
       }
+      console.log('➕ Created indicator:', indicator, 'with ID:', indicatorId);
+
       if (indicatorId) {
         indicatorIdsRef.current.set(indicator, indicatorId);
         setIndicators((prev) => [...prev, indicator]);
