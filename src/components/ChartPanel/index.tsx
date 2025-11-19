@@ -226,9 +226,16 @@ export function ChartPanel() {
 
   useEffect(() => {
     if (chartRef.current) {
-      setTimeout(() => {
+      const resizeChart = () => {
         chartRef.current?.resize();
-      }, 300);
+      };
+
+      requestAnimationFrame(() => {
+        resizeChart();
+        setTimeout(resizeChart, 50);
+        setTimeout(resizeChart, 150);
+        setTimeout(resizeChart, 300);
+      });
     }
   }, [isSidebarExpanded]);
 
