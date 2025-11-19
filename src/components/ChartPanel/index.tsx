@@ -473,7 +473,7 @@ export function ChartPanel() {
     if (indicators.includes(indicator)) {
       const indicatorId = indicatorIdsRef.current.get(indicator);
       if (indicatorId) {
-        chartRef.current.removeIndicator(indicatorId);
+        chartRef.current.removeIndicator({ id: indicatorId });
         indicatorIdsRef.current.delete(indicator);
       }
       setIndicators((prev) => prev.filter((i) => i !== indicator));
