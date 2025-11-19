@@ -201,9 +201,11 @@ export function ChartPanel() {
       if (chart) {
         chartRef.current = chart;
 
+        const defaultIndicators = ['MA', 'VOL', 'MACD'];
         chart.createIndicator('MA', false, { id: 'candle_pane' });
         chart.createIndicator('VOL');
         chart.createIndicator('MACD');
+        setIndicators(defaultIndicators);
 
         chart.subscribeAction('crosshair', (data) => {
           if (data && data.kLineData) {
@@ -465,11 +467,16 @@ export function ChartPanel() {
   const toggleIndicator = (indicator: string) => {
     if (!chartRef.current) return;
 
+    const isMainIndicator = mainIndicators.some(i => i.name === indicator);
+
     if (indicators.includes(indicator)) {
-      chartRef.current.removeIndicator('candle_pane', indicator);
+      if (isMainIndicator) {
+        chartRef.current.removeIndicator('candle_pane', indicator);
+      } else {
+        chartRef.current.removeIndicator(undefined, indicator);
+      }
       setIndicators((prev) => prev.filter((i) => i !== indicator));
     } else {
-      const isMainIndicator = mainIndicators.some(i => i.name === indicator);
       if (isMainIndicator) {
         chartRef.current.createIndicator(indicator, false, { id: 'candle_pane' });
       } else {
