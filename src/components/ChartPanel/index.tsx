@@ -68,7 +68,7 @@ export function ChartPanel() {
   const chartRef = useRef<Chart | null>(null);
   const indicatorIdsRef = useRef<Map<string, string>>(new Map());
   const [indicators, setIndicators] = useState<string[]>([]);
-  const [timeRange, setTimeRange] = useState<TimeRange>('6M');
+  const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
   const [hoveredChange, setHoveredChange] = useState<number | null>(null);
@@ -232,9 +232,16 @@ export function ChartPanel() {
           resizeObserver.observe(chartContainerRef.current);
         }
 
-        const days = getTimeRangeDays(timeRange);
-        const mockData = generateMockData(days);
+        const mockData = generateMockData(1250);
         chart.applyNewData(mockData);
+
+        const days = getTimeRangeDays(timeRange);
+        if (days < 1250) {
+          const visibleRange = chart.getVisibleRange();
+          const dataLength = mockData.length;
+          const from = Math.max(0, dataLength - Math.ceil(days * 1.4));
+          chart.scrollToRealTime();
+        }
 
         return () => {
           resizeObserver.disconnect();
@@ -730,7 +737,7 @@ export function ChartPanel() {
                 <div></div>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-0.5">
-                    {(['1D', '5D', '1M', '3M', '6M', '1Y'] as TimeRange[]).map((period) => (
+                    {(['1D', '5D', '1M', '3M', '6M', '1Y', 'ALL'] as TimeRange[]).map((period) => (
                       <button
                         key={period}
                         onClick={() => handleTimeRangeChange(period)}
@@ -739,7 +746,7 @@ export function ChartPanel() {
                             ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
                             : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
                         }`}
-                        title={`查看${period === '1D' ? '1天' : period === '5D' ? '5天' : period === '1M' ? '1个月' : period === '3M' ? '3个月' : period === '6M' ? '6个月' : '1年'}的数据`}
+                        title={`查看${period === '1D' ? '1天' : period === '5D' ? '5天' : period === '1M' ? '1个月' : period === '3M' ? '3个月' : period === '6M' ? '6个月' : period === '1Y' ? '1年' : '全部5年'}的数据`}
                       >
                         {period}
                       </button>
