@@ -16,7 +16,7 @@ function generatePseudoRandom(seed: number): number {
 export function generateLineChartData(
   stockId: string,
   basePrice: number,
-  days: number = 100
+  days: number = 1250
 ): LineChartData[] {
   const data: LineChartData[] = [];
   const seed = stockId.charCodeAt(0) * 1000;
@@ -41,7 +41,7 @@ export function generateLineChartData(
 
 export function generateVolumeData(
   stockId: string,
-  days: number = 100,
+  days: number = 1250,
   baseVolume: number = 1000000
 ): VolumeChartData[] {
   const data: VolumeChartData[] = [];
@@ -90,13 +90,16 @@ function calculateMA(data: KLineData[], period: number): MALineData[] {
 export function generateKLineData(
   stockId: string,
   basePrice: number,
-  days: number = 100
+  days: number = 1250
 ): KLineChartData {
   const candlestick: KLineData[] = [];
   const volume: VolumeChartData[] = [];
   const seed = stockId.charCodeAt(0) * 3000;
 
   let lastClose = basePrice;
+  let trendDirection = 1;
+  let trendStrength = 0;
+  let trendDuration = 0;
 
   for (let i = 0; i < days; i++) {
     const date = new Date();
@@ -104,23 +107,35 @@ export function generateKLineData(
     date.setHours(0, 0, 0, 0);
     const timestamp = date.getTime();
 
-    const random1 = generatePseudoRandom(seed + i * 3);
-    const random2 = generatePseudoRandom(seed + i * 3 + 1);
-    const random3 = generatePseudoRandom(seed + i * 3 + 2);
-    const random4 = generatePseudoRandom(seed + i * 3 + 3);
+    const random1 = generatePseudoRandom(seed + i * 5);
+    const random2 = generatePseudoRandom(seed + i * 5 + 1);
+    const random3 = generatePseudoRandom(seed + i * 5 + 2);
+    const random4 = generatePseudoRandom(seed + i * 5 + 3);
+    const random5 = generatePseudoRandom(seed + i * 5 + 4);
 
-    const changePercent = (random1 - 0.5) * 0.08;
-    const open = lastClose * (1 + changePercent * 0.3);
-    const close = lastClose * (1 + changePercent);
+    if (trendDuration === 0 || trendDuration > 30 + random5 * 40) {
+      trendDirection = random1 > 0.5 ? 1 : -1;
+      trendStrength = 0.3 + random2 * 0.7;
+      trendDuration = 0;
+    }
+    trendDuration++;
 
-    const highOffset = Math.abs(random2 - 0.5) * 0.03;
-    const lowOffset = Math.abs(random3 - 0.5) * 0.03;
+    const trendChange = trendDirection * trendStrength * 0.003;
+    const randomChange = (random1 - 0.5) * 0.04;
+    const dailyChange = trendChange + randomChange;
+
+    const open = lastClose * (1 + dailyChange * 0.2);
+    const close = lastClose * (1 + dailyChange);
+
+    const highOffset = Math.abs(random2 - 0.5) * 0.025;
+    const lowOffset = Math.abs(random3 - 0.5) * 0.025;
 
     const high = Math.max(open, close) * (1 + highOffset);
     const low = Math.min(open, close) * (1 - lowOffset);
 
-    const baseVolume = 1000000;
-    const volumeValue = baseVolume * (0.5 + random4);
+    const baseVolume = 2000000;
+    const volatilityFactor = Math.abs(dailyChange) * 20;
+    const volumeValue = baseVolume * (0.3 + random4 * 0.7 + volatilityFactor);
 
     candlestick.push({
       timestamp,
@@ -143,6 +158,8 @@ export function generateKLineData(
   const ma5 = calculateMA(candlestick, 5);
   const ma10 = calculateMA(candlestick, 10);
   const ma20 = calculateMA(candlestick, 20);
+  const ma60 = calculateMA(candlestick, 60);
+  const ma120 = calculateMA(candlestick, 120);
 
   return {
     candlestick,
@@ -150,6 +167,8 @@ export function generateKLineData(
     ma5,
     ma10,
     ma20,
+    ma60,
+    ma120,
   };
 }
 
@@ -175,5 +194,5 @@ export function generateKLineDataByType(
       break;
   }
 
-  return generateKLineData(`${type}_${seed}`, adjustedPrice, 100);
+  return generateKLineData(`${type}_${seed}`, adjustedPrice, 1250);
 }

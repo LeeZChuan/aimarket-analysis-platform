@@ -32,6 +32,8 @@ export interface KLineChartData {
   ma5?: MALineData[];
   ma10?: MALineData[];
   ma20?: MALineData[];
+  ma60?: MALineData[];
+  ma120?: MALineData[];
 }
 
 export type ChartTabType = 'stock' | 'industry' | 'market';
