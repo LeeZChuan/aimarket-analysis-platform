@@ -24,7 +24,7 @@ import {
   Tag,
 } from 'lucide-react';
 
-type TimeRange = '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'ALL';
+type TimeRange = '1D' | '5D' | '1W' | '1M' | '3M' | '1Y';
 
 type DrawingTool =
   | 'none'
@@ -68,7 +68,7 @@ export function ChartPanel() {
   const chartRef = useRef<Chart | null>(null);
   const indicatorIdsRef = useRef<Map<string, string>>(new Map());
   const [indicators, setIndicators] = useState<string[]>([]);
-  const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
+  const [timeRange, setTimeRange] = useState<TimeRange>('1D');
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
   const [hoveredChange, setHoveredChange] = useState<number | null>(null);
@@ -232,16 +232,9 @@ export function ChartPanel() {
           resizeObserver.observe(chartContainerRef.current);
         }
 
-        const mockData = generateMockData(1250);
-        chart.applyNewData(mockData);
-
-        const days = getTimeRangeDays(timeRange);
-        if (days < 1250) {
-          const visibleRange = chart.getVisibleRange();
-          const dataLength = mockData.length;
-          const from = Math.max(0, dataLength - Math.ceil(days * 1.4));
-          chart.scrollToRealTime();
-        }
+        const dailyData = generateMockData(1250);
+        const convertedData = convertKLineData(dailyData, timeRange);
+        chart.applyNewData(convertedData);
 
         return () => {
           resizeObserver.disconnect();
@@ -273,19 +266,6 @@ export function ChartPanel() {
       });
     }
   }, [isSidebarExpanded]);
-
-  const getTimeRangeDays = (range: TimeRange): number => {
-    switch (range) {
-      case '1D': return 1;
-      case '5D': return 5;
-      case '1M': return 30;
-      case '3M': return 90;
-      case '6M': return 180;
-      case '1Y': return 365;
-      case 'ALL': return 1250;
-      default: return 180;
-    }
-  };
 
   const generatePseudoRandom = (seed: number): number => {
     const x = Math.sin(seed) * 10000;
@@ -359,14 +339,194 @@ export function ChartPanel() {
     return data;
   };
 
-  const generateMockDataForDateRange = (startDate: Date, endDate: Date): KLineData[] => {
-    const allData = generateMockData(1250);
+  const convertKLineData = (dailyData: KLineData[], period: TimeRange): KLineData[] => {
+    if (period === '1D') {
+      return dailyData;
+    }
 
-    const filteredData = allData.filter(item => {
-      return item.timestamp >= startDate.getTime() && item.timestamp <= endDate.getTime();
-    });
+    const result: KLineData[] = [];
 
-    return filteredData.length > 0 ? filteredData : allData.slice(-180);
+    if (period === '5D') {
+      for (let i = 0; i < dailyData.length; i += 5) {
+        const chunk = dailyData.slice(i, i + 5);
+        if (chunk.length === 0) continue;
+
+        result.push({
+          timestamp: chunk[0].timestamp,
+          open: chunk[0].open,
+          high: Math.max(...chunk.map(d => d.high)),
+          low: Math.min(...chunk.map(d => d.low)),
+          close: chunk[chunk.length - 1].close,
+          volume: chunk.reduce((sum, d) => sum + d.volume, 0),
+        });
+      }
+    } else if (period === '1W') {
+      let currentWeek: KLineData[] = [];
+      let currentWeekStart: number | null = null;
+
+      dailyData.forEach((item, index) => {
+        const itemDate = new Date(item.timestamp);
+        const weekStart = new Date(itemDate);
+        weekStart.setDate(itemDate.getDate() - itemDate.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        const weekStartTime = weekStart.getTime();
+
+        if (currentWeekStart === null) {
+          currentWeekStart = weekStartTime;
+        }
+
+        if (weekStartTime !== currentWeekStart) {
+          if (currentWeek.length > 0) {
+            result.push({
+              timestamp: currentWeek[0].timestamp,
+              open: currentWeek[0].open,
+              high: Math.max(...currentWeek.map(d => d.high)),
+              low: Math.min(...currentWeek.map(d => d.low)),
+              close: currentWeek[currentWeek.length - 1].close,
+              volume: currentWeek.reduce((sum, d) => sum + d.volume, 0),
+            });
+          }
+          currentWeek = [item];
+          currentWeekStart = weekStartTime;
+        } else {
+          currentWeek.push(item);
+        }
+
+        if (index === dailyData.length - 1 && currentWeek.length > 0) {
+          result.push({
+            timestamp: currentWeek[0].timestamp,
+            open: currentWeek[0].open,
+            high: Math.max(...currentWeek.map(d => d.high)),
+            low: Math.min(...currentWeek.map(d => d.low)),
+            close: currentWeek[currentWeek.length - 1].close,
+            volume: currentWeek.reduce((sum, d) => sum + d.volume, 0),
+          });
+        }
+      });
+    } else if (period === '1M') {
+      let currentMonth: KLineData[] = [];
+      let currentMonthKey: string | null = null;
+
+      dailyData.forEach((item, index) => {
+        const itemDate = new Date(item.timestamp);
+        const monthKey = `${itemDate.getFullYear()}-${itemDate.getMonth()}`;
+
+        if (currentMonthKey === null) {
+          currentMonthKey = monthKey;
+        }
+
+        if (monthKey !== currentMonthKey) {
+          if (currentMonth.length > 0) {
+            result.push({
+              timestamp: currentMonth[0].timestamp,
+              open: currentMonth[0].open,
+              high: Math.max(...currentMonth.map(d => d.high)),
+              low: Math.min(...currentMonth.map(d => d.low)),
+              close: currentMonth[currentMonth.length - 1].close,
+              volume: currentMonth.reduce((sum, d) => sum + d.volume, 0),
+            });
+          }
+          currentMonth = [item];
+          currentMonthKey = monthKey;
+        } else {
+          currentMonth.push(item);
+        }
+
+        if (index === dailyData.length - 1 && currentMonth.length > 0) {
+          result.push({
+            timestamp: currentMonth[0].timestamp,
+            open: currentMonth[0].open,
+            high: Math.max(...currentMonth.map(d => d.high)),
+            low: Math.min(...currentMonth.map(d => d.low)),
+            close: currentMonth[currentMonth.length - 1].close,
+            volume: currentMonth.reduce((sum, d) => sum + d.volume, 0),
+          });
+        }
+      });
+    } else if (period === '3M') {
+      let currentQuarter: KLineData[] = [];
+      let currentQuarterKey: string | null = null;
+
+      dailyData.forEach((item, index) => {
+        const itemDate = new Date(item.timestamp);
+        const quarter = Math.floor(itemDate.getMonth() / 3);
+        const quarterKey = `${itemDate.getFullYear()}-Q${quarter}`;
+
+        if (currentQuarterKey === null) {
+          currentQuarterKey = quarterKey;
+        }
+
+        if (quarterKey !== currentQuarterKey) {
+          if (currentQuarter.length > 0) {
+            result.push({
+              timestamp: currentQuarter[0].timestamp,
+              open: currentQuarter[0].open,
+              high: Math.max(...currentQuarter.map(d => d.high)),
+              low: Math.min(...currentQuarter.map(d => d.low)),
+              close: currentQuarter[currentQuarter.length - 1].close,
+              volume: currentQuarter.reduce((sum, d) => sum + d.volume, 0),
+            });
+          }
+          currentQuarter = [item];
+          currentQuarterKey = quarterKey;
+        } else {
+          currentQuarter.push(item);
+        }
+
+        if (index === dailyData.length - 1 && currentQuarter.length > 0) {
+          result.push({
+            timestamp: currentQuarter[0].timestamp,
+            open: currentQuarter[0].open,
+            high: Math.max(...currentQuarter.map(d => d.high)),
+            low: Math.min(...currentQuarter.map(d => d.low)),
+            close: currentQuarter[currentQuarter.length - 1].close,
+            volume: currentQuarter.reduce((sum, d) => sum + d.volume, 0),
+          });
+        }
+      });
+    } else if (period === '1Y') {
+      let currentYear: KLineData[] = [];
+      let currentYearKey: number | null = null;
+
+      dailyData.forEach((item, index) => {
+        const itemDate = new Date(item.timestamp);
+        const year = itemDate.getFullYear();
+
+        if (currentYearKey === null) {
+          currentYearKey = year;
+        }
+
+        if (year !== currentYearKey) {
+          if (currentYear.length > 0) {
+            result.push({
+              timestamp: currentYear[0].timestamp,
+              open: currentYear[0].open,
+              high: Math.max(...currentYear.map(d => d.high)),
+              low: Math.min(...currentYear.map(d => d.low)),
+              close: currentYear[currentYear.length - 1].close,
+              volume: currentYear.reduce((sum, d) => sum + d.volume, 0),
+            });
+          }
+          currentYear = [item];
+          currentYearKey = year;
+        } else {
+          currentYear.push(item);
+        }
+
+        if (index === dailyData.length - 1 && currentYear.length > 0) {
+          result.push({
+            timestamp: currentYear[0].timestamp,
+            open: currentYear[0].open,
+            high: Math.max(...currentYear.map(d => d.high)),
+            low: Math.min(...currentYear.map(d => d.low)),
+            close: currentYear[currentYear.length - 1].close,
+            volume: currentYear.reduce((sum, d) => sum + d.volume, 0),
+          });
+        }
+      });
+    }
+
+    return result;
   };
 
   const handleTimeRangeChange = (range: TimeRange) => {
@@ -375,13 +535,9 @@ export function ChartPanel() {
     setTimeRange(range);
 
     if (chartRef.current) {
-      const days = getTimeRangeDays(range);
-      const endDate = new Date();
-      const startDate = new Date(endDate);
-      startDate.setDate(startDate.getDate() - days);
-
-      const mockData = generateMockDataForDateRange(startDate, endDate);
-      chartRef.current.applyNewData(mockData);
+      const dailyData = generateMockData(1250);
+      const convertedData = convertKLineData(dailyData, range);
+      chartRef.current.applyNewData(convertedData);
     }
   };
 
@@ -737,7 +893,7 @@ export function ChartPanel() {
                 <div></div>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-0.5">
-                    {(['1D', '5D', '1M', '3M', '6M', '1Y', 'ALL'] as TimeRange[]).map((period) => (
+                    {(['1D', '5D', '1W', '1M', '3M', '1Y'] as TimeRange[]).map((period) => (
                       <button
                         key={period}
                         onClick={() => handleTimeRangeChange(period)}
@@ -746,7 +902,7 @@ export function ChartPanel() {
                             ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
                             : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
                         }`}
-                        title={`查看${period === '1D' ? '1天' : period === '5D' ? '5天' : period === '1M' ? '1个月' : period === '3M' ? '3个月' : period === '6M' ? '6个月' : period === '1Y' ? '1年' : '全部5年'}的数据`}
+                        title={`查看${period === '1D' ? '日线' : period === '5D' ? '5日线' : period === '1W' ? '周线' : period === '1M' ? '月线' : period === '3M' ? '季线' : '年线'}`}
                       >
                         {period}
                       </button>
