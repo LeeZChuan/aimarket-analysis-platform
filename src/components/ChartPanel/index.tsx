@@ -3,7 +3,6 @@ import { init, dispose } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
 import {
-  Calendar,
   TrendingUp,
   Activity,
   BarChart3,
@@ -64,16 +63,13 @@ interface TooltipState {
 }
 
 export function ChartPanel() {
-  const { selectedStock, dateRange, setDateRange } = useStore();
+  const { selectedStock } = useStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const indicatorIdsRef = useRef<Map<string, string>>(new Map());
   const [indicators, setIndicators] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('6M');
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
   const [hoveredChange, setHoveredChange] = useState<number | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
@@ -93,7 +89,6 @@ export function ChartPanel() {
   const [selectedPriceLine, setSelectedPriceLine] = useState<DrawingTool>('priceLine');
   const [selectedShape, setSelectedShape] = useState<DrawingTool>('rect');
   const [selectedAnnotation, setSelectedAnnotation] = useState<DrawingTool>('simpleAnnotation');
-  const datePickerRef = useRef<HTMLDivElement>(null);
   const indicatorMenuRef = useRef<HTMLDivElement>(null);
   const horizontalLineMenuRef = useRef<HTMLDivElement>(null);
   const verticalLineMenuRef = useRef<HTMLDivElement>(null);
@@ -241,14 +236,6 @@ export function ChartPanel() {
         const mockData = generateMockData(days);
         chart.applyNewData(mockData);
 
-        if (mockData.length > 0 && !dateRange.start) {
-          const startDate = new Date(mockData[0].timestamp).toISOString().split('T')[0];
-          const endDate = new Date(mockData[mockData.length - 1].timestamp).toISOString().split('T')[0];
-          setDateRange({ start: startDate, end: endDate });
-          setCustomStartDate(startDate);
-          setCustomEndDate(endDate);
-        }
-
         return () => {
           resizeObserver.disconnect();
         };
@@ -379,7 +366,6 @@ export function ChartPanel() {
     if (timeRange === range) return;
 
     setTimeRange(range);
-    setShowDatePicker(false);
 
     if (chartRef.current) {
       const days = getTimeRangeDays(range);
@@ -389,52 +375,12 @@ export function ChartPanel() {
 
       const mockData = generateMockDataForDateRange(startDate, endDate);
       chartRef.current.applyNewData(mockData);
-
-      if (mockData.length > 0) {
-        const startDateStr = new Date(mockData[0].timestamp).toISOString().split('T')[0];
-        const endDateStr = new Date(mockData[mockData.length - 1].timestamp).toISOString().split('T')[0];
-        setDateRange({ start: startDateStr, end: endDateStr });
-        setCustomStartDate(startDateStr);
-        setCustomEndDate(endDateStr);
-      }
     }
   };
 
-  const handleCustomDateApply = () => {
-    if (!customStartDate || !customEndDate) return;
-
-    const start = new Date(customStartDate);
-    const end = new Date(customEndDate);
-    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= 0) {
-      alert('结束日期必须大于开始日期');
-      return;
-    }
-
-    setDateRange({ start: customStartDate, end: customEndDate });
-    setTimeRange('ALL');
-
-    if (chartRef.current) {
-      const mockData = generateMockDataForDateRange(start, end);
-      chartRef.current.applyNewData(mockData);
-    }
-
-    setShowDatePicker(false);
-  };
-
-  useEffect(() => {
-    if (showDatePicker && dateRange.start && dateRange.end) {
-      setCustomStartDate(dateRange.start);
-      setCustomEndDate(dateRange.end);
-    }
-  }, [showDatePicker, dateRange]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        setShowDatePicker(false);
-      }
       if (indicatorMenuRef.current && !indicatorMenuRef.current.contains(event.target as Node)) {
         setShowIndicatorMenu(false);
       }
@@ -458,7 +404,7 @@ export function ChartPanel() {
       }
     };
 
-    if (showDatePicker || showIndicatorMenu || showHorizontalLineMenu || showVerticalLineMenu ||
+    if (showIndicatorMenu || showHorizontalLineMenu || showVerticalLineMenu ||
         showGeneralLineMenu || showPriceLineMenu || showShapeMenu || showAnnotationMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
@@ -466,7 +412,7 @@ export function ChartPanel() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDatePicker, showIndicatorMenu, showHorizontalLineMenu, showVerticalLineMenu,
+  }, [showIndicatorMenu, showHorizontalLineMenu, showVerticalLineMenu,
       showGeneralLineMenu, showPriceLineMenu, showShapeMenu, showAnnotationMenu]);
 
   const toggleIndicator = (indicator: string) => {
@@ -783,58 +729,6 @@ export function ChartPanel() {
               <div className="flex items-center justify-between">
                 <div></div>
                 <div className="flex items-center gap-2">
-                  <div className="relative" ref={datePickerRef}>
-                    <button
-                      onClick={() => setShowDatePicker(!showDatePicker)}
-                      className="px-2 py-0.5 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-[10px] text-gray-400 hover:text-white hover:border-[#3A9FFF] transition-colors flex items-center gap-1"
-                      title={`${dateRange.start} ~ ${dateRange.end}`}
-                    >
-                      <Calendar className="w-3 h-3" />
-                      <span className="hidden xl:inline">{dateRange.start.slice(5)} ~ {dateRange.end.slice(5)}</span>
-                    </button>
-
-                    {showDatePicker && (
-                      <div className="absolute top-full left-0 mt-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[280px]">
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-[10px] text-gray-400 block mb-1">开始日期</label>
-                            <input
-                              type="date"
-                              value={customStartDate}
-                              onChange={(e) => setCustomStartDate(e.target.value)}
-                              className="w-full px-2 py-1 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[11px] text-white focus:border-[#3A9FFF] focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-gray-400 block mb-1">结束日期</label>
-                            <input
-                              type="date"
-                              value={customEndDate}
-                              onChange={(e) => setCustomEndDate(e.target.value)}
-                              className="w-full px-2 py-1 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[11px] text-white focus:border-[#3A9FFF] focus:outline-none"
-                            />
-                          </div>
-                          <div className="flex gap-2 pt-1">
-                            <button
-                              onClick={handleCustomDateApply}
-                              className="flex-1 px-3 py-1.5 bg-[#3A9FFF] hover:bg-[#3A9FFF]/80 text-white text-[11px] font-medium rounded transition-colors"
-                              title="应用自定义日期范围"
-                            >
-                              应用
-                            </button>
-                            <button
-                              onClick={() => setShowDatePicker(false)}
-                              className="flex-1 px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#3A3A3A] text-gray-300 text-[11px] font-medium rounded transition-colors"
-                              title="取消自定义日期"
-                            >
-                              取消
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
                   <div className="flex gap-0.5">
                     {(['1D', '5D', '1M', '3M', '6M', '1Y'] as TimeRange[]).map((period) => (
                       <button

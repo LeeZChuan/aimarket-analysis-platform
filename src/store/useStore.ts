@@ -20,7 +20,6 @@ interface AppState {
   watchlist: Stock[];
   messages: Message[];
   selectedModel: string;
-  dateRange: { start: string; end: string };
   user: User | null;
   isAuthenticated: boolean;
 
@@ -29,7 +28,6 @@ interface AppState {
   removeFromWatchlist: (symbol: string) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setSelectedModel: (model: string) => void;
-  setDateRange: (range: { start: string; end: string }) => void;
   login: (email: string) => void;
   logout: () => void;
 }
@@ -48,7 +46,6 @@ export const useStore = create<AppState>()(
       ],
       messages: [],
       selectedModel: 'auto',
-      dateRange: { start: '2024-06-01', end: '2024-10-25' },
       user: null,
       isAuthenticated: false,
 
@@ -71,8 +68,6 @@ export const useStore = create<AppState>()(
       })),
 
       setSelectedModel: (model) => set({ selectedModel: model }),
-
-      setDateRange: (range) => set({ dateRange: range }),
 
       login: (email) => set({
         user: { email, name: email.split('@')[0] },
