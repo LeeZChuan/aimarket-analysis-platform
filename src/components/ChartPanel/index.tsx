@@ -288,18 +288,30 @@ export function ChartPanel() {
       case '3M': return 90;
       case '6M': return 180;
       case '1Y': return 365;
-      case 'ALL': return 730;
+      case 'ALL': return 1250;
       default: return 180;
     }
+  };
+
+  const generatePseudoRandom = (seed: number): number => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
   };
 
   const generateMockData = (days: number): KLineData[] => {
     const data: KLineData[] = [];
     let basePrice = selectedStock?.price || 150;
+    const seed = (selectedStock?.id || 'default').charCodeAt(0) * 3000;
     const endDate = new Date();
     endDate.setHours(0, 0, 0, 0);
     const startDate = new Date(endDate);
     startDate.setDate(startDate.getDate() - days);
+
+    let lastClose = basePrice;
+    let trendDirection = 1;
+    let trendStrength = 0;
+    let trendDuration = 0;
+    let dayIndex = 0;
 
     for (let i = 0; i < days; i++) {
       const date = new Date(startDate);
@@ -307,12 +319,35 @@ export function ChartPanel() {
 
       if (date.getDay() === 0 || date.getDay() === 6) continue;
 
-      const volatility = basePrice * 0.02;
-      const open = basePrice + (Math.random() - 0.5) * volatility;
-      const close = open + (Math.random() - 0.5) * volatility;
-      const high = Math.max(open, close) + Math.random() * volatility;
-      const low = Math.min(open, close) - Math.random() * volatility;
-      const volume = Math.floor(1000000 + Math.random() * 5000000);
+      const random1 = generatePseudoRandom(seed + dayIndex * 5);
+      const random2 = generatePseudoRandom(seed + dayIndex * 5 + 1);
+      const random3 = generatePseudoRandom(seed + dayIndex * 5 + 2);
+      const random4 = generatePseudoRandom(seed + dayIndex * 5 + 3);
+      const random5 = generatePseudoRandom(seed + dayIndex * 5 + 4);
+
+      if (trendDuration === 0 || trendDuration > 30 + random5 * 40) {
+        trendDirection = random1 > 0.5 ? 1 : -1;
+        trendStrength = 0.3 + random2 * 0.7;
+        trendDuration = 0;
+      }
+      trendDuration++;
+
+      const trendChange = trendDirection * trendStrength * 0.003;
+      const randomChange = (random1 - 0.5) * 0.04;
+      const dailyChange = trendChange + randomChange;
+
+      const open = lastClose * (1 + dailyChange * 0.2);
+      const close = lastClose * (1 + dailyChange);
+
+      const highOffset = Math.abs(random2 - 0.5) * 0.025;
+      const lowOffset = Math.abs(random3 - 0.5) * 0.025;
+
+      const high = Math.max(open, close) * (1 + highOffset);
+      const low = Math.min(open, close) * (1 - lowOffset);
+
+      const baseVolume = 2000000;
+      const volatilityFactor = Math.abs(dailyChange) * 20;
+      const volume = baseVolume * (0.3 + random4 * 0.7 + volatilityFactor);
 
       data.push({
         timestamp: date.getTime(),
@@ -320,46 +355,24 @@ export function ChartPanel() {
         high: Number(high.toFixed(2)),
         low: Number(low.toFixed(2)),
         close: Number(close.toFixed(2)),
-        volume,
+        volume: Math.floor(volume),
       });
 
-      basePrice = close;
+      lastClose = close;
+      dayIndex++;
     }
 
     return data;
   };
 
   const generateMockDataForDateRange = (startDate: Date, endDate: Date): KLineData[] => {
-    const data: KLineData[] = [];
-    let basePrice = selectedStock?.price || 150;
-    const currentDate = new Date(startDate);
-    currentDate.setHours(0, 0, 0, 0);
+    const allData = generateMockData(1250);
 
-    while (currentDate <= endDate) {
-      if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
-        const volatility = 0.02;
-        const change = (Math.random() - 0.5) * basePrice * volatility;
-        const open = basePrice;
-        const close = basePrice + change;
-        const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-        const volume = Math.floor(1000000 + Math.random() * 5000000);
+    const filteredData = allData.filter(item => {
+      return item.timestamp >= startDate.getTime() && item.timestamp <= endDate.getTime();
+    });
 
-        data.push({
-          timestamp: currentDate.getTime(),
-          open: Number(open.toFixed(2)),
-          high: Number(high.toFixed(2)),
-          low: Number(low.toFixed(2)),
-          close: Number(close.toFixed(2)),
-          volume,
-        });
-
-        basePrice = close;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return data;
+    return filteredData.length > 0 ? filteredData : allData.slice(-180);
   };
 
   const handleTimeRangeChange = (range: TimeRange) => {
