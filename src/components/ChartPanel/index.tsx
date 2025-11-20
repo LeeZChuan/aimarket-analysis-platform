@@ -725,21 +725,22 @@ export function ChartPanel() {
         </div>
       )}
 
-      <div className="w-12 bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1">
-        <button
-          onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-          onMouseEnter={(e) => showTooltip(isSidebarExpanded ? '收起工具栏' : '展开工具栏', e)}
-          onMouseLeave={hideTooltip}
-          className="w-9 h-9 flex items-center justify-center rounded bg-[#3A9FFF] text-white hover:bg-[#3A9FFF]/80 transition-colors"
+      <div className="relative flex">
+        <div
+          className={`bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1 transition-all duration-300 ease-in-out ${
+            isSidebarExpanded ? 'w-12 opacity-100' : 'w-0 opacity-0 overflow-hidden'
+          }`}
         >
-          {isSidebarExpanded ? (
-            <ChevronLeft className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
-        </button>
+          <button
+            onClick={() => setIsSidebarExpanded(false)}
+            onMouseEnter={(e) => showTooltip('收起工具栏', e)}
+            onMouseLeave={hideTooltip}
+            className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#3A9FFF] hover:bg-[#2A2A2A] transition-all flex items-center justify-center group"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-400 group-hover:text-[#3A9FFF] transition-colors" />
+          </button>
 
-        {isSidebarExpanded && (
+          {isSidebarExpanded && (
           <>
             <div className="h-px w-8 bg-[#2A2A2A] my-1" />
 
@@ -834,6 +835,18 @@ export function ChartPanel() {
               <Eraser className="w-4 h-4" />
             </button>
           </>
+          )}
+        </div>
+
+        {!isSidebarExpanded && (
+          <button
+            onClick={() => setIsSidebarExpanded(true)}
+            onMouseEnter={(e) => showTooltip('展开工具栏', e)}
+            onMouseLeave={hideTooltip}
+            className="absolute left-0 top-3 w-5 h-10 bg-[#1A1A1A] border border-[#2A2A2A] border-l-0 rounded-r-full hover:border-[#3A9FFF] hover:bg-[#2A2A2A] transition-all flex items-center justify-center group z-10"
+          >
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#3A9FFF] transition-colors" />
+          </button>
         )}
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronRight, ChevronLeft } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Sidebar } from '../../components/Sidebar';
 import { ChartPanel } from '../../components/ChartPanel';
 import { ChatPanel } from '../../components/AIAssistant';
@@ -8,7 +8,6 @@ import { LAYOUT_CONFIG } from '../../config/layout';
 export function TradingView() {
   const [showSidebar, setShowSidebar] = useState(LAYOUT_CONFIG.sidebar.defaultVisible);
   const [showChat, setShowChat] = useState(LAYOUT_CONFIG.chatPanel.defaultVisible);
-  const [showLeftToolbar, setShowLeftToolbar] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(LAYOUT_CONFIG.sidebar.defaultWidth);
   const [chatWidth, setChatWidth] = useState(LAYOUT_CONFIG.chatPanel.defaultWidth);
   const isResizingSidebar = useRef(false);
@@ -71,35 +70,6 @@ export function TradingView() {
       </div>
 
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <div className="relative flex">
-          <div
-            className={`bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1 transition-all duration-300 ease-in-out ${
-              showLeftToolbar ? 'w-12 opacity-100' : 'w-0 opacity-0 overflow-hidden'
-            }`}
-          >
-            <button
-              onClick={() => setShowLeftToolbar(false)}
-              className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#3A9FFF] hover:bg-[#2A2A2A] transition-all flex items-center justify-center group"
-              title="收起工具栏"
-            >
-              <ChevronLeft className="w-4 h-4 text-gray-400 group-hover:text-[#3A9FFF] transition-colors" />
-            </button>
-          </div>
-
-          {!showLeftToolbar && (
-            <button
-              onClick={() => setShowLeftToolbar(true)}
-              className="absolute left-0 top-3 w-5 h-10 bg-[#1A1A1A] border border-[#2A2A2A] border-l-0 rounded-r-full hover:border-[#3A9FFF] hover:bg-[#2A2A2A] transition-all flex items-center justify-center group z-10"
-              title="展开工具栏"
-              style={{
-                transform: 'translateX(0)',
-              }}
-            >
-              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#3A9FFF] transition-colors" />
-            </button>
-          )}
-        </div>
-
         {showSidebar && (
           <>
             <div style={{ width: `${sidebarWidth}px` }} className="flex-shrink-0 overflow-hidden">
