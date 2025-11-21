@@ -61,15 +61,15 @@ export function ConversationTabBar({
 
   return (
     <div className="relative flex items-center bg-[#0D0D0D] border-b border-[#2A2A2A]">
-      <div className="flex items-center gap-1 px-2 py-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
-        <button
-          onClick={onShowHistory}
-          className="flex-shrink-0 p-1.5 hover:bg-[#2A2A2A] rounded transition-colors group"
-          title="对话历史"
-        >
-          <History className="w-4 h-4 text-gray-400 group-hover:text-white" />
-        </button>
+      <button
+        onClick={onShowHistory}
+        className="sticky left-0 flex-shrink-0 p-1.5 px-2 bg-[#0D0D0D] hover:bg-[#2A2A2A] rounded transition-colors group z-10 border-r border-[#2A2A2A]"
+        title="对话历史"
+      >
+        <History className="w-4 h-4 text-gray-400 group-hover:text-white" />
+      </button>
 
+      <div className="flex items-center gap-1 px-2 py-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
         <div className="flex items-center gap-1 min-w-0">
           {openTabs.map((tab) => (
             <div
