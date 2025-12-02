@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { stockService } from '../../services/stockService';
 import { Stock, Fund } from '../../types/stock';
 import { LAYOUT_CONFIG } from '../../config/layout';
+import { StockSearchModal } from '../StockSearchModal';
 
 type TabType = 'watchlist' | 'stocks' | 'funds';
 
@@ -14,6 +15,7 @@ export function Sidebar() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -82,19 +84,26 @@ export function Sidebar() {
       )
     : currentList;
 
+  const handleSelectStock = (stock: Stock) => {
+    setSelectedStock(stock);
+  };
+
   return (
     <div className="bg-[#1A1A1A] flex flex-col h-full w-full">
+      <StockSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onSelectStock={handleSelectStock}
+      />
+
       <div className="p-4 border-b border-[#2A2A2A]">
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="搜索代码或名称..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3A9FFF]"
-          />
-        </div>
+        <button
+          onClick={() => setIsSearchModalOpen(true)}
+          className="relative w-full mb-3 bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-sm text-gray-500 hover:text-white hover:border-[#3A9FFF] transition-all text-left group"
+        >
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-hover:text-[#3A9FFF] w-4 h-4 transition-colors" />
+          搜索代码或名称...
+        </button>
 
         <div className="flex gap-2">
           {(['watchlist', 'stocks', 'funds'] as TabType[]).map((tab) => (

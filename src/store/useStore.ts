@@ -37,12 +37,12 @@ export const useStore = create<AppState>()(
     (set) => ({
       selectedStock: null,
       watchlist: [
-        { symbol: 'AAPL', name: 'Apple Inc.', price: 178.72, change: 2.34, marketCap: 2800000000000, volume: 52340000, sector: 'Technology' },
-        { symbol: 'MSFT', name: 'Microsoft Corp.', price: 378.91, change: -1.23, marketCap: 2820000000000, volume: 28450000, sector: 'Technology' },
-        { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 141.80, change: 0.87, marketCap: 1780000000000, volume: 21560000, sector: 'Technology' },
-        { symbol: 'TSLA', name: 'Tesla Inc.', price: 248.50, change: 3.24, marketCap: 789000000000, volume: 89560000, sector: 'Automotive' },
-        { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 495.20, change: -1.15, marketCap: 1220000000000, volume: 42340000, sector: 'Technology' },
-        { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 178.35, change: 2.10, marketCap: 1850000000000, volume: 35670000, sector: 'Consumer Cyclical' },
+        { symbol: 'AAPL', name: 'Apple Inc.', price: 178.72, change: 2.34, marketCap: 2800000000000, volume: 52340000, sector: 'Technology', region: 'north-america' },
+        { symbol: 'MSFT', name: 'Microsoft Corp.', price: 378.91, change: -1.23, marketCap: 2820000000000, volume: 28450000, sector: 'Technology', region: 'north-america' },
+        { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 141.80, change: 0.87, marketCap: 1780000000000, volume: 21560000, sector: 'Technology', region: 'north-america' },
+        { symbol: 'TSLA', name: 'Tesla Inc.', price: 248.50, change: 3.24, marketCap: 789000000000, volume: 89560000, sector: 'Automotive', region: 'north-america' },
+        { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 495.20, change: -1.15, marketCap: 1220000000000, volume: 42340000, sector: 'Technology', region: 'north-america' },
+        { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 178.35, change: 2.10, marketCap: 1850000000000, volume: 35670000, sector: 'Consumer Cyclical', region: 'north-america' },
       ],
       messages: [],
       selectedModel: 'auto',

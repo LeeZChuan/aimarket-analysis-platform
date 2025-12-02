@@ -275,7 +275,7 @@ export function ChartPanel() {
   const generateMockData = (days: number): KLineData[] => {
     const data: KLineData[] = [];
     let basePrice = selectedStock?.price || 150;
-    const seed = (selectedStock?.id || 'default').charCodeAt(0) * 3000;
+    const seed = (selectedStock?.symbol || 'default').charCodeAt(0) * 3000;
     const endDate = new Date();
     endDate.setHours(0, 0, 0, 0);
     const startDate = new Date(endDate);

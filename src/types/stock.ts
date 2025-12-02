@@ -20,6 +20,8 @@ export interface Stock {
   volume?: number;
   /** 行业分类（可选） */
   sector?: string;
+  /** 所属地区（可选） */
+  region?: 'asia' | 'europe' | 'north-america' | 'south-america' | 'africa' | 'oceania' | 'antarctica';
 }
 
 /**
