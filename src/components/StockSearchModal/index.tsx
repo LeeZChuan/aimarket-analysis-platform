@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { X, Search, TrendingUp, TrendingDown, Plus, Star } from 'lucide-react';
 import { Stock } from '../../types/stock';
 import { MOCK_STOCKS } from '../../mock/stockData';
+import { useStore } from '../../store/useStore';
 
 interface StockSearchModalProps {
   isOpen: boolean;
@@ -23,11 +24,23 @@ const REGIONS: { value: Region; label: string }[] = [
 ];
 
 export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearchModalProps) {
+  const { watchlist, addToWatchlist } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<Region>('all');
   const [filteredStocks, setFilteredStocks] = useState<Stock[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const isInWatchlist = (symbol: string) => {
+    return watchlist.some(stock => stock.symbol === symbol);
+  };
+
+  const handleAddToWatchlist = (stock: Stock, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isInWatchlist(stock.symbol)) {
+      addToWatchlist(stock);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -145,13 +158,13 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
           ) : (
             <div className="space-y-2">
               {filteredStocks.map((stock) => (
-                <button
+                <div
                   key={stock.symbol}
+                  className="w-full p-3 rounded-lg bg-[#0D0D0D] hover:bg-[#2A2A2A] border border-[#2A2A2A] hover:border-[#3A9FFF] transition-all group cursor-pointer"
                   onClick={() => handleSelectStock(stock)}
-                  className="w-full p-3 rounded-lg bg-[#0D0D0D] hover:bg-[#2A2A2A] border border-[#2A2A2A] hover:border-[#3A9FFF] transition-all text-left group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-white group-hover:text-[#3A9FFF] transition-colors">
@@ -173,13 +186,13 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="text-right">
                         <div className="text-sm font-mono font-semibold text-white">
                           ${stock.price.toFixed(2)}
                         </div>
                         <div
-                          className={`text-xs font-semibold flex items-center gap-1 ${
+                          className={`text-xs font-semibold flex items-center gap-1 justify-end ${
                             stock.change >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'
                           }`}
                         >
@@ -192,9 +205,25 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
                           {stock.change.toFixed(2)}%
                         </div>
                       </div>
+                      <button
+                        onClick={(e) => handleAddToWatchlist(stock, e)}
+                        disabled={isInWatchlist(stock.symbol)}
+                        className={`p-1.5 rounded transition-all ${
+                          isInWatchlist(stock.symbol)
+                            ? 'text-[#3A9FFF] cursor-not-allowed'
+                            : 'text-gray-500 hover:text-[#3A9FFF] hover:bg-[#1A1A1A]'
+                        }`}
+                        title={isInWatchlist(stock.symbol) ? '已在自选股中' : '添加到自选股'}
+                      >
+                        {isInWatchlist(stock.symbol) ? (
+                          <Star className="w-4 h-4 fill-[#3A9FFF]" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

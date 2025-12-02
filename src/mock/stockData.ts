@@ -1,9 +1,9 @@
 /**
- * 股票和基金Mock数据
- * 提供大量的股票、基金和自选股数据用于开发测试
+ * 股票Mock数据
+ * 提供大量的股票和自选股数据用于开发测试
  */
 
-import { Stock, Fund } from '../types/stock';
+import { Stock } from '../types/stock';
 
 /**
  * Mock股票数据 - 美股主要科技股
@@ -81,63 +81,6 @@ export const MOCK_STOCKS: Stock[] = [
 ];
 
 /**
- * Mock基金数据 - 主要ETF基金
- */
-export const MOCK_FUNDS: Fund[] = [
-  // 宽基指数ETF
-  { symbol: 'SPY', name: 'SPDR S&P 500 ETF', price: 458.90, change: 0.78, fundType: 'ETF', expenseRatio: 0.09, aum: 398000000000, sector: 'Index', volume: 78900000 },
-  { symbol: 'VOO', name: 'Vanguard S&P 500', price: 456.78, change: 0.82, fundType: 'ETF', expenseRatio: 0.03, aum: 358000000000, sector: 'Index', volume: 4560000 },
-  { symbol: 'IVV', name: 'iShares Core S&P 500', price: 456.23, change: 0.81, fundType: 'ETF', expenseRatio: 0.03, aum: 348000000000, sector: 'Index', volume: 3890000 },
-  { symbol: 'QQQ', name: 'Invesco QQQ Trust', price: 389.45, change: 1.23, fundType: 'ETF', expenseRatio: 0.20, aum: 245000000000, sector: 'Technology', volume: 38900000 },
-  { symbol: 'VTI', name: 'Vanguard Total Stock', price: 234.56, change: 0.65, fundType: 'ETF', expenseRatio: 0.03, aum: 1450000000000, sector: 'Index', volume: 3450000 },
-  { symbol: 'DIA', name: 'SPDR Dow Jones ETF', price: 389.70, change: 0.45, fundType: 'ETF', expenseRatio: 0.16, aum: 31000000000, sector: 'Index', volume: 4560000 },
-
-  // 科技类ETF
-  { symbol: 'VGT', name: 'Vanguard Info Tech', price: 512.30, change: 1.45, fundType: 'ETF', expenseRatio: 0.10, aum: 67000000000, sector: 'Technology', volume: 890000 },
-  { symbol: 'XLK', name: 'Tech Select Sector', price: 198.60, change: 1.34, fundType: 'ETF', expenseRatio: 0.10, aum: 58000000000, sector: 'Technology', volume: 6780000 },
-  { symbol: 'SOXX', name: 'iShares Semiconductor', price: 456.80, change: 0.98, fundType: 'ETF', expenseRatio: 0.35, aum: 12000000000, sector: 'Technology', volume: 2340000 },
-  { symbol: 'SMH', name: 'VanEck Semiconductor', price: 234.50, change: 1.12, fundType: 'ETF', expenseRatio: 0.35, aum: 14000000000, sector: 'Technology', volume: 4560000 },
-  { symbol: 'ARKK', name: 'ARK Innovation ETF', price: 47.80, change: 2.34, fundType: 'ETF', expenseRatio: 0.75, aum: 7800000000, sector: 'Technology', volume: 12340000 },
-
-  // 金融类ETF
-  { symbol: 'XLF', name: 'Financial Select', price: 38.90, change: 0.56, fundType: 'ETF', expenseRatio: 0.10, aum: 41000000000, sector: 'Financial', volume: 45670000 },
-  { symbol: 'VFH', name: 'Vanguard Financials', price: 98.40, change: 0.67, fundType: 'ETF', expenseRatio: 0.10, aum: 11000000000, sector: 'Financial', volume: 2340000 },
-  { symbol: 'KRE', name: 'SPDR Regional Bank', price: 48.70, change: -0.89, fundType: 'ETF', expenseRatio: 0.35, aum: 4500000000, sector: 'Financial', volume: 18900000 },
-
-  // 医疗健康ETF
-  { symbol: 'XLV', name: 'Health Care Select', price: 142.30, change: 0.45, fundType: 'ETF', expenseRatio: 0.10, aum: 36000000000, sector: 'Healthcare', volume: 8900000 },
-  { symbol: 'VHT', name: 'Vanguard Health Care', price: 256.80, change: 0.67, fundType: 'ETF', expenseRatio: 0.10, aum: 17000000000, sector: 'Healthcare', volume: 890000 },
-  { symbol: 'IBB', name: 'iShares Biotech', price: 134.50, change: 1.23, fundType: 'ETF', expenseRatio: 0.45, aum: 8900000000, sector: 'Healthcare', volume: 3450000 },
-
-  // 能源类ETF
-  { symbol: 'XLE', name: 'Energy Select Sector', price: 89.60, change: -1.34, fundType: 'ETF', expenseRatio: 0.10, aum: 34000000000, sector: 'Energy', volume: 23450000 },
-  { symbol: 'VDE', name: 'Vanguard Energy', price: 121.40, change: -1.12, fundType: 'ETF', expenseRatio: 0.10, aum: 7800000000, sector: 'Energy', volume: 1230000 },
-  { symbol: 'USO', name: 'US Oil Fund', price: 78.90, change: -2.34, fundType: 'ETF', expenseRatio: 0.60, aum: 1200000000, sector: 'Energy', volume: 8900000 },
-
-  // 房地产ETF
-  { symbol: 'VNQ', name: 'Vanguard Real Estate', price: 87.60, change: 0.34, fundType: 'ETF', expenseRatio: 0.12, aum: 38000000000, sector: 'Real Estate', volume: 4560000 },
-  { symbol: 'XLRE', name: 'Real Estate Select', price: 38.20, change: 0.45, fundType: 'ETF', expenseRatio: 0.10, aum: 6700000000, sector: 'Real Estate', volume: 2340000 },
-  { symbol: 'IYR', name: 'iShares Real Estate', price: 89.40, change: 0.56, fundType: 'ETF', expenseRatio: 0.40, aum: 4500000000, sector: 'Real Estate', volume: 3890000 },
-
-  // 债券ETF
-  { symbol: 'BND', name: 'Vanguard Total Bond', price: 71.80, change: -0.12, fundType: 'Bond', expenseRatio: 0.03, aum: 98000000000, sector: 'Fixed Income', volume: 5670000 },
-  { symbol: 'AGG', name: 'iShares Core Bond', price: 97.50, change: -0.08, fundType: 'Bond', expenseRatio: 0.03, aum: 104000000000, sector: 'Fixed Income', volume: 4560000 },
-  { symbol: 'TLT', name: 'iShares 20+ Yr Bond', price: 89.20, change: -0.45, fundType: 'Bond', expenseRatio: 0.15, aum: 48000000000, sector: 'Fixed Income', volume: 28900000 },
-  { symbol: 'LQD', name: 'iShares IG Corp Bond', price: 107.30, change: -0.23, fundType: 'Bond', expenseRatio: 0.14, aum: 37000000000, sector: 'Fixed Income', volume: 12340000 },
-
-  // 国际市场ETF
-  { symbol: 'VEA', name: 'Vanguard FTSE Dev', price: 48.90, change: 0.78, fundType: 'ETF', expenseRatio: 0.05, aum: 115000000000, sector: 'International', volume: 12340000 },
-  { symbol: 'VWO', name: 'Vanguard FTSE Emerg', price: 42.30, change: 1.23, fundType: 'ETF', expenseRatio: 0.08, aum: 78000000000, sector: 'International', volume: 18900000 },
-  { symbol: 'EFA', name: 'iShares MSCI EAFE', price: 78.60, change: 0.89, fundType: 'ETF', expenseRatio: 0.32, aum: 68000000000, sector: 'International', volume: 23450000 },
-  { symbol: 'EEM', name: 'iShares MSCI Emerg', price: 41.20, change: 1.45, fundType: 'ETF', expenseRatio: 0.68, aum: 21000000000, sector: 'International', volume: 34560000 },
-
-  // 黄金与商品ETF
-  { symbol: 'GLD', name: 'SPDR Gold Shares', price: 198.40, change: 0.67, fundType: 'ETF', expenseRatio: 0.40, aum: 61000000000, sector: 'Commodity', volume: 8900000 },
-  { symbol: 'SLV', name: 'iShares Silver Trust', price: 23.50, change: 1.23, fundType: 'ETF', expenseRatio: 0.50, aum: 12000000000, sector: 'Commodity', volume: 23450000 },
-  { symbol: 'DBC', name: 'Invesco DB Commodity', price: 22.80, change: -0.45, fundType: 'ETF', expenseRatio: 0.87, aum: 1800000000, sector: 'Commodity', volume: 4560000 },
-];
-
-/**
  * Mock自选股列表 - 初始自选股数据
  */
 export const MOCK_WATCHLIST: Stock[] = [
@@ -163,16 +106,3 @@ export const searchStocks = (keyword: string, stocks: Stock[]): Stock[] => {
   );
 };
 
-/**
- * 根据关键词搜索基金
- */
-export const searchFunds = (keyword: string, funds: Fund[]): Fund[] => {
-  const lowerKeyword = keyword.toLowerCase().trim();
-  if (!lowerKeyword) return funds;
-
-  return funds.filter(
-    (fund) =>
-      fund.symbol.toLowerCase().includes(lowerKeyword) ||
-      fund.name.toLowerCase().includes(lowerKeyword)
-  );
-};

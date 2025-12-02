@@ -1,9 +1,9 @@
 /**
- * 股票和基金相关的类型定义
+ * 股票相关的类型定义
  */
 
 /**
- * 股票/基金基础信息
+ * 股票基础信息
  */
 export interface Stock {
   /** 股票代码 */
@@ -24,17 +24,6 @@ export interface Stock {
   region?: 'asia' | 'europe' | 'north-america' | 'south-america' | 'africa' | 'oceania' | 'antarctica';
 }
 
-/**
- * 基金信息（继承自Stock，添加基金特有属性）
- */
-export interface Fund extends Stock {
-  /** 基金类型 */
-  fundType: 'ETF' | 'Index' | 'Mutual' | 'Bond';
-  /** 费用率（可选） */
-  expenseRatio?: number;
-  /** AUM - 资产管理规模（可选） */
-  aum?: number;
-}
 
 /**
  * 股票列表响应
@@ -48,17 +37,6 @@ export interface StockListResponse {
   timestamp: number;
 }
 
-/**
- * 基金列表响应
- */
-export interface FundListResponse {
-  /** 基金列表 */
-  funds: Fund[];
-  /** 总数 */
-  total: number;
-  /** 响应时间戳 */
-  timestamp: number;
-}
 
 /**
  * 自选股列表响应

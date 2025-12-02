@@ -1,19 +1,17 @@
-import { Search, TrendingUp, X, Star, BarChart3, PieChart } from 'lucide-react';
+import { Search, TrendingUp, X, Star, BarChart3, Plus } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useState, useEffect } from 'react';
 import { stockService } from '../../services/stockService';
-import { Stock, Fund } from '../../types/stock';
-import { LAYOUT_CONFIG } from '../../config/layout';
+import { Stock } from '../../types/stock';
 import { StockSearchModal } from '../StockSearchModal';
 
-type TabType = 'watchlist' | 'stocks' | 'funds';
+type TabType = 'watchlist' | 'stocks';
 
 export function Sidebar() {
-  const { watchlist, selectedStock, setSelectedStock, removeFromWatchlist } = useStore();
+  const { watchlist, selectedStock, setSelectedStock, removeFromWatchlist, addToWatchlist } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('watchlist');
   const [stocks, setStocks] = useState<Stock[]>([]);
-  const [funds, setFunds] = useState<Fund[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
@@ -24,9 +22,6 @@ export function Sidebar() {
         if (activeTab === 'stocks') {
           const response = await stockService.getStockList(1, 100);
           setStocks(response.stocks);
-        } else if (activeTab === 'funds') {
-          const response = await stockService.getFundList(1, 100);
-          setFunds(response.funds);
         }
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -46,8 +41,6 @@ export function Sidebar() {
         return watchlist;
       case 'stocks':
         return stocks;
-      case 'funds':
-        return funds;
       default:
         return watchlist;
     }
@@ -59,8 +52,6 @@ export function Sidebar() {
         return <Star className="w-4 h-4" />;
       case 'stocks':
         return <BarChart3 className="w-4 h-4" />;
-      case 'funds':
-        return <PieChart className="w-4 h-4" />;
     }
   };
 
@@ -70,8 +61,17 @@ export function Sidebar() {
         return '自选股';
       case 'stocks':
         return '股票列表';
-      case 'funds':
-        return '基金列表';
+    }
+  };
+
+  const isInWatchlist = (symbol: string) => {
+    return watchlist.some(stock => stock.symbol === symbol);
+  };
+
+  const handleAddToWatchlist = (stock: Stock, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isInWatchlist(stock.symbol)) {
+      addToWatchlist(stock);
     }
   };
 
@@ -106,7 +106,7 @@ export function Sidebar() {
         </button>
 
         <div className="flex gap-2">
-          {(['watchlist', 'stocks', 'funds'] as TabType[]).map((tab) => (
+          {(['watchlist', 'stocks'] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -171,7 +171,7 @@ export function Sidebar() {
                       </span>
                     </div>
                   </div>
-                  {activeTab === 'watchlist' && (
+                  {activeTab === 'watchlist' ? (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -181,6 +181,23 @@ export function Sidebar() {
                       title="从自选股中移除"
                     >
                       <X className="w-4 h-4 text-gray-500" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => handleAddToWatchlist(stock, e)}
+                      disabled={isInWatchlist(stock.symbol)}
+                      className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
+                        isInWatchlist(stock.symbol)
+                          ? 'text-[#3A9FFF] cursor-not-allowed'
+                          : 'hover:bg-[#2A2A2A] text-gray-500 hover:text-[#3A9FFF]'
+                      }`}
+                      title={isInWatchlist(stock.symbol) ? '已在自选股中' : '添加到自选股'}
+                    >
+                      {isInWatchlist(stock.symbol) ? (
+                        <Star className="w-4 h-4 fill-[#3A9FFF]" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
                     </button>
                   )}
                 </div>
