@@ -1,3 +1,20 @@
+/**
+ * 股票搜索弹窗组件
+ *
+ * 功能：
+ * - 全局股票搜索功能（支持按代码、名称搜索）
+ * - 按地区筛选（亚洲/欧洲/北美洲/南美洲/非洲/大洋洲/南极洲）
+ * - 显示全球80+股票列表
+ * - 实时搜索过滤（无需提交）
+ * - 显示股票价格和涨跌幅
+ * - 快速添加到自选股（星标按钮）
+ * - 点击股票选中并关闭弹窗
+ * - 点击遮罩层或关闭按钮关闭
+ *
+ * 使用位置：
+ * - /components/Sidebar/index.tsx - 点击搜索按钮弹出
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { X, Search, TrendingUp, TrendingDown, Plus, Star } from 'lucide-react';
 import { Stock } from '../../types/stock';

@@ -1,3 +1,19 @@
+/**
+ * 图表面板主组件（专业K线图表）
+ *
+ * 功能：
+ * - 专业级K线图表展示（支持蜡烛图、MA、MACD、RSI等技术指标）
+ * - 时间周期切换（1D/5D/1W/1M/3M/1Y）
+ * - 绘图工具栏（趋势线、水平线、矩形、圆形、文本标注等）
+ * - 技术指标添加/移除（MA/EMA/BOLL/SAR/MACD/KDJ/RSI/VOL等）
+ * - 图表缩放和拖拽交互
+ * - 鼠标悬停显示详细数据
+ * - 可折叠的头部和侧边栏
+ *
+ * 使用位置：
+ * - /views/StockDetailView/index.tsx - 股票详情页（中间主图表区域）
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { init, dispose } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';

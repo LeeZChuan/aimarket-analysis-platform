@@ -1,3 +1,17 @@
+/**
+ * 导航按钮组件（左上角圆角按钮）
+ *
+ * 功能：
+ * - 固定在屏幕左上角的导航触发按钮
+ * - 初始状态部分隐藏，鼠标悬停时展开
+ * - 脉冲动画提示（悬停时取消）
+ * - 渐变背景和发光效果
+ * - 点击打开侧边导航菜单
+ *
+ * 使用位置：
+ * - /views/Layout.tsx - 全局布局（左上角固定位置）
+ */
+
 import { Menu } from 'lucide-react';
 
 interface NavigationButtonProps {

@@ -1,3 +1,19 @@
+/**
+ * 股票列表侧边栏组件
+ *
+ * 功能：
+ * - 自选股列表和全部股票列表的标签切换
+ * - 本地搜索过滤（按股票代码或名称）
+ * - 点击股票切换选中状态
+ * - 显示股票基本信息（代码、名称、价格、涨跌幅）
+ * - 添加/移除自选股功能
+ * - 打开股票搜索弹窗
+ * - 点击股票跳转到详情页
+ *
+ * 使用位置：
+ * - /views/TradingView/index.tsx - 交易视图（左侧股票列表栏）
+ */
+
 import { Search, TrendingUp, X, Star, BarChart3, Plus } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useState, useEffect } from 'react';

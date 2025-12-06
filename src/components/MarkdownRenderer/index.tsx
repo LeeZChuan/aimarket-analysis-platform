@@ -1,3 +1,20 @@
+/**
+ * Markdown渲染器组件
+ *
+ * 功能：
+ * - 将Markdown格式文本转换为HTML渲染
+ * - 支持标题（H1-H6）
+ * - 支持列表（有序列表、无序列表）
+ * - 支持代码块和行内代码
+ * - 支持粗体、斜体文本
+ * - 支持链接（自动在新标签页打开）
+ * - 支持引用块
+ * - 支持分隔线
+ *
+ * 使用位置：
+ * - /components/AIAssistant/AIMessageRenderer/index.tsx - 渲染AI回复中的Markdown内容
+ */
+
 import { useMemo } from 'react';
 
 interface MarkdownRendererProps {

@@ -1,3 +1,17 @@
+/**
+ * AI聊天输入框组件
+ *
+ * 功能：
+ * - 提供多行文本输入框用于用户输入消息
+ * - 支持图片上传功能（可上传多张图片）
+ * - AI模型选择下拉菜单（支持GPT-4、Quant-LLM等模型）
+ * - 快捷键支持（Enter发送，Shift+Enter换行）
+ * - 实时预览已上传的图片并支持删除
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatPanel/index.tsx - AI聊天面板（底部输入区域）
+ */
+
 import { useState, useRef } from 'react';
 import { Send, Image as ImageIcon, X, ChevronDown } from 'lucide-react';
 

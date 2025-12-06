@@ -1,3 +1,21 @@
+/**
+ * 高性能虚拟滚动表格组件
+ *
+ * 功能：
+ * - 虚拟滚动（仅渲染可见行，支持10万+数据）
+ * - 列排序（支持自定义排序函数）
+ * - 列拖拽调整顺序
+ * - 行选中高亮
+ * - 行悬停效果
+ * - 横向滚动支持
+ * - 固定表头
+ * - 自定义单元格渲染
+ *
+ * 使用位置：
+ * - 目前未在主要页面使用（可作为通用表格组件）
+ * - 适合大数据量的股票列表、交易记录等场景
+ */
+
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { TableProps, FlattenColumn, ColumnConfig, SortOrder } from './types';
 import { VirtualScrollManager } from './VirtualScrollManager';

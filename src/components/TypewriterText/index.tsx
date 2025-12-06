@@ -1,3 +1,17 @@
+/**
+ * 打字机效果文本组件
+ *
+ * 功能：
+ * - 逐字符显示文本，模拟打字机效果
+ * - 可配置打字速度（毫秒/字符）
+ * - 显示跳动的光标（▊）
+ * - 支持完成回调函数
+ * - 文本变化时自动重置动画
+ *
+ * 使用位置：
+ * - /components/AIAssistant/AIMessageRenderer/index.tsx - 为AI文本回复添加打字机效果
+ */
+
 import { useState, useEffect } from 'react';
 
 interface TypewriterTextProps {

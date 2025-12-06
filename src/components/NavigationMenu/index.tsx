@@ -1,3 +1,18 @@
+/**
+ * 导航菜单侧边栏组件
+ *
+ * 功能：
+ * - 左侧滑出的全屏导航菜单
+ * - 显示所有可导航页面（交易面板、个股列表等）
+ * - 高亮当前活跃页面
+ * - 显示当前用户信息（头像、姓名、邮箱）
+ * - 退出登录功能
+ * - 点击遮罩层或关闭按钮关闭菜单
+ *
+ * 使用位置：
+ * - /views/Layout.tsx - 全局布局（通过NavigationButton触发显示）
+ */
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TrendingUp, LogOut, User, X, BarChart3 } from 'lucide-react';
 import { useStore } from '../../store/useStore';

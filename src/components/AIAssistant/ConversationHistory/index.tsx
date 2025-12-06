@@ -1,3 +1,19 @@
+/**
+ * 会话历史记录弹窗组件
+ *
+ * 功能：
+ * - 展示所有历史对话记录列表
+ * - 搜索功能（按标题或内容搜索）
+ * - 显示对话元信息（消息数量、股票代码、最后活动时间）
+ * - 人性化时间显示（刚刚/X分钟前/X小时前/X天前）
+ * - 点击打开历史对话
+ * - 删除对话功能（带二次确认）
+ * - 加载状态和空状态处理
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatPanel/index.tsx - 点击历史按钮后弹出的模态框
+ */
+
 import { useState, useEffect } from 'react';
 import { X, Search, Trash2, Clock } from 'lucide-react';
 import { ConversationListItem, ConversationFilter } from '../../../types/conversation';

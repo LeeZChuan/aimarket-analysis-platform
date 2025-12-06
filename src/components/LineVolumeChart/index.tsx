@@ -1,3 +1,17 @@
+/**
+ * 折线图+成交量组合图表组件
+ *
+ * 功能：
+ * - 上方区域展示面积折线图（价格走势）
+ * - 下方区域展示成交量柱状图
+ * - 渐变填充效果（蓝色主题）
+ * - 双图表联动显示
+ *
+ * 使用位置：
+ * - 目前未在主要页面使用（可作为独立组件使用）
+ * - 适合日内分时图或简化版行情展示
+ */
+
 import { useEffect, useRef } from 'react';
 import { init, dispose } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';

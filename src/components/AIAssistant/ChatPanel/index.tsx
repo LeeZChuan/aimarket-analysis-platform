@@ -1,3 +1,17 @@
+/**
+ * AI聊天面板主组件
+ *
+ * 功能：
+ * - 管理AI对话的整体交互流程
+ * - 协调会话标签栏、消息列表、输入框等子组件
+ * - 处理消息发送、模型选择、会话管理等核心逻辑
+ * - 支持多会话标签切换和历史记录查看
+ *
+ * 使用位置：
+ * - /views/TradingView/index.tsx - 股票交易主视图（右侧AI助手面板）
+ * - /views/StockDetailView/index.tsx - 股票详情页（右侧AI助手面板）
+ */
+
 import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useStore } from '../../../store/useStore';

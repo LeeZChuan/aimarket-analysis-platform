@@ -1,3 +1,16 @@
+/**
+ * 图表标签切换组件
+ *
+ * 功能：
+ * - 提供个股/行业/大盘三个维度的图表切换
+ * - 根据选中标签动态生成对应的K线数据
+ * - 集成K线图表展示
+ *
+ * 使用位置：
+ * - 目前未在主要页面使用（可作为独立组件使用）
+ * - 可用于多维度对比分析场景
+ */
+
 import { useState, useMemo } from 'react';
 import { ChartTabType, ChartTab } from '../../types/chart';
 import { KLineChart } from '../KLineChart';

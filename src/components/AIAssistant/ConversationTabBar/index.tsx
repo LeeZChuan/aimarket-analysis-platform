@@ -1,3 +1,19 @@
+/**
+ * 会话标签栏组件
+ *
+ * 功能：
+ * - 展示已打开的多个会话标签（类似浏览器标签页）
+ * - 支持标签切换、关闭、重命名
+ * - 新建会话按钮（右侧固定）
+ * - 查看历史记录按钮（左侧固定）
+ * - 横向滚动支持（标签过多时）
+ * - 活跃标签高亮显示
+ * - 鼠标悬停显示编辑和关闭按钮
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatPanel/index.tsx - AI聊天面板（顶部标签栏）
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Edit2, History } from 'lucide-react';
 import { ConversationListItem } from '../../../types/conversation';

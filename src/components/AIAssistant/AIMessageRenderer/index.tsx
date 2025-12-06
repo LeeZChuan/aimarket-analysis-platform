@@ -1,3 +1,18 @@
+/**
+ * AI消息渲染器组件
+ *
+ * 功能：
+ * - 根据不同消息类型渲染对应格式（文本/Markdown/代码/图片/图表）
+ * - 支持混合类型消息（一条消息包含多种内容块）
+ * - 可扩展的自定义渲染器注册机制
+ * - 支持打字机效果的文本渲染
+ * - 代码块语法高亮和语言标识
+ * - Markdown内容格式化展示
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatMessageList/index.tsx - 消息列表中的AI回复渲染
+ */
+
 import { AIMessage, AIMessageType, AIMessageBlock, AIMessageRenderer as AIMessageRendererType } from '../../../types/ai';
 import { MarkdownRenderer } from '../../MarkdownRenderer';
 import { TypewriterText } from '../../TypewriterText';

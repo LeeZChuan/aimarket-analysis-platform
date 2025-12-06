@@ -1,3 +1,18 @@
+/**
+ * K线图表基础组件
+ *
+ * 功能：
+ * - 基于klinecharts库的K线图渲染
+ * - 蜡烛图样式配置（涨绿跌红）
+ * - 网格线和技术指标颜色配置
+ * - 自动数据转换（支持OHLCV格式）
+ * - 图表生命周期管理（初始化和销毁）
+ *
+ * 使用位置：
+ * - /components/ChartTabs/index.tsx - 图表标签组件中使用
+ * - 可作为基础K线图组件被其他图表组件复用
+ */
+
 import { useEffect, useRef } from 'react';
 import { init, dispose } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
