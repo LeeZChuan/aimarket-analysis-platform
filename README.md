@@ -45,25 +45,41 @@ cd project
 # 2. 安装依赖
 npm install
 
-# 3. 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，填入你的 Supabase 配置
-
-# 4. 启动开发服务器
+# 3. 启动开发服务器（无需配置即可运行）
 npm run dev
 
-# 5. 打开浏览器访问
+# 4. 打开浏览器访问
 # http://localhost:5173
+```
+
+### 数据源说明
+
+**重要**: 项目的核心功能使用本地Mock数据，可以**无需任何配置**直接运行:
+
+- ✅ **股票数据**: 使用本地Mock数据 (80+股票，包含全球七大洲)
+- ✅ **K线图表**: 基于股票代码生成伪随机数据
+- ✅ **实时行情**: 本地模拟数据
+- ⚠️ **对话历史**: 需要Supabase配置 (可选功能)
+
+**如果需要对话历史持久化功能**，请配置Supabase:
+
+```bash
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑 .env 文件，填入你的 Supabase 配置
+# VITE_SUPABASE_URL=https://your-project.supabase.co
+# VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### 首次运行检查清单
 
 - [ ] 依赖安装完成，无报错
-- [ ] `.env` 文件配置正确
 - [ ] 开发服务器启动成功
 - [ ] 浏览器能正常访问
 - [ ] K线图表正常显示
-- [ ] AI对话功能正常
+- [ ] 股票搜索和切换正常
+- [ ] AI对话界面显示正常 (对话历史持久化需要配置Supabase)
 
 ---
 
@@ -1550,6 +1566,18 @@ npm run lint
 
 ### 数据库问题
 
+**Q: 启动时提示 "Missing Supabase environment variables" 错误？**
+
+A: 这是正常现象！项目核心功能无需Supabase配置即可运行：
+- **股票数据、K线图表、实时行情** 都使用本地Mock数据
+- **对话历史持久化** 功能才需要Supabase配置
+
+如需启用对话历史持久化，请配置`.env`文件：
+```bash
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=xxx
+```
+
 **Q: 连接Supabase失败？**
 
 A: 检查环境变量配置：
@@ -1558,6 +1586,11 @@ A: 检查环境变量配置：
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=xxx
 ```
+
+确保：
+1. URL以 `https://` 开头
+2. Key没有多余空格或换行
+3. 重启开发服务器使环境变量生效
 
 **Q: RLS策略报错？**
 

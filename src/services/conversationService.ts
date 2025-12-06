@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   Conversation,
   ConversationWithMessages,
@@ -13,14 +13,24 @@ import {
 } from '../types/conversation';
 import { AIMessage } from '../types/ai';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+let supabase: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+function getSupabaseClient(): SupabaseClient {
+  if (!supabase) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.warn('⚠️ Supabase environment variables not found. Conversation features will not work.');
+      console.warn('Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
+      throw new Error('Missing Supabase environment variables');
+    }
+
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+
+  return supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 class ConversationService implements ConversationStorage {
   async getConversations(
@@ -28,7 +38,8 @@ class ConversationService implements ConversationStorage {
     limit: number = 20,
     cursor?: string
   ): Promise<PaginatedConversations> {
-    let query = supabase
+    const client = getSupabaseClient();
+    let query = client
       .from('conversations')
       .select('id, title, stock_symbol, last_activity, message_count, created_at', { count: 'exact' })
       .order('last_activity', { ascending: false })
@@ -68,7 +79,7 @@ class ConversationService implements ConversationStorage {
 
     const conversations: ConversationListItem[] = await Promise.all(
       (data || []).map(async (conv) => {
-        const { data: lastMsg } = await supabase
+        const { data: lastMsg } = await client
           .from('chat_history')
           .select('content')
           .eq('conversation_id', conv.id)
@@ -106,7 +117,8 @@ class ConversationService implements ConversationStorage {
   }
 
   async getConversation(id: string): Promise<ConversationWithMessages | null> {
-    const { data: convData, error: convError } = await supabase
+    const client = getSupabaseClient();
+    const { data: convData, error: convError } = await client
       .from('conversations')
       .select('*')
       .eq('id', id)
@@ -116,7 +128,7 @@ class ConversationService implements ConversationStorage {
       return null;
     }
 
-    const { data: messagesData, error: messagesError } = await supabase
+    const { data: messagesData, error: messagesError } = await client
       .from('chat_history')
       .select('*')
       .eq('conversation_id', id)
@@ -167,13 +179,14 @@ class ConversationService implements ConversationStorage {
   }
 
   async createConversation(params: CreateConversationParams): Promise<Conversation> {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const client = getSupabaseClient();
+    const { data: userData, error: userError } = await client.auth.getUser();
 
     if (userError || !userData.user) {
       throw new Error('User not authenticated');
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('conversations')
       .insert({
         user_id: userData.user.id,
@@ -209,6 +222,7 @@ class ConversationService implements ConversationStorage {
   }
 
   async updateConversation(id: string, params: UpdateConversationParams): Promise<Conversation> {
+    const client = getSupabaseClient();
     const updateData: any = {};
 
     if (params.title !== undefined) {
@@ -234,7 +248,7 @@ class ConversationService implements ConversationStorage {
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('conversations')
       .update(updateData)
       .eq('id', id)
@@ -264,7 +278,8 @@ class ConversationService implements ConversationStorage {
   }
 
   async deleteConversation(id: string): Promise<void> {
-    const { error } = await supabase
+    const client = getSupabaseClient();
+    const { error } = await client
       .from('conversations')
       .update({ status: ConversationStatus.DELETED })
       .eq('id', id);
@@ -278,11 +293,12 @@ class ConversationService implements ConversationStorage {
     conversationId: string,
     message: Omit<ConversationMessage, 'id' | 'conversationId' | 'createdAt'>
   ): Promise<ConversationMessage> {
+    const client = getSupabaseClient();
     const contentString = typeof message.content === 'string'
       ? message.content
       : JSON.stringify(message.content);
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('chat_history')
       .insert({
         conversation_id: conversationId,
@@ -321,7 +337,8 @@ class ConversationService implements ConversationStorage {
     limit: number = 50,
     cursor?: string
   ): Promise<ConversationMessage[]> {
-    let query = supabase
+    const client = getSupabaseClient();
+    let query = client
       .from('chat_history')
       .select('*')
       .eq('conversation_id', conversationId)
