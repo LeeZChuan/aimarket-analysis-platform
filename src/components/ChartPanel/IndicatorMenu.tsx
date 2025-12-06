@@ -26,9 +26,10 @@ interface IndicatorMenuProps {
   onToggleIndicator: (indicator: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  position?: 'top' | 'bottom';
 }
 
-export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onToggle }: IndicatorMenuProps) {
+export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onToggle, position = 'top' }: IndicatorMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const mainIndicators: IndicatorOption[] = [
@@ -75,7 +76,9 @@ export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onT
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[240px]">
+        <div className={`absolute right-0 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[240px] animate-in fade-in duration-200 ${
+          position === 'bottom' ? 'bottom-full mb-1' : 'top-full mt-1'
+        }`}>
           <div className="space-y-3">
             <div>
               <h3 className="text-[10px] text-gray-500 mb-2 font-medium">主图指标</h3>

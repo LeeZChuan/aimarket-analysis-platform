@@ -19,9 +19,9 @@ import { init, dispose } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
 import { DrawingToolbar, DrawingTool } from './DrawingToolbar';
-import { IndicatorMenu } from './IndicatorMenu';
-import { TimeRangeSelector, TimeRange } from './TimeRangeSelector';
-import { ChartHeader } from './ChartHeader';
+import { TimeRange } from './TimeRangeSelector';
+import { StockInfoBar } from './StockInfoBar';
+import { ChartToolbar } from './ChartToolbar';
 import { generateMockData, convertKLineData } from './chartDataUtils';
 
 export function ChartPanel() {
@@ -33,11 +33,8 @@ export function ChartPanel() {
   const [indicators, setIndicators] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('1D');
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
-  const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
-  const [hoveredChange, setHoveredChange] = useState<number | null>(null);
-  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [hoveredData, setHoveredData] = useState<KLineData | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
-  const [isHeaderExpanded, setIsHeaderExpanded] = useState(true);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -84,17 +81,9 @@ export function ChartPanel() {
 
         chart.subscribeAction('crosshair', (data) => {
           if (data && data.kLineData) {
-            const kline = data.kLineData as KLineData;
-            const basePrice = selectedStock?.price || 178.72;
-            const change = ((kline.close - basePrice) / basePrice) * 100;
-
-            setHoveredPrice(kline.close);
-            setHoveredChange(change);
-            setHoveredDate(new Date(kline.timestamp).toISOString().split('T')[0]);
+            setHoveredData(data.kLineData as KLineData);
           } else {
-            setHoveredPrice(null);
-            setHoveredChange(null);
-            setHoveredDate(null);
+            setHoveredData(null);
           }
         });
 
@@ -200,32 +189,22 @@ export function ChartPanel() {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <ChartHeader
+        <StockInfoBar
           stock={selectedStock}
-          hoveredPrice={hoveredPrice}
-          hoveredChange={hoveredChange}
-          hoveredDate={hoveredDate}
-          isExpanded={isHeaderExpanded}
-          onToggleExpand={() => setIsHeaderExpanded(!isHeaderExpanded)}
-        >
-          <div className="flex items-center justify-between">
-            <div></div>
-            <div className="flex items-center gap-2">
-              <TimeRangeSelector value={timeRange} onChange={handleTimeRangeChange} />
-
-              <div className="h-4 w-px bg-[#2A2A2A] mx-1" />
-
-              <IndicatorMenu
-                activeIndicators={indicators}
-                onToggleIndicator={toggleIndicator}
-                isOpen={showIndicatorMenu}
-                onToggle={() => setShowIndicatorMenu(!showIndicatorMenu)}
-              />
-            </div>
-          </div>
-        </ChartHeader>
+          timeRange={timeRange}
+          hoveredData={hoveredData}
+        />
 
         <div ref={chartContainerRef} className="flex-1 min-h-0" />
+
+        <ChartToolbar
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+          activeIndicators={indicators}
+          onToggleIndicator={toggleIndicator}
+          showIndicatorMenu={showIndicatorMenu}
+          onToggleIndicatorMenu={() => setShowIndicatorMenu(!showIndicatorMenu)}
+        />
       </div>
     </div>
   );
