@@ -3,7 +3,7 @@
  *
  * 功能：
  * - 显示股票代码、周期、交易所
- * - 显示 OHLC 价格（开盘/最高/最低/收盘）
+ * - 显示开盘价和收盘价
  * - 鼠标悬停时自动切换显示对应K线数据
  * - 收盘价涨跌颜色标识
  *
@@ -29,8 +29,6 @@ interface StockInfoBarProps {
 export function StockInfoBar({ stock, timeRange, hoveredData }: StockInfoBarProps) {
   const displayData = hoveredData || {
     open: stock?.price || 178.72,
-    high: (stock?.price || 178.72) * 1.02,
-    low: (stock?.price || 178.72) * 0.98,
     close: stock?.price || 178.72,
   };
 
@@ -55,20 +53,6 @@ export function StockInfoBar({ stock, timeRange, hoveredData }: StockInfoBarProp
           <span className="text-[10px] text-gray-500">O</span>
           <span className="text-sm font-mono text-white">
             {displayData.open.toFixed(2)}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-500">H</span>
-          <span className="text-sm font-mono text-white">
-            {displayData.high.toFixed(2)}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-500">L</span>
-          <span className="text-sm font-mono text-white">
-            {displayData.low.toFixed(2)}
           </span>
         </div>
 
