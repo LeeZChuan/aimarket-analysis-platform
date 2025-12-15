@@ -14,7 +14,7 @@
  * - /views/StockDetailView/index.tsx - 股票详情页（中间主图表区域）
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
@@ -25,10 +25,21 @@ import { StockInfoBar } from './StockInfoBar';
 import { ChartToolbar } from './ChartToolbar';
 import { generateMockData, convertKLineData } from './chartDataUtils';
 import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
+import { RegionSelectionModal } from './RegionSelectionModal';
+import type { RegionSelectionData } from '../../store/useChartStore';
 
 export function ChartPanel() {
   const { selectedStock } = useStore();
-  const { triggerRegionSelection, setTriggerRegionSelection } = useChartStore();
+  const { 
+    triggerRegionSelection, 
+    setTriggerRegionSelection,
+    isInSelectionMode,
+    setIsInSelectionMode,
+    selectionData,
+    setSelectionData,
+    currentSelectionRange,
+    setCurrentSelectionRange
+  } = useChartStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const indicatorIdsRef = useRef<Map<string, string>>(new Map());
@@ -38,6 +49,7 @@ export function ChartPanel() {
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [hoveredData, setHoveredData] = useState<KLineData | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
+  const [showSelectionModal, setShowSelectionModal] = useState(false);
 
   // 注册自定义覆盖物
   useEffect(() => {
@@ -185,11 +197,204 @@ export function ChartPanel() {
   // 监听区域选择触发
   useEffect(() => {
     if (triggerRegionSelection && chartRef.current) {
+      // 进入框选模式
+      setIsInSelectionMode(true);
+      
+      // 禁用十字光标
+      chartRef.current.setStyles({
+        crosshair: {
+          show: false
+        }
+      });
+      
       chartRef.current.createOverlay({ name: 'horizontalRegionSelection' });
       setActiveTool('horizontalRegionSelection' as DrawingTool);
       setTriggerRegionSelection(false);
     }
-  }, [triggerRegionSelection, setTriggerRegionSelection]);
+  }, [triggerRegionSelection, setTriggerRegionSelection, setIsInSelectionMode]);
+
+  // 实时追踪框选范围
+  useEffect(() => {
+    if (!isInSelectionMode || !chartRef.current) return;
+
+    const updateSelectionRange = () => {
+      if (!chartRef.current) return;
+      
+      const overlays = chartRef.current.getOverlayById();
+      if (!overlays || overlays.length === 0) return;
+
+      const regionOverlay = overlays.find((o: any) => o.name === 'horizontalRegionSelection');
+      if (!regionOverlay) return;
+
+      const points = (regionOverlay as any).points;
+      if (!points || points.length < 2) return;
+
+      const dataList = chartRef.current.getDataList();
+      if (!dataList || dataList.length === 0) return;
+
+      const leftTimestamp = points[0].value;
+      const rightTimestamp = points[1].value;
+
+      // 找到对应的数据索引
+      let startIndex = -1;
+      let endIndex = -1;
+      
+      for (let i = 0; i < dataList.length; i++) {
+        if (dataList[i].timestamp >= leftTimestamp && startIndex === -1) {
+          startIndex = i;
+        }
+        if (dataList[i].timestamp <= rightTimestamp) {
+          endIndex = i;
+        }
+      }
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        const range = {
+          startTime: new Date(dataList[startIndex].timestamp).toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          endTime: new Date(dataList[endIndex].timestamp).toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          startTimestamp: dataList[startIndex].timestamp,
+          endTimestamp: dataList[endIndex].timestamp
+        };
+        setCurrentSelectionRange(range);
+      }
+    };
+
+    // 初始更新
+    updateSelectionRange();
+
+    // 定时更新（监听拖拽变化）
+    const intervalId = setInterval(updateSelectionRange, 100);
+
+    return () => {
+      clearInterval(intervalId);
+      setCurrentSelectionRange(null);
+    };
+  }, [isInSelectionMode, setCurrentSelectionRange]);
+
+  // 处理取消框选
+  const handleCancelSelection = useCallback(() => {
+    if (chartRef.current) {
+      // 恢复十字光标
+      chartRef.current.setStyles({
+        crosshair: {
+          show: true
+        }
+      });
+      
+      // 清除 overlay
+      chartRef.current.removeOverlay();
+    }
+    
+    setIsInSelectionMode(false);
+    setShowSelectionModal(false);
+    setSelectionData(null);
+    setActiveTool('none');
+  }, [setIsInSelectionMode, setSelectionData]);
+
+  // 处理确认框选
+  const handleConfirmSelection = useCallback(() => {
+    if (chartRef.current) {
+      // 恢复十字光标
+      chartRef.current.setStyles({
+        crosshair: {
+          show: true
+        }
+      });
+    }
+    
+    setIsInSelectionMode(false);
+    setShowSelectionModal(false);
+    
+    // 这里可以触发 AI 分析或其他后续操作
+    console.log('确认框选数据:', selectionData);
+    
+    // 清除 overlay
+    if (chartRef.current) {
+      chartRef.current.removeOverlay();
+      setActiveTool('none');
+    }
+  }, [selectionData, setIsInSelectionMode]);
+
+  // 监听框选确认事件
+  useEffect(() => {
+    if (!isInSelectionMode) return;
+
+    const handleConfirmEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const points = customEvent.detail?.points;
+      
+      if (!points || points.length < 2 || !chartRef.current) return;
+
+      // 获取图表数据
+      const dataList = chartRef.current.getDataList();
+      if (!dataList) return;
+
+      // 根据坐标点的值（时间戳）计算数据范围
+      const leftTimestamp = points[0].value;
+      const rightTimestamp = points[1].value;
+      
+      // 找到对应的数据索引
+      let startIndex = -1;
+      let endIndex = -1;
+      
+      for (let i = 0; i < dataList.length; i++) {
+        if (dataList[i].timestamp >= leftTimestamp && startIndex === -1) {
+          startIndex = i;
+        }
+        if (dataList[i].timestamp <= rightTimestamp) {
+          endIndex = i;
+        }
+      }
+
+      if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
+        const newSelectionData: RegionSelectionData = {
+          startTime: new Date(dataList[startIndex].timestamp).toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          endTime: new Date(dataList[endIndex].timestamp).toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          dataCount: endIndex - startIndex + 1,
+          startIndex,
+          endIndex,
+          timeframe: timeRange
+        };
+        
+        setSelectionData(newSelectionData);
+        setShowSelectionModal(true);
+      }
+    };
+
+    const handleCancelEvent = () => {
+      handleCancelSelection();
+    };
+
+    window.addEventListener('regionSelectionConfirm', handleConfirmEvent);
+    window.addEventListener('regionSelectionCancel', handleCancelEvent);
+    
+    return () => {
+      window.removeEventListener('regionSelectionConfirm', handleConfirmEvent);
+      window.removeEventListener('regionSelectionCancel', handleCancelEvent);
+    };
+  }, [isInSelectionMode, setSelectionData, handleCancelSelection, timeRange]);
 
   const clearAllOverlays = () => {
     if (!chartRef.current) return;
@@ -226,33 +431,88 @@ export function ChartPanel() {
   };
 
   return (
-    <div className="h-full w-full bg-[#0D0D0D] flex">
-      <DrawingToolbar
-        activeTool={activeTool}
-        onToolChange={handleDrawingTool}
-        onClearAll={clearAllOverlays}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <StockInfoBar
-          stock={selectedStock}
-          timeRange={timeRange}
-          hoveredData={hoveredData}
+    <>
+      <div className="h-full w-full bg-[#0D0D0D] flex">
+        <DrawingToolbar
+          activeTool={activeTool}
+          onToolChange={handleDrawingTool}
+          onClearAll={clearAllOverlays}
         />
 
-        <div ref={chartContainerRef} className="flex-1 min-h-0" />
+        <div className="flex-1 flex flex-col min-w-0">
+          <StockInfoBar
+            stock={selectedStock}
+            timeRange={timeRange}
+            hoveredData={hoveredData}
+          />
 
-        <ChartToolbar
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          activeIndicators={indicators}
-          onToggleIndicator={toggleIndicator}
-          showIndicatorMenu={showIndicatorMenu}
-          onToggleIndicatorMenu={() => setShowIndicatorMenu(!showIndicatorMenu)}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-        />
+          {/* 框选模式提示条 */}
+          {isInSelectionMode && (
+            <div className="bg-[#3A9FFF]/20 border-b border-[#3A9FFF] px-4 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-pulse" />
+                  <span className="text-[#3A9FFF] text-sm font-semibold">
+                    框选模式
+                  </span>
+                </div>
+                
+                {/* 时间周期 */}
+                <div className="flex items-center gap-1.5 pl-3 border-l border-[#3A9FFF]/30">
+                  <span className="text-gray-400 text-xs">周期:</span>
+                  <span className="text-[#3A9FFF] text-xs font-semibold bg-[#3A9FFF]/20 px-2 py-0.5 rounded">
+                    {timeRange}
+                  </span>
+                </div>
+                
+                {currentSelectionRange && (
+                  <div className="flex items-center gap-3 pl-3 border-l border-[#3A9FFF]/30">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-400 text-xs">起:</span>
+                      <span className="text-white text-xs font-mono bg-[#3A9FFF]/20 px-2 py-0.5 rounded">
+                        {currentSelectionRange.startTime}
+                      </span>
+                    </div>
+                    <div className="text-gray-500">→</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-400 text-xs">止:</span>
+                      <span className="text-white text-xs font-mono bg-[#3A9FFF]/20 px-2 py-0.5 rounded">
+                        {currentSelectionRange.endTime}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <span className="text-gray-400 text-xs">
+                拖动手柄调整 · 绿色确认 · 红色取消
+              </span>
+            </div>
+          )}
+
+          <div ref={chartContainerRef} className="flex-1 min-h-0" />
+
+          <ChartToolbar
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+            activeIndicators={indicators}
+            onToggleIndicator={toggleIndicator}
+            showIndicatorMenu={showIndicatorMenu}
+            onToggleIndicatorMenu={() => setShowIndicatorMenu(!showIndicatorMenu)}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+          />
+        </div>
       </div>
-    </div>
+
+      {/* 区域选择确认弹窗 */}
+      {showSelectionModal && selectionData && (
+        <RegionSelectionModal
+          data={selectionData}
+          onConfirm={handleConfirmSelection}
+          onCancel={handleCancelSelection}
+        />
+      )}
+    </>
   );
 }

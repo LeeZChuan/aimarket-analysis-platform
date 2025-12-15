@@ -31,11 +31,12 @@ export function ChatInput({
   availableModels,
   onModelChange,
 }: ChatInputProps) {
-  const { setTriggerRegionSelection } = useChartStore();
+  const { setTriggerRegionSelection, isInSelectionMode } = useChartStore();
   const [input, setInput] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
+  const [showToast, setShowToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
@@ -86,6 +87,12 @@ export function ChatInput({
   };
 
   const handleRegionSelection = () => {
+    if (isInSelectionMode) {
+      // 已经在框选模式中，显示提示
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+      return;
+    }
     setTriggerRegionSelection(true);
   };
 
@@ -143,10 +150,18 @@ export function ChatInput({
 
               <button
                 onClick={handleRegionSelection}
-                className="p-1.5 hover:bg-[#2A2A2A] rounded-lg transition-colors group"
-                title="框选图表区域"
+                className={`p-1.5 rounded-lg transition-colors group ${
+                  isInSelectionMode 
+                    ? 'bg-[#3A9FFF]/20 cursor-default' 
+                    : 'hover:bg-[#2A2A2A]'
+                }`}
+                title={isInSelectionMode ? "已在框选模式中" : "框选图表区域"}
               >
-                <Box className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                <Box className={`w-4 h-4 ${
+                  isInSelectionMode 
+                    ? 'text-[#3A9FFF]' 
+                    : 'text-gray-400 group-hover:text-white'
+                }`} />
               </button>
 
               <div className="h-4 w-px bg-[#2A2A2A]" />
@@ -204,6 +219,25 @@ export function ChatInput({
           ))}
         </div>
       )}
+
+      {/* Toast 提示 */}
+      {showToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] animate-fade-in">
+          <div className="bg-[#1A1A1A] border border-[#3A9FFF]/50 text-[#3A9FFF] px-4 py-2 rounded-lg shadow-lg text-sm">
+            已在框选模式中，请先完成或取消当前框选
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translate(-50%, -10px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+      `}</style>
     </>
   );
 }

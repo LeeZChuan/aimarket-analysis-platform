@@ -248,19 +248,67 @@ export const horizontalRegionSelection: OverlayTemplate = {
         }
       },
       
-      // 关闭按钮背景圆
+      // 确认按钮背景圆（左上角第一个按钮）
       {
         type: 'circle',
         attrs: {
-          x: leftX + 10,
-          y: 15,
-          r: 8
+          x: leftX + 12,
+          y: 20,
+          r: 10
         },
         styles: {
           style: 'fill',
-          color: '#888888',
+          color: '#00D09C',
           borderColor: '#FFFFFF',
-          borderSize: 1
+          borderSize: 1.5
+        }
+      },
+      // 确认按钮对勾 - 短边
+      {
+        type: 'line',
+        attrs: [
+          {
+            coordinates: [
+              { x: leftX + 8, y: 20 },
+              { x: leftX + 11, y: 23 }
+            ]
+          }
+        ],
+        styles: {
+          color: '#FFFFFF',
+          size: 2.5
+        }
+      },
+      // 确认按钮对勾 - 长边
+      {
+        type: 'line',
+        attrs: [
+          {
+            coordinates: [
+              { x: leftX + 11, y: 23 },
+              { x: leftX + 17, y: 17 }
+            ]
+          }
+        ],
+        styles: {
+          color: '#FFFFFF',
+          size: 2.5
+        }
+      },
+      
+      // 关闭按钮背景圆（左上角第二个按钮）
+      {
+        type: 'circle',
+        attrs: {
+          x: leftX + 36,
+          y: 20,
+          r: 10
+        },
+        styles: {
+          style: 'fill',
+          color: '#FF4976',
+          borderColor: '#FFFFFF',
+          borderSize: 1.5
         }
       },
       // 关闭按钮 X 线1
@@ -269,14 +317,14 @@ export const horizontalRegionSelection: OverlayTemplate = {
         attrs: [
           {
             coordinates: [
-              { x: leftX + 6, y: 11 },
-              { x: leftX + 14, y: 19 }
+              { x: leftX + 31, y: 15 },
+              { x: leftX + 41, y: 25 }
             ]
           }
         ],
         styles: {
           color: '#FFFFFF',
-          size: 2
+          size: 2.5
         }
       },
       // 关闭按钮 X 线2
@@ -285,16 +333,54 @@ export const horizontalRegionSelection: OverlayTemplate = {
         attrs: [
           {
             coordinates: [
-              { x: leftX + 14, y: 11 },
-              { x: leftX + 6, y: 19 }
+              { x: leftX + 41, y: 15 },
+              { x: leftX + 31, y: 25 }
             ]
           }
         ],
         styles: {
           color: '#FFFFFF',
-          size: 2
+          size: 2.5
         }
       }
     ];
+  },
+  
+  // // 添加点击事件处理
+  // onPressedMove: (params) => {
+  //   console.log(params,'onPressedMove');
+    
+  //   // 允许拖拽调整选择范围
+  //   return true;
+  // },
+  onClick: (params) => {
+    const { overlay, figureIndex } = params;
+    if (!overlay) return false;
+    
+    const points = overlay.points;
+    if (!points || points.length < 2) return false;
+    
+    // 检查点击的图形索引
+    // 图形列表中，确认按钮区域（圆形和对勾）的索引是 9, 10, 11
+    // 关闭按钮区域（圆形和X）的索引是 12, 13, 14
+    if (figureIndex >= 9 && figureIndex <= 11) {
+      // 触发确认事件
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('regionSelectionConfirm', { 
+          detail: { points } 
+        }));
+      }
+      return true;
+    }
+    
+    if (figureIndex >= 12 && figureIndex <= 14) {
+      // 触发取消事件
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('regionSelectionCancel'));
+      }
+      return true;
+    }
+    
+    return false;
   }
 };
