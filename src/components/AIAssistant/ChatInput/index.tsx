@@ -13,7 +13,8 @@
  */
 
 import { useState, useRef } from 'react';
-import { Send, Image as ImageIcon, X, ChevronDown } from 'lucide-react';
+import { Send, Image as ImageIcon, X, ChevronDown, Box } from 'lucide-react';
+import { useChartStore } from '../../../store/useChartStore';
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void;
@@ -30,6 +31,7 @@ export function ChatInput({
   availableModels,
   onModelChange,
 }: ChatInputProps) {
+  const { setTriggerRegionSelection } = useChartStore();
   const [input, setInput] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -83,6 +85,10 @@ export function ChatInput({
     setShowModelPicker(!showModelPicker);
   };
 
+  const handleRegionSelection = () => {
+    setTriggerRegionSelection(true);
+  };
+
   return (
     <>
       <div className="p-4 border-t border-[#2A2A2A] space-y-3">
@@ -133,6 +139,14 @@ export function ChatInput({
                 title="上传图片"
               >
                 <ImageIcon className="w-4 h-4 text-gray-400 group-hover:text-white" />
+              </button>
+
+              <button
+                onClick={handleRegionSelection}
+                className="p-1.5 hover:bg-[#2A2A2A] rounded-lg transition-colors group"
+                title="框选图表区域"
+              >
+                <Box className="w-4 h-4 text-gray-400 group-hover:text-white" />
               </button>
 
               <div className="h-4 w-px bg-[#2A2A2A]" />

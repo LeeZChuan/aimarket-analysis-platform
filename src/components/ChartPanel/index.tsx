@@ -15,17 +15,20 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { init, dispose } from 'klinecharts';
+import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
+import { useChartStore } from '../../store/useChartStore';
 import { DrawingToolbar, DrawingTool } from './DrawingToolbar';
 import { TimeRange } from './TimeRangeSelector';
 import { StockInfoBar } from './StockInfoBar';
 import { ChartToolbar } from './ChartToolbar';
 import { generateMockData, convertKLineData } from './chartDataUtils';
+import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
 
 export function ChartPanel() {
   const { selectedStock } = useStore();
+  const { triggerRegionSelection, setTriggerRegionSelection } = useChartStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const indicatorIdsRef = useRef<Map<string, string>>(new Map());
@@ -35,6 +38,11 @@ export function ChartPanel() {
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [hoveredData, setHoveredData] = useState<KLineData | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
+
+  // 注册自定义覆盖物
+  useEffect(() => {
+    registerOverlay(horizontalRegionSelection);
+  }, []);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -173,6 +181,15 @@ export function ChartPanel() {
       setActiveTool(tool);
     }
   };
+
+  // 监听区域选择触发
+  useEffect(() => {
+    if (triggerRegionSelection && chartRef.current) {
+      chartRef.current.createOverlay({ name: 'horizontalRegionSelection' });
+      setActiveTool('horizontalRegionSelection' as DrawingTool);
+      setTriggerRegionSelection(false);
+    }
+  }, [triggerRegionSelection, setTriggerRegionSelection]);
 
   const clearAllOverlays = () => {
     if (!chartRef.current) return;

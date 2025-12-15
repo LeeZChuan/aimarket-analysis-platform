@@ -15,15 +15,12 @@
  * - /components/ChartPanel/index.tsx - 图表面板左侧工具栏
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  Minus,
   TrendingUp,
-  TrendingDown,
   Circle,
   Square,
   Triangle,
-  ArrowRight,
   Type,
   Eraser,
   ChevronLeft,
@@ -32,6 +29,19 @@ import {
   MessageSquare,
   Tag,
 } from 'lucide-react';
+import {
+  HorizontalLine,
+  HorizontalRayLine,
+  HorizontalSegment,
+  VerticalLine,
+  VerticalRayLine,
+  VerticalSegment,
+  DiagonalLine,
+  DiagonalRayLine,
+  DiagonalSegment,
+  ParallelLines,
+  PriceChannel,
+} from './icons/CustomIcons';
 
 export type DrawingTool =
   | 'none'
@@ -54,7 +64,8 @@ export type DrawingTool =
   | 'circle'
   | 'arc'
   | 'triangle'
-  | 'text';
+  | 'text'
+  | 'horizontalRegionSelection';
 
 interface ToolGroup {
   tool: DrawingTool;
@@ -90,28 +101,69 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const annotationMenuRef = useRef<HTMLDivElement>(null);
 
+  // 关闭所有菜单
+  const closeAllMenus = () => {
+    setShowHorizontalLineMenu(false);
+    setShowVerticalLineMenu(false);
+    setShowGeneralLineMenu(false);
+    setShowPriceLineMenu(false);
+    setShowShapeMenu(false);
+    setShowAnnotationMenu(false);
+  };
+
+  // 点击外部区域关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      // 检查是否点击在任何菜单外部
+      if (
+        horizontalLineMenuRef.current && !horizontalLineMenuRef.current.contains(target) &&
+        verticalLineMenuRef.current && !verticalLineMenuRef.current.contains(target) &&
+        generalLineMenuRef.current && !generalLineMenuRef.current.contains(target) &&
+        priceLineMenuRef.current && !priceLineMenuRef.current.contains(target) &&
+        shapeMenuRef.current && !shapeMenuRef.current.contains(target) &&
+        annotationMenuRef.current && !annotationMenuRef.current.contains(target)
+      ) {
+        closeAllMenus();
+      }
+    };
+
+    // 只在有菜单打开时添加监听
+    const hasOpenMenu = showHorizontalLineMenu || showVerticalLineMenu || showGeneralLineMenu || 
+                        showPriceLineMenu || showShapeMenu || showAnnotationMenu;
+    
+    if (hasOpenMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showHorizontalLineMenu, showVerticalLineMenu, showGeneralLineMenu, 
+      showPriceLineMenu, showShapeMenu, showAnnotationMenu]);
+
   const horizontalLineTools: ToolGroup[] = [
-    { tool: 'horizontalStraightLine', icon: Minus, label: '水平直线' },
-    { tool: 'horizontalRayLine', icon: ArrowRight, label: '水平射线' },
-    { tool: 'horizontalSegment', icon: Minus, label: '水平线段' },
+    { tool: 'horizontalStraightLine', icon: HorizontalLine, label: '水平直线' },
+    { tool: 'horizontalRayLine', icon: HorizontalRayLine, label: '水平射线' },
+    { tool: 'horizontalSegment', icon: HorizontalSegment, label: '水平线段' },
   ];
 
   const verticalLineTools: ToolGroup[] = [
-    { tool: 'verticalStraightLine', icon: Minus, label: '垂直直线' },
-    { tool: 'verticalRayLine', icon: ArrowRight, label: '垂直射线' },
-    { tool: 'verticalSegment', icon: Minus, label: '垂直线段' },
+    { tool: 'verticalStraightLine', icon: VerticalLine, label: '垂直直线' },
+    { tool: 'verticalRayLine', icon: VerticalRayLine, label: '垂直射线' },
+    { tool: 'verticalSegment', icon: VerticalSegment, label: '垂直线段' },
   ];
 
   const generalLineTools: ToolGroup[] = [
-    { tool: 'straightLine', icon: Minus, label: '直线' },
-    { tool: 'rayLine', icon: ArrowRight, label: '射线' },
-    { tool: 'segment', icon: Minus, label: '线段' },
+    { tool: 'straightLine', icon: DiagonalLine, label: '直线' },
+    { tool: 'rayLine', icon: DiagonalRayLine, label: '射线' },
+    { tool: 'segment', icon: DiagonalSegment, label: '线段' },
   ];
 
   const priceLineTools: ToolGroup[] = [
     { tool: 'priceLine', icon: TrendingUp, label: '价格线' },
-    { tool: 'priceChannelLine', icon: TrendingDown, label: '价格通道' },
-    { tool: 'parallelStraightLine', icon: Minus, label: '平行线' },
+    { tool: 'priceChannelLine', icon: PriceChannel, label: '价格通道' },
+    { tool: 'parallelStraightLine', icon: ParallelLines, label: '平行线' },
   ];
 
   const shapeTools: ToolGroup[] = [
@@ -149,13 +201,22 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
     menuRef: React.RefObject<HTMLDivElement>
   ) => {
     const currentTool = tools.find(t => t.tool === selectedTool);
-    const Icon = currentTool?.icon || Minus;
+    const Icon = currentTool?.icon || HorizontalLine;
     const isActive = tools.some(t => t.tool === activeTool);
+
+    const handleMenuToggle = () => {
+      // 如果当前菜单是关闭的，先关闭所有其他菜单
+      if (!showMenu) {
+        closeAllMenus();
+      }
+      // 然后切换当前菜单状态
+      setShowMenu(!showMenu);
+    };
 
     return (
       <div className="relative" ref={menuRef}>
         <button
-          onClick={() => setShowMenu(!showMenu)}
+          onClick={handleMenuToggle}
           className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
             isActive ? 'bg-[#3A9FFF] text-white' : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
           }`}
