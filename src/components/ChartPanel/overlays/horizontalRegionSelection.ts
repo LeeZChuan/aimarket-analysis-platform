@@ -38,10 +38,8 @@ export const horizontalRegionSelection: OverlayTemplate = {
   name: 'horizontalRegionSelection',
   totalStep: 2,
   needDefaultPointFigure: false,
-  needAlwaysShowPointFigure: false,
   needDefaultXAxisFigure: false,
   needDefaultYAxisFigure: false,
-  mode: 'weak_magnet',
   styles: {
     line: {
       size: 1,
@@ -135,21 +133,12 @@ export const horizontalRegionSelection: OverlayTemplate = {
       height: canvasHeight
     };
 
-    // 左侧拖拽手柄
-    const leftHandle: RectAttrs = {
-      x: leftX - 5,
-      y: canvasHeight / 2 - 20,
-      width: 10,
-      height: 40
-    };
-
+    // 左侧拖拽手柄（使用箭头组合）
+    const leftHandleY = canvasHeight / 2;
+    const handleSize = 12;
+    
     // 右侧拖拽手柄
-    const rightHandle: RectAttrs = {
-      x: rightX - 5,
-      y: canvasHeight / 2 - 20,
-      width: 10,
-      height: 40
-    };
+    const rightHandleY = canvasHeight / 2;
 
     return [
       // 背景矩形
@@ -170,61 +159,142 @@ export const horizontalRegionSelection: OverlayTemplate = {
         attrs: endLines,
         ignoreEvent: true
       },
-      // 左侧手柄
+      
+      // 左侧手柄背景圆
       {
-        type: 'rect',
-        attrs: leftHandle,
+        type: 'circle',
+        attrs: {
+          x: leftX,
+          y: leftHandleY,
+          r: handleSize
+        },
         styles: {
           style: 'fill',
-          color: '#3A9FFF',
-          borderColor: '#FFFFFF',
-          borderSize: 1
+          color: '#3A9FFF'
         }
       },
-      // 右侧手柄
+      // 左侧手柄左箭头
       {
-        type: 'rect',
-        attrs: rightHandle,
+        type: 'polygon',
+        attrs: {
+          coordinates: [
+            { x: leftX - 3, y: leftHandleY },
+            { x: leftX - 7, y: leftHandleY - 4 },
+            { x: leftX - 7, y: leftHandleY + 4 }
+          ]
+        },
         styles: {
           style: 'fill',
-          color: '#3A9FFF',
-          borderColor: '#FFFFFF',
-          borderSize: 1
+          color: '#FFFFFF'
         }
       },
-      // 关闭按钮 - 圆形背景
+      // 左侧手柄右箭头
+      {
+        type: 'polygon',
+        attrs: {
+          coordinates: [
+            { x: leftX + 3, y: leftHandleY },
+            { x: leftX + 7, y: leftHandleY - 4 },
+            { x: leftX + 7, y: leftHandleY + 4 }
+          ]
+        },
+        styles: {
+          style: 'fill',
+          color: '#FFFFFF'
+        }
+      },
+      
+      // 右侧手柄背景圆
+      {
+        type: 'circle',
+        attrs: {
+          x: rightX,
+          y: rightHandleY,
+          r: handleSize
+        },
+        styles: {
+          style: 'fill',
+          color: '#3A9FFF'
+        }
+      },
+      // 右侧手柄左箭头
+      {
+        type: 'polygon',
+        attrs: {
+          coordinates: [
+            { x: rightX - 3, y: rightHandleY },
+            { x: rightX - 7, y: rightHandleY - 4 },
+            { x: rightX - 7, y: rightHandleY + 4 }
+          ]
+        },
+        styles: {
+          style: 'fill',
+          color: '#FFFFFF'
+        }
+      },
+      // 右侧手柄右箭头
+      {
+        type: 'polygon',
+        attrs: {
+          coordinates: [
+            { x: rightX + 3, y: rightHandleY },
+            { x: rightX + 7, y: rightHandleY - 4 },
+            { x: rightX + 7, y: rightHandleY + 4 }
+          ]
+        },
+        styles: {
+          style: 'fill',
+          color: '#FFFFFF'
+        }
+      },
+      
+      // 关闭按钮背景圆
       {
         type: 'circle',
         attrs: {
           x: leftX + 10,
           y: 15,
-          r: 10
+          r: 8
         },
         styles: {
           style: 'fill',
-          color: '#FF4976'
+          color: '#888888',
+          borderColor: '#FFFFFF',
+          borderSize: 1
         }
       },
-      // 关闭按钮 - X文字
+      // 关闭按钮 X 线1
       {
-        type: 'text',
-        attrs: {
-          x: leftX + 10,
-          y: 15,
-          text: '×'
-        },
+        type: 'line',
+        attrs: [
+          {
+            coordinates: [
+              { x: leftX + 6, y: 11 },
+              { x: leftX + 14, y: 19 }
+            ]
+          }
+        ],
         styles: {
           color: '#FFFFFF',
-          size: 18,
-          family: 'Arial',
-          weight: 'bold'
+          size: 2
+        }
+      },
+      // 关闭按钮 X 线2
+      {
+        type: 'line',
+        attrs: [
+          {
+            coordinates: [
+              { x: leftX + 14, y: 11 },
+              { x: leftX + 6, y: 19 }
+            ]
+          }
+        ],
+        styles: {
+          color: '#FFFFFF',
+          size: 2
         }
       }
     ];
-  },
-  // 点击关闭按钮时删除覆盖物
-  onPressedMoveEnd: (params) => {
-    const { overlay } = params;
-    return overlay;
   }
 };
