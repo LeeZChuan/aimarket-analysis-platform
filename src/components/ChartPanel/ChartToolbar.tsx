@@ -22,6 +22,8 @@ interface ChartToolbarProps {
   onToggleIndicator: (indicator: string) => void;
   showIndicatorMenu: boolean;
   onToggleIndicatorMenu: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
 }
 
 export function ChartToolbar({
@@ -31,6 +33,8 @@ export function ChartToolbar({
   onToggleIndicator,
   showIndicatorMenu,
   onToggleIndicatorMenu,
+  onZoomIn,
+  onZoomOut,
 }: ChartToolbarProps) {
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-[#0D0D0D] border-t border-[#2A2A2A] transition-all duration-200">
@@ -50,15 +54,19 @@ export function ChartToolbar({
 
       <div className="flex items-center gap-2">
         <button
-          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          onClick={onZoomIn}
+          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="放大"
+          disabled={!onZoomIn}
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
 
         <button
-          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          onClick={onZoomOut}
+          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="缩小"
+          disabled={!onZoomOut}
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>

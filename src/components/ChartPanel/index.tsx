@@ -197,6 +197,34 @@ export function ChartPanel() {
     setActiveTool('none');
   };
 
+  // 放大图表（显示更少的K线，每根K线更宽）
+  const handleZoomIn = () => {
+    
+    if (!chartRef.current) return;
+    try {
+      // 先确保缩放功能是启用的
+      // chartRef.current.setZoomEnabled(true);
+      console.log('chartRef.current.zoomAtCoordinate');
+      // 在图表中心缩放
+      chartRef.current.zoomAtCoordinate(-10);
+    } catch (error) {
+      console.error('Zoom in error:', error);
+    }
+  };
+
+  // 缩小图表（显示更多的K线，每根K线更窄）
+  const handleZoomOut = () => {
+    if (!chartRef.current) return;
+    try {
+      // 先确保缩放功能是启用的
+      // chartRef.current.setZoomEnabled(true);
+      // 在图表中心缩放
+      chartRef.current.zoomAtCoordinate(10);
+    } catch (error) {
+      console.error('Zoom out error:', error);
+    }
+  };
+
   return (
     <div className="h-full w-full bg-[#0D0D0D] flex">
       <DrawingToolbar
@@ -221,6 +249,8 @@ export function ChartPanel() {
           onToggleIndicator={toggleIndicator}
           showIndicatorMenu={showIndicatorMenu}
           onToggleIndicatorMenu={() => setShowIndicatorMenu(!showIndicatorMenu)}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
         />
       </div>
     </div>

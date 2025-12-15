@@ -12,7 +12,7 @@ interface IconProps {
   size?: number;
 }
 
-// 水平直线
+// 水平直线（中间一个点）
 export const HorizontalLine: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg
     width={size}
@@ -26,6 +26,7 @@ export const HorizontalLine: React.FC<IconProps> = ({ className = '', size = 24 
     className={className}
   >
     <line x1="3" y1="12" x2="21" y2="12" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
   </svg>
 );
 
@@ -122,7 +123,7 @@ export const VerticalSegment: React.FC<IconProps> = ({ className = '', size = 24
   </svg>
 );
 
-// 斜线（普通直线）
+// 斜线（中间两个点有间隔）
 export const DiagonalLine: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg
     width={size}
@@ -136,6 +137,8 @@ export const DiagonalLine: React.FC<IconProps> = ({ className = '', size = 24 })
     className={className}
   >
     <line x1="4" y1="20" x2="20" y2="4" />
+    <circle cx="8" cy="16" r="1.5" fill="currentColor" />
+    <circle cx="16" cy="8" r="1.5" fill="currentColor" />
   </svg>
 );
 
@@ -177,7 +180,7 @@ export const DiagonalSegment: React.FC<IconProps> = ({ className = '', size = 24
   </svg>
 );
 
-// 平行线
+// 平行线（上面两个点，下面一个点）
 export const ParallelLines: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg
     width={size}
@@ -191,11 +194,15 @@ export const ParallelLines: React.FC<IconProps> = ({ className = '', size = 24 }
     className={className}
   >
     <line x1="3" y1="8" x2="21" y2="8" />
+    <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+    <circle cx="16" cy="8" r="1.5" fill="currentColor" />
+    
     <line x1="3" y1="16" x2="21" y2="16" />
+    <circle cx="12" cy="16" r="1.5" fill="currentColor" />
   </svg>
 );
 
-// 价格通道（两条平行斜线）
+// 价格通道（三条平行斜线，中间两个点，底部一个点）
 export const PriceChannel: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg
     width={size}
@@ -208,8 +215,19 @@ export const PriceChannel: React.FC<IconProps> = ({ className = '', size = 24 })
     strokeLinejoin="round"
     className={className}
   >
-    <line x1="3" y1="18" x2="15" y2="6" />
-    <line x1="9" y1="18" x2="21" y2="6" />
+    {/* 上方线 */}
+    <line x1="3" y1="6" x2="21" y2="6" />
+    
+    {/* 中间线 */}
+    <line x1="3" y1="12" x2="21" y2="12" />
+    {/* 中间线上的两个点 */}
+    <circle cx="8" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="16" cy="12" r="1.5" fill="currentColor" />
+    
+    {/* 底部线 */}
+    <line x1="3" y1="18" x2="21" y2="18" />
+    {/* 底部线上的一个点 */}
+    <circle cx="12" cy="18" r="1.5" fill="currentColor" />
   </svg>
 );
 
