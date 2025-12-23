@@ -463,7 +463,7 @@ export function ChartPanel() {
 
   return (
     <>
-      <div className="h-full w-full bg-[#0D0D0D] flex">
+      <div className="h-full w-full flex" style={{ background: 'var(--bg-primary)' }}>
         <DrawingToolbar
           activeTool={activeTool}
           onToolChange={handleDrawingTool}
@@ -479,43 +479,43 @@ export function ChartPanel() {
 
           {/* 框选模式提示条 */}
           {isInSelectionMode && (
-            <div className="bg-[#3A9FFF]/20 border-b border-[#3A9FFF] px-4 py-2 flex items-center justify-between">
+            <div className="px-4 py-2 flex items-center justify-between" style={{ background: 'var(--bg-active)', borderBottom: '1px solid var(--accent-primary)' }}>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-pulse" />
-                  <span className="text-[#3A9FFF] text-sm font-semibold">
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-primary)' }} />
+                  <span className="text-sm font-semibold" style={{ color: 'var(--accent-primary)' }}>
                     框选模式
                   </span>
                 </div>
-                
+
                 {/* 时间周期 */}
-                <div className="flex items-center gap-1.5 pl-3 border-l border-[#3A9FFF]/30">
-                  <span className="text-gray-400 text-xs">周期:</span>
-                  <span className="text-[#3A9FFF] text-xs font-semibold bg-[#3A9FFF]/20 px-2 py-0.5 rounded">
+                <div className="flex items-center gap-1.5 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>周期:</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ color: 'var(--accent-primary)', background: 'var(--bg-hover)' }}>
                     {timeRange}
                   </span>
                 </div>
-                
+
                 {currentSelectionRange && (
-                  <div className="flex items-center gap-3 pl-3 border-l border-[#3A9FFF]/30">
+                  <div className="flex items-center gap-3 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-gray-400 text-xs">起:</span>
-                      <span className="text-white text-xs font-mono bg-[#3A9FFF]/20 px-2 py-0.5 rounded">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>起:</span>
+                      <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}>
                         {currentSelectionRange.startTime}
                       </span>
                     </div>
-                    <div className="text-gray-500">→</div>
+                    <div style={{ color: 'var(--text-disabled)' }}>→</div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-gray-400 text-xs">止:</span>
-                      <span className="text-white text-xs font-mono bg-[#3A9FFF]/20 px-2 py-0.5 rounded">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>止:</span>
+                      <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}>
                         {currentSelectionRange.endTime}
                       </span>
                     </div>
                   </div>
                 )}
               </div>
-              
-              <span className="text-gray-400 text-xs">
+
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 拖动手柄调整 · 绿色确认 · 红色取消
               </span>
             </div>
