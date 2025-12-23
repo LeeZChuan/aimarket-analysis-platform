@@ -118,46 +118,78 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" style={{ background: 'rgba(0, 0, 0, 0.6)' }}>
       <div
         ref={modalRef}
-        className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col"
+        className="rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col"
+        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]">
-          <h2 className="text-lg font-semibold text-white">搜索股票</h2>
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>搜索股票</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-[#2A2A2A] rounded transition-colors"
+            className="p-1 rounded transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="px-6 py-4 border-b border-[#2A2A2A]">
+        <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-disabled)' }} />
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索代码或名称..."
-              className="w-full bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3A9FFF] transition-colors"
+              className="w-full rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none transition-colors"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-primary)',
+                color: 'var(--text-primary)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-primary)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+              }}
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">地区筛选：</span>
+            <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-disabled)' }}>地区筛选：</span>
             <div className="flex flex-wrap gap-2">
               {REGIONS.map((region) => (
                 <button
                   key={region.value}
                   onClick={() => setSelectedRegion(region.value)}
-                  className={`px-3 py-1 text-xs rounded-full transition-all ${
+                  className="px-3 py-1 text-xs rounded-full transition-all"
+                  style={
                     selectedRegion === region.value
-                      ? 'bg-[#3A9FFF] text-white'
-                      : 'bg-[#0D0D0D] text-gray-400 hover:text-white hover:bg-[#2A2A2A] border border-[#2A2A2A]'
-                  }`}
+                      ? { background: 'var(--accent-primary)', color: 'white' }
+                      : { background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-primary)' }
+                  }
+                  onMouseEnter={(e) => {
+                    if (selectedRegion !== region.value) {
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.background = 'var(--bg-tertiary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedRegion !== region.value) {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.background = 'var(--bg-primary)';
+                    }
+                  }}
                 >
                   {region.label}
                 </button>
@@ -168,7 +200,7 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {filteredStocks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <div className="flex flex-col items-center justify-center py-12" style={{ color: 'var(--text-disabled)' }}>
               <Search className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-sm">未找到匹配的股票</p>
             </div>
@@ -177,26 +209,38 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
               {filteredStocks.map((stock) => (
                 <div
                   key={stock.symbol}
-                  className="w-full p-3 rounded-lg bg-[#0D0D0D] hover:bg-[#2A2A2A] border border-[#2A2A2A] hover:border-[#3A9FFF] transition-all group cursor-pointer"
+                  className="w-full p-3 rounded-lg transition-all group cursor-pointer"
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-primary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-tertiary)';
+                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-primary)';
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
                   onClick={() => handleSelectStock(stock)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-white group-hover:text-[#3A9FFF] transition-colors">
+                          <span className="text-sm font-semibold transition-colors group-hover-symbol" style={{ color: 'var(--text-primary)' }}>
                             {stock.symbol}
                           </span>
-                          <span className="text-xs text-gray-500">{stock.name}</span>
+                          <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>{stock.name}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           {stock.region && (
-                            <span className="text-xs text-gray-600 bg-[#1A1A1A] px-2 py-0.5 rounded">
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ color: 'var(--text-disabled)', background: 'var(--bg-secondary)' }}>
                               {REGIONS.find(r => r.value === stock.region)?.label || stock.region}
                             </span>
                           )}
                           {stock.sector && (
-                            <span className="text-xs text-gray-600">
+                            <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>
                               {stock.sector}
                             </span>
                           )}
@@ -205,7 +249,7 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <div className="text-sm font-mono font-semibold text-white">
+                        <div className="text-sm font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>
                           ${stock.price.toFixed(2)}
                         </div>
                         <div
@@ -225,15 +269,28 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
                       <button
                         onClick={(e) => handleAddToWatchlist(stock, e)}
                         disabled={isInWatchlist(stock.symbol)}
-                        className={`p-1.5 rounded transition-all ${
+                        className="p-1.5 rounded transition-all"
+                        style={
                           isInWatchlist(stock.symbol)
-                            ? 'text-[#3A9FFF] cursor-not-allowed'
-                            : 'text-gray-500 hover:text-[#3A9FFF] hover:bg-[#1A1A1A]'
-                        }`}
+                            ? { color: 'var(--accent-primary)', cursor: 'not-allowed' }
+                            : { color: 'var(--text-disabled)' }
+                        }
+                        onMouseEnter={(e) => {
+                          if (!isInWatchlist(stock.symbol)) {
+                            e.currentTarget.style.color = 'var(--accent-primary)';
+                            e.currentTarget.style.background = 'var(--bg-secondary)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isInWatchlist(stock.symbol)) {
+                            e.currentTarget.style.color = 'var(--text-disabled)';
+                            e.currentTarget.style.background = 'transparent';
+                          }
+                        }}
                         title={isInWatchlist(stock.symbol) ? '已在自选股中' : '添加到自选股'}
                       >
                         {isInWatchlist(stock.symbol) ? (
-                          <Star className="w-4 h-4 fill-[#3A9FFF]" />
+                          <Star className="w-4 h-4" style={{ fill: 'var(--accent-primary)' }} />
                         ) : (
                           <Plus className="w-4 h-4" />
                         )}
@@ -246,7 +303,7 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-between text-xs text-gray-500">
+        <div className="px-6 py-4 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-disabled)' }}>
           <span>共找到 {filteredStocks.length} 只股票</span>
           <span>点击股票可切换到该股票的K线图</span>
         </div>

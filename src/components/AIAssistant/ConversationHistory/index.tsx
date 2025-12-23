@@ -61,31 +61,49 @@ export function ConversationHistory({ onClose, onSelectConversation }: Conversat
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[20000]">
-      <div className="bg-[#1A1A1A] rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+    <div className="fixed inset-0 flex items-center justify-center z-[20000]" style={{ background: 'rgba(0, 0, 0, 0.5)' }}>
+      <div className="rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-[#3A9FFF]" />
-            <h2 className="text-lg font-semibold text-white">对话历史</h2>
+            <Clock className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>对话历史</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-[#2A2A2A] rounded transition-colors"
+            className="p-1 rounded transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
             title="关闭"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 border-b border-[#2A2A2A]">
+        <div className="p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="搜索对话..."
-              className="w-full bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3A9FFF]"
+              className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-primary)',
+                color: 'var(--text-primary)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-primary)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+              }}
             />
           </div>
         </div>
@@ -94,14 +112,14 @@ export function ConversationHistory({ onClose, onSelectConversation }: Conversat
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-bounce delay-100" />
-                <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-bounce delay-200" />
+                <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--accent-primary)' }} />
+                <div className="w-2 h-2 rounded-full animate-bounce delay-100" style={{ background: 'var(--accent-primary)' }} />
+                <div className="w-2 h-2 rounded-full animate-bounce delay-200" style={{ background: 'var(--accent-primary)' }} />
               </div>
             </div>
           ) : conversationList.length === 0 ? (
             <div className="flex items-center justify-center h-32">
-              <p className="text-gray-500 text-sm">暂无对话记录</p>
+              <p className="text-sm" style={{ color: 'var(--text-disabled)' }}>暂无对话记录</p>
             </div>
           ) : (
             conversationList.map((conversation) => (
@@ -111,15 +129,31 @@ export function ConversationHistory({ onClose, onSelectConversation }: Conversat
                   onSelectConversation(conversation);
                   onClose();
                 }}
-                className="bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg p-3 cursor-pointer hover:border-[#3A9FFF] transition-colors group"
+                className="rounded-lg p-3 cursor-pointer transition-colors group"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-primary)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                }}
               >
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-sm font-medium text-white truncate flex-1">
+                  <h3 className="text-sm font-medium truncate flex-1" style={{ color: 'var(--text-primary)' }}>
                     {conversation.title}
                   </h3>
                   <button
                     onClick={(e) => handleDelete(conversation.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#2A2A2A] rounded transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--bg-tertiary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
                     title="删除对话"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-400" />
@@ -127,16 +161,16 @@ export function ConversationHistory({ onClose, onSelectConversation }: Conversat
                 </div>
 
                 {conversation.lastMessage && (
-                  <p className="text-xs text-gray-400 truncate mb-2">
+                  <p className="text-xs truncate mb-2" style={{ color: 'var(--text-muted)' }}>
                     {conversation.lastMessage}
                   </p>
                 )}
 
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-disabled)' }}>
                   <div className="flex items-center gap-3">
                     <span>{conversation.messageCount} 条消息</span>
                     {conversation.stockSymbol && (
-                      <span className="px-2 py-0.5 bg-[#2A2A2A] rounded text-[#3A9FFF]">
+                      <span className="px-2 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--accent-primary)' }}>
                         {conversation.stockSymbol}
                       </span>
                     )}

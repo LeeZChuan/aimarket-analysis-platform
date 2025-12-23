@@ -68,7 +68,20 @@ export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onT
     <div className="relative" ref={menuRef}>
       <button
         onClick={onToggle}
-        className="px-2 py-0.5 bg-[#1A1A1A] border border-[#2A2A2A] rounded text-[10px] text-gray-400 hover:text-white hover:border-[#3A9FFF] transition-colors flex items-center gap-1"
+        className="px-2 py-0.5 rounded text-[10px] transition-colors flex items-center gap-1"
+        style={{
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
+          color: 'var(--text-muted)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--text-primary)';
+          e.currentTarget.style.borderColor = 'var(--accent-primary)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--text-muted)';
+          e.currentTarget.style.borderColor = 'var(--border-primary)';
+        }}
         title="技术指标"
       >
         <BarChart3 className="w-3 h-3" />
@@ -76,22 +89,49 @@ export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onT
       </button>
 
       {isOpen && (
-        <div className={`absolute right-0 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl p-3 z-50 min-w-[240px] animate-in fade-in duration-200 ${
-          position === 'bottom' ? 'bottom-full mb-1' : 'top-full mt-1'
-        }`}>
+        <div
+          className={`absolute right-0 rounded-lg shadow-xl p-3 z-50 min-w-[240px] animate-in fade-in duration-200 ${
+            position === 'bottom' ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-primary)',
+          }}
+        >
           <div className="space-y-3">
             <div>
-              <h3 className="text-[10px] text-gray-500 mb-2 font-medium">主图指标</h3>
+              <h3 className="text-[10px] mb-2 font-medium" style={{ color: 'var(--text-disabled)' }}>主图指标</h3>
               <div className="grid grid-cols-2 gap-1.5">
                 {mainIndicators.map((indicator) => (
                   <button
                     key={indicator.name}
                     onClick={() => onToggleIndicator(indicator.name)}
-                    className={`px-2 py-1.5 text-[10px] font-medium rounded transition-all text-left ${
+                    className="px-2 py-1.5 text-[10px] font-medium rounded transition-all text-left"
+                    style={
                       activeIndicators.includes(indicator.name)
-                        ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
-                        : 'bg-[#0D0D0D] text-gray-400 hover:text-white border border-[#2A2A2A] hover:border-[#3A3A3A]'
-                    }`}
+                        ? {
+                            background: 'var(--bg-active)',
+                            color: 'var(--accent-primary)',
+                            border: '1px solid var(--accent-primary)',
+                          }
+                        : {
+                            background: 'var(--bg-primary)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-primary)',
+                          }
+                    }
+                    onMouseEnter={(e) => {
+                      if (!activeIndicators.includes(indicator.name)) {
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                        e.currentTarget.style.borderColor = 'var(--border-hover)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!activeIndicators.includes(indicator.name)) {
+                        e.currentTarget.style.color = 'var(--text-muted)';
+                        e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      }
+                    }}
                     title={indicator.description}
                   >
                     <div className="font-semibold">{indicator.label}</div>
@@ -101,20 +141,41 @@ export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onT
               </div>
             </div>
 
-            <div className="h-px bg-[#2A2A2A]" />
+            <div className="h-px" style={{ background: 'var(--border-primary)' }} />
 
             <div>
-              <h3 className="text-[10px] text-gray-500 mb-2 font-medium">副图指标</h3>
+              <h3 className="text-[10px] mb-2 font-medium" style={{ color: 'var(--text-disabled)' }}>副图指标</h3>
               <div className="grid grid-cols-2 gap-1.5">
                 {subIndicators.map((indicator) => (
                   <button
                     key={indicator.name}
                     onClick={() => onToggleIndicator(indicator.name)}
-                    className={`px-2 py-1.5 text-[10px] font-medium rounded transition-all text-left ${
+                    className="px-2 py-1.5 text-[10px] font-medium rounded transition-all text-left"
+                    style={
                       activeIndicators.includes(indicator.name)
-                        ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
-                        : 'bg-[#0D0D0D] text-gray-400 hover:text-white border border-[#2A2A2A] hover:border-[#3A3A3A]'
-                    }`}
+                        ? {
+                            background: 'var(--bg-active)',
+                            color: 'var(--accent-primary)',
+                            border: '1px solid var(--accent-primary)',
+                          }
+                        : {
+                            background: 'var(--bg-primary)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-primary)',
+                          }
+                    }
+                    onMouseEnter={(e) => {
+                      if (!activeIndicators.includes(indicator.name)) {
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                        e.currentTarget.style.borderColor = 'var(--border-hover)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!activeIndicators.includes(indicator.name)) {
+                        e.currentTarget.style.color = 'var(--text-muted)';
+                        e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      }
+                    }}
                     title={indicator.description}
                   >
                     <div className="font-semibold">{indicator.label}</div>

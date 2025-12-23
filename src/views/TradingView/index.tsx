@@ -46,55 +46,53 @@ export function TradingView() {
   return (
     <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
       <div
-        className="h-8 flex items-center justify-between px-2 gap-2"
+        className="h-8 flex items-center justify-end px-2 gap-1"
         style={{
           background: 'var(--bg-secondary)',
           borderBottom: '1px solid var(--border-primary)'
         }}
       >
-        <div className="flex items-center gap-1">
-          <ThemeSwitcher />
-          <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="p-0.5 rounded transition-colors"
-            style={{
-              color: 'var(--text-muted)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-tertiary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-            title={showSidebar ? '收起左侧栏' : '展开左侧栏'}
-          >
-            {showSidebar ? (
-              <PanelLeftClose className="w-3.5 h-3.5" />
-            ) : (
-              <PanelLeftOpen className="w-3.5 h-3.5" />
-            )}
-          </button>
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className="p-0.5 rounded transition-colors"
-            style={{
-              color: 'var(--text-muted)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-tertiary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-            title={showChat ? '收起右侧栏' : '展开右侧栏'}
-          >
-            {showChat ? (
-              <PanelRightClose className="w-3.5 h-3.5" />
-            ) : (
-              <PanelRightOpen className="w-3.5 h-3.5" />
-            )}
-          </button>
-        </div>
+        <ThemeSwitcher />
+        <button
+          onClick={() => setShowSidebar(!showSidebar)}
+          className="p-0.5 rounded transition-colors"
+          style={{
+            color: 'var(--text-muted)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-tertiary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+          title={showSidebar ? '收起左侧栏' : '展开左侧栏'}
+        >
+          {showSidebar ? (
+            <PanelLeftClose className="w-3.5 h-3.5" />
+          ) : (
+            <PanelLeftOpen className="w-3.5 h-3.5" />
+          )}
+        </button>
+        <button
+          onClick={() => setShowChat(!showChat)}
+          className="p-0.5 rounded transition-colors"
+          style={{
+            color: 'var(--text-muted)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-tertiary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+          title={showChat ? '收起右侧栏' : '展开右侧栏'}
+        >
+          {showChat ? (
+            <PanelRightClose className="w-3.5 h-3.5" />
+          ) : (
+            <PanelRightOpen className="w-3.5 h-3.5" />
+          )}
+        </button>
       </div>
 
       <div className="flex-1 flex overflow-hidden min-h-0">
