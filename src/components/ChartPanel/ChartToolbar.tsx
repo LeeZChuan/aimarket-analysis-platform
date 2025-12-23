@@ -14,6 +14,7 @@
 import { TimeRangeSelector, TimeRange } from './TimeRangeSelector';
 import { IndicatorMenu } from './IndicatorMenu';
 import { Settings, Camera, ZoomIn, ZoomOut } from 'lucide-react';
+import { chartToolbarStyles } from './ChartToolbarStyles';
 
 interface ChartToolbarProps {
   timeRange: TimeRange;
@@ -37,11 +38,11 @@ export function ChartToolbar({
   onZoomOut,
 }: ChartToolbarProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-[#0D0D0D] border-t border-[#2A2A2A] transition-all duration-200">
+    <div className="flex items-center justify-between px-4 py-2" style={chartToolbarStyles.container}>
       <div className="flex items-center gap-3">
         <TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />
 
-        <div className="h-4 w-px bg-[#2A2A2A]" />
+        <div className="h-4 w-px" style={chartToolbarStyles.divider} />
 
         <IndicatorMenu
           activeIndicators={activeIndicators}
@@ -55,7 +56,14 @@ export function ChartToolbar({
       <div className="flex items-center gap-2">
         <button
           onClick={onZoomIn}
-          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-7 h-7 flex items-center justify-center rounded transition-colors"
+          style={!onZoomIn ? chartToolbarStyles.buttonDisabled : chartToolbarStyles.button}
+          onMouseEnter={(e) => {
+            if (onZoomIn) Object.assign(e.currentTarget.style, chartToolbarStyles.buttonHover);
+          }}
+          onMouseLeave={(e) => {
+            if (onZoomIn) Object.assign(e.currentTarget.style, chartToolbarStyles.button);
+          }}
           title="放大"
           disabled={!onZoomIn}
         >
@@ -64,24 +72,37 @@ export function ChartToolbar({
 
         <button
           onClick={onZoomOut}
-          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-7 h-7 flex items-center justify-center rounded transition-colors"
+          style={!onZoomOut ? chartToolbarStyles.buttonDisabled : chartToolbarStyles.button}
+          onMouseEnter={(e) => {
+            if (onZoomOut) Object.assign(e.currentTarget.style, chartToolbarStyles.buttonHover);
+          }}
+          onMouseLeave={(e) => {
+            if (onZoomOut) Object.assign(e.currentTarget.style, chartToolbarStyles.button);
+          }}
           title="缩小"
           disabled={!onZoomOut}
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
 
-        <div className="h-4 w-px bg-[#2A2A2A]" />
+        <div className="h-4 w-px" style={chartToolbarStyles.divider} />
 
         <button
-          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded transition-colors"
+          style={chartToolbarStyles.button}
+          onMouseEnter={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.buttonHover)}
+          onMouseLeave={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.button)}
           title="截图"
         >
           <Camera className="w-3.5 h-3.5" />
         </button>
 
         <button
-          className="w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded transition-colors"
+          style={chartToolbarStyles.button}
+          onMouseEnter={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.buttonHover)}
+          onMouseLeave={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.button)}
           title="设置"
         >
           <Settings className="w-3.5 h-3.5" />

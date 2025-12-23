@@ -42,6 +42,7 @@ import {
   ParallelLines,
   PriceChannel,
 } from './icons/CustomIcons';
+import { drawingToolbarStyles } from './DrawingToolbarStyles';
 
 export type DrawingTool =
   | 'none'
