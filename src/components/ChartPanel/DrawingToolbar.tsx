@@ -205,11 +205,9 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
     const isActive = tools.some(t => t.tool === activeTool);
 
     const handleMenuToggle = () => {
-      // 如果当前菜单是关闭的，先关闭所有其他菜单
       if (!showMenu) {
         closeAllMenus();
       }
-      // 然后切换当前菜单状态
       setShowMenu(!showMenu);
     };
 
@@ -217,9 +215,14 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
       <div className="relative" ref={menuRef}>
         <button
           onClick={handleMenuToggle}
-          className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
-            isActive ? 'bg-[#3A9FFF] text-white' : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
-          }`}
+          className="w-9 h-9 flex items-center justify-center rounded transition-colors"
+          style={isActive ? drawingToolbarStyles.toolButtonActive : drawingToolbarStyles.toolButton}
+          onMouseEnter={(e) => {
+            if (!isActive) Object.assign(e.currentTarget.style, drawingToolbarStyles.toolButtonHover);
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive) Object.assign(e.currentTarget.style, drawingToolbarStyles.toolButton);
+          }}
           title={currentTool?.label}
         >
           <div className="flex items-center gap-0.5">
@@ -229,16 +232,15 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
         </button>
 
         {showMenu && (
-          <div className="absolute left-full top-0 ml-1 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl py-1 z-50 min-w-[120px]">
+          <div className="absolute left-full top-0 ml-1 rounded-lg shadow-xl py-1 z-50 min-w-[120px]" style={drawingToolbarStyles.menu}>
             {tools.map(({ tool, icon: ToolIcon, label }) => (
               <button
                 key={tool}
                 onClick={() => handleToolSelect(tool, setSelectedTool, setShowMenu)}
-                className={`w-full px-3 py-2 flex items-center gap-2 text-left transition-colors ${
-                  selectedTool === tool
-                    ? 'bg-[#3A9FFF]/20 text-[#3A9FFF]'
-                    : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-                }`}
+                className="w-full px-3 py-2 flex items-center gap-2 text-left transition-colors"
+                style={selectedTool === tool ? drawingToolbarStyles.menuItemSelected : drawingToolbarStyles.menuItem}
+                onMouseEnter={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.menuItemHover)}
+                onMouseLeave={(e) => Object.assign(e.currentTarget.style, selectedTool === tool ? drawingToolbarStyles.menuItemSelected : drawingToolbarStyles.menuItem)}
               >
                 <ToolIcon className="w-4 h-4 flex-shrink-0" />
                 <span className="text-xs">{label}</span>
@@ -253,21 +255,25 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
   return (
     <div className="relative flex">
       <div
-        className={`bg-[#0D0D0D] border-r border-[#2A2A2A] flex flex-col items-center py-3 gap-1 transition-all duration-300 ease-in-out ${
+        className={`flex flex-col items-center py-3 gap-1 transition-all duration-300 ease-in-out ${
           isExpanded ? 'w-12 opacity-100' : 'w-0 opacity-0 overflow-hidden'
         }`}
+        style={drawingToolbarStyles.container}
       >
         <button
           onClick={() => setIsExpanded(false)}
-          className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#3A9FFF] hover:bg-[#2A2A2A] transition-all flex items-center justify-center group"
+          className="w-8 h-8 rounded-full transition-all flex items-center justify-center group"
+          style={drawingToolbarStyles.toggleButton}
+          onMouseEnter={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.toggleButtonHover)}
+          onMouseLeave={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.toggleButton)}
           title="收起工具栏"
         >
-          <ChevronLeft className="w-4 h-4 text-gray-400 group-hover:text-[#3A9FFF] transition-colors" />
+          <ChevronLeft className="w-4 h-4 transition-colors" />
         </button>
 
         {isExpanded && (
           <>
-            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+            <div className="h-px w-8 my-1" style={drawingToolbarStyles.divider} />
 
             {renderToolButton(
               horizontalLineTools,
@@ -296,7 +302,7 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
               generalLineMenuRef
             )}
 
-            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+            <div className="h-px w-8 my-1" style={drawingToolbarStyles.divider} />
 
             {renderToolButton(
               priceLineTools,
@@ -311,18 +317,21 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
               <button
                 key={tool}
                 onClick={() => onToolChange(tool)}
-                className={`w-9 h-9 flex items-center justify-center rounded transition-colors ${
-                  activeTool === tool
-                    ? 'bg-[#3A9FFF] text-white'
-                    : 'text-gray-500 hover:text-white hover:bg-[#1A1A1A]'
-                }`}
+                className="w-9 h-9 flex items-center justify-center rounded transition-colors"
+                style={activeTool === tool ? drawingToolbarStyles.toolButtonActive : drawingToolbarStyles.toolButton}
+                onMouseEnter={(e) => {
+                  if (activeTool !== tool) Object.assign(e.currentTarget.style, drawingToolbarStyles.toolButtonHover);
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTool !== tool) Object.assign(e.currentTarget.style, drawingToolbarStyles.toolButton);
+                }}
                 title={label}
               >
                 <Icon className="w-4 h-4" />
               </button>
             ))}
 
-            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+            <div className="h-px w-8 my-1" style={drawingToolbarStyles.divider} />
 
             {renderToolButton(
               shapeTools,
@@ -342,11 +351,14 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
               annotationMenuRef
             )}
 
-            <div className="h-px w-8 bg-[#2A2A2A] my-1" />
+            <div className="h-px w-8 my-1" style={drawingToolbarStyles.divider} />
 
             <button
               onClick={onClearAll}
-              className="w-9 h-9 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-[#1A1A1A] transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded transition-colors"
+              style={drawingToolbarStyles.toolButton}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.toolButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.toolButton)}
               title="清除所有绘图"
             >
               <Eraser className="w-4 h-4" />
@@ -358,10 +370,13 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
       {!isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
-          className="absolute left-0 top-3 w-5 h-10 bg-[#1A1A1A] border border-[#2A2A2A] border-l-0 rounded-r-full hover:border-[#3A9FFF] hover:bg-[#2A2A2A] transition-all flex items-center justify-center group z-10"
+          className="absolute left-0 top-3 w-5 h-10 border-l-0 rounded-r-full transition-all flex items-center justify-center group z-10"
+          style={drawingToolbarStyles.toggleButton}
+          onMouseEnter={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.toggleButtonHover)}
+          onMouseLeave={(e) => Object.assign(e.currentTarget.style, drawingToolbarStyles.toggleButton)}
           title="展开工具栏"
         >
-          <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#3A9FFF] transition-colors" />
+          <ChevronRight className="w-3.5 h-3.5 transition-colors" />
         </button>
       )}
     </div>

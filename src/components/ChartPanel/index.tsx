@@ -19,6 +19,7 @@ import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
 import { useChartStore } from '../../store/useChartStore';
+import { useThemeStore } from '../../store/useThemeStore';
 import { DrawingToolbar, DrawingTool } from './DrawingToolbar';
 import { TimeRange } from './TimeRangeSelector';
 import { StockInfoBar } from './StockInfoBar';
@@ -28,10 +29,15 @@ import { horizontalRegionSelection } from './overlays/horizontalRegionSelection'
 import { RegionSelectionModal } from './RegionSelectionModal';
 import type { RegionSelectionData } from '../../store/useChartStore';
 
+const getCSSVar = (varName: string) => {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+};
+
 export function ChartPanel() {
   const { selectedStock } = useStore();
-  const { 
-    triggerRegionSelection, 
+  const theme = useThemeStore((state) => state.theme);
+  const {
+    triggerRegionSelection,
     setTriggerRegionSelection,
     isInSelectionMode,
     setIsInSelectionMode,
@@ -51,7 +57,6 @@ export function ChartPanel() {
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
   const [showSelectionModal, setShowSelectionModal] = useState(false);
 
-  // 注册自定义覆盖物
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
   }, []);
@@ -63,18 +68,18 @@ export function ChartPanel() {
       const chart = init(chartContainerRef.current, {
         styles: {
           grid: {
-            horizontal: { color: '#1A1A1A' },
-            vertical: { color: '#1A1A1A' },
+            horizontal: { color: getCSSVar('--chart-grid') },
+            vertical: { color: getCSSVar('--chart-grid') },
           },
           candle: {
             type: 'candle_solid',
             bar: {
-              upColor: '#00D09C',
-              downColor: '#FF4976',
-              upBorderColor: '#00D09C',
-              downBorderColor: '#FF4976',
-              upWickColor: '#00D09C',
-              downWickColor: '#FF4976',
+              upColor: getCSSVar('--chart-candle-up'),
+              downColor: getCSSVar('--chart-candle-down'),
+              upBorderColor: getCSSVar('--chart-candle-up'),
+              downBorderColor: getCSSVar('--chart-candle-down'),
+              upWickColor: getCSSVar('--chart-candle-up'),
+              downWickColor: getCSSVar('--chart-candle-down'),
             },
           },
           indicator: {
@@ -82,7 +87,7 @@ export function ChartPanel() {
             tooltip: {
               showRule: 'always',
               showType: 'rect',
-              text: { size: 12, color: '#D9D9D9' },
+              text: { size: 12, color: getCSSVar('--text-secondary') },
             },
           },
         },
@@ -136,6 +141,32 @@ export function ChartPanel() {
       }
     };
   }, [selectedStock, timeRange]);
+
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.setStyles({
+        grid: {
+          horizontal: { color: getCSSVar('--chart-grid') },
+          vertical: { color: getCSSVar('--chart-grid') },
+        },
+        candle: {
+          bar: {
+            upColor: getCSSVar('--chart-candle-up'),
+            downColor: getCSSVar('--chart-candle-down'),
+            upBorderColor: getCSSVar('--chart-candle-up'),
+            downBorderColor: getCSSVar('--chart-candle-down'),
+            upWickColor: getCSSVar('--chart-candle-up'),
+            downWickColor: getCSSVar('--chart-candle-down'),
+          },
+        },
+        indicator: {
+          tooltip: {
+            text: { color: getCSSVar('--text-secondary') },
+          },
+        },
+      });
+    }
+  }, [theme]);
 
   const handleTimeRangeChange = (range: TimeRange) => {
     if (timeRange === range) return;
