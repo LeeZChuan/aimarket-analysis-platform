@@ -3,6 +3,7 @@ import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from '
 import { Sidebar } from '../../components/Sidebar';
 import { ChartPanel } from '../../components/ChartPanel';
 import { ChatPanel } from '../../components/AIAssistant';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { LAYOUT_CONFIG } from '../../config/layout';
 
 export function TradingView() {
@@ -43,30 +44,59 @@ export function TradingView() {
   });
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="h-5 bg-[#1A1A1A] border-b border-[#2A2A2A] flex items-center justify-end px-2 gap-1">
-        <button
-          onClick={() => setShowSidebar(!showSidebar)}
-          className="p-0.5 hover:bg-[#2A2A2A] rounded transition-colors"
-          title={showSidebar ? '收起左侧栏' : '展开左侧栏'}
-        >
-          {showSidebar ? (
-            <PanelLeftClose className="w-3.5 h-3.5 text-gray-400" />
-          ) : (
-            <PanelLeftOpen className="w-3.5 h-3.5 text-gray-400" />
-          )}
-        </button>
-        <button
-          onClick={() => setShowChat(!showChat)}
-          className="p-0.5 hover:bg-[#2A2A2A] rounded transition-colors"
-          title={showChat ? '收起右侧栏' : '展开右侧栏'}
-        >
-          {showChat ? (
-            <PanelRightClose className="w-3.5 h-3.5 text-gray-400" />
-          ) : (
-            <PanelRightOpen className="w-3.5 h-3.5 text-gray-400" />
-          )}
-        </button>
+    <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+      <div
+        className="h-8 flex items-center justify-between px-2 gap-2"
+        style={{
+          background: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-primary)'
+        }}
+      >
+        <div className="flex items-center gap-1">
+          <ThemeSwitcher />
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="p-0.5 rounded transition-colors"
+            style={{
+              color: 'var(--text-muted)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title={showSidebar ? '收起左侧栏' : '展开左侧栏'}
+          >
+            {showSidebar ? (
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            ) : (
+              <PanelLeftOpen className="w-3.5 h-3.5" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className="p-0.5 rounded transition-colors"
+            style={{
+              color: 'var(--text-muted)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title={showChat ? '收起右侧栏' : '展开右侧栏'}
+          >
+            {showChat ? (
+              <PanelRightClose className="w-3.5 h-3.5" />
+            ) : (
+              <PanelRightOpen className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -76,7 +106,16 @@ export function TradingView() {
               <Sidebar />
             </div>
             <div
-              className="w-1 bg-[#2A2A2A] hover:bg-[#3A9FFF] cursor-col-resize transition-colors flex-shrink-0"
+              className="w-1 cursor-col-resize transition-colors flex-shrink-0"
+              style={{
+                background: 'var(--border-primary)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--accent-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--border-primary)';
+              }}
               onMouseDown={(e) => {
                 isResizingSidebar.current = true;
                 e.preventDefault();
@@ -90,7 +129,16 @@ export function TradingView() {
         {showChat && (
           <>
             <div
-              className="w-1 bg-[#2A2A2A] hover:bg-[#3A9FFF] cursor-col-resize transition-colors flex-shrink-0"
+              className="w-1 cursor-col-resize transition-colors flex-shrink-0"
+              style={{
+                background: 'var(--border-primary)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--accent-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--border-primary)';
+              }}
               onMouseDown={(e) => {
                 isResizingChat.current = true;
                 e.preventDefault();

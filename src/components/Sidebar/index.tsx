@@ -20,6 +20,7 @@ import { useState, useEffect } from 'react';
 import { stockService } from '../../services/stockService';
 import { Stock } from '../../types/stock';
 import { StockSearchModal } from '../StockSearchModal';
+import { sidebarStyles } from './SidebarStyles';
 
 type TabType = 'watchlist' | 'stocks';
 
@@ -105,19 +106,31 @@ export function Sidebar() {
   };
 
   return (
-    <div className="bg-[#1A1A1A] flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full" style={sidebarStyles.container}>
       <StockSearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         onSelectStock={handleSelectStock}
       />
 
-      <div className="p-4 border-b border-[#2A2A2A]">
+      <div className="p-4" style={sidebarStyles.header}>
         <button
           onClick={() => setIsSearchModalOpen(true)}
-          className="relative w-full mb-3 bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-sm text-gray-500 hover:text-white hover:border-[#3A9FFF] transition-all text-left group"
+          className="relative w-full mb-3 rounded-lg pl-10 pr-4 py-2 text-sm text-left group transition-all"
+          style={sidebarStyles.searchButton}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = sidebarStyles.searchButtonHover.color;
+            e.currentTarget.style.borderColor = sidebarStyles.searchButtonHover.borderColor;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = sidebarStyles.searchButton.color;
+            e.currentTarget.style.borderColor = sidebarStyles.searchButton.border.split(' ')[2];
+          }}
         >
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-hover:text-[#3A9FFF] w-4 h-4 transition-colors" />
+          <Search
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors"
+            style={sidebarStyles.searchIcon}
+          />
           搜索代码或名称...
         </button>
 
@@ -126,11 +139,18 @@ export function Sidebar() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                activeTab === tab
-                  ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
-              }`}
+              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all"
+              style={activeTab === tab ? sidebarStyles.tabButtonActive : sidebarStyles.tabButton}
+              onMouseEnter={(e) => {
+                if (activeTab !== tab) {
+                  Object.assign(e.currentTarget.style, sidebarStyles.tabButtonHover);
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== tab) {
+                  Object.assign(e.currentTarget.style, sidebarStyles.tabButton);
+                }
+              }}
               title={getTabLabel(tab)}
             >
               {getTabIcon(tab)}
@@ -144,11 +164,11 @@ export function Sidebar() {
         <div className="p-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500 text-sm">加载中...</div>
+              <div className="text-sm" style={sidebarStyles.loadingText}>加载中...</div>
             </div>
           ) : filteredList.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500 text-sm">
+              <div className="text-sm" style={sidebarStyles.emptyText}>
                 {searchTerm ? '未找到匹配结果' : '暂无数据'}
               </div>
             </div>
@@ -157,30 +177,36 @@ export function Sidebar() {
               {filteredList.map((stock) => (
               <div
                 key={stock.symbol}
-                className={`group relative p-3 rounded-lg cursor-pointer transition-all ${
-                  selectedStock?.symbol === stock.symbol
-                    ? 'bg-[#3A9FFF]/20 border border-[#3A9FFF]'
-                    : 'bg-[#0D0D0D] border border-transparent hover:border-[#2A2A2A]'
-                }`}
+                className="group relative p-3 rounded-lg cursor-pointer transition-all"
+                style={selectedStock?.symbol === stock.symbol ? sidebarStyles.stockItemActive : sidebarStyles.stockItem}
+                onMouseEnter={(e) => {
+                  if (selectedStock?.symbol !== stock.symbol) {
+                    Object.assign(e.currentTarget.style, sidebarStyles.stockItemHover);
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedStock?.symbol !== stock.symbol) {
+                    Object.assign(e.currentTarget.style, sidebarStyles.stockItem);
+                  }
+                }}
                 onClick={() => setSelectedStock(stock)}
                 title={`查看 ${stock.name} (${stock.symbol}) 详情`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-semibold text-sm">
+                      <span className="font-semibold text-sm" style={sidebarStyles.stockSymbol}>
                         {stock.symbol}
                       </span>
-                      <span className="text-xs text-gray-500">{stock.name}</span>
+                      <span className="text-xs" style={sidebarStyles.stockName}>{stock.name}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-white font-mono text-lg">
+                      <span className="font-mono text-lg" style={sidebarStyles.stockPrice}>
                         ${stock.price.toFixed(2)}
                       </span>
                       <span
-                        className={`text-xs font-medium ${
-                          stock.change >= 0 ? 'text-[#00D09C]' : 'text-red-500'
-                        }`}
+                        className="text-xs font-medium"
+                        style={stock.change >= 0 ? sidebarStyles.stockChangeUp : sidebarStyles.stockChangeDown}
                       >
                         {stock.change >= 0 ? '+' : ''}
                         {stock.change.toFixed(2)}%
@@ -193,24 +219,38 @@ export function Sidebar() {
                         e.stopPropagation();
                         removeFromWatchlist(stock.symbol);
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-[#2A2A2A] rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                      style={sidebarStyles.iconButton}
+                      onMouseEnter={(e) => {
+                        Object.assign(e.currentTarget.style, sidebarStyles.iconButtonHover);
+                      }}
+                      onMouseLeave={(e) => {
+                        Object.assign(e.currentTarget.style, sidebarStyles.iconButton);
+                      }}
                       title="从自选股中移除"
                     >
-                      <X className="w-4 h-4 text-gray-500" />
+                      <X className="w-4 h-4" />
                     </button>
                   ) : (
                     <button
                       onClick={(e) => handleAddToWatchlist(stock, e)}
                       disabled={isInWatchlist(stock.symbol)}
-                      className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded ${
-                        isInWatchlist(stock.symbol)
-                          ? 'text-[#3A9FFF] cursor-not-allowed'
-                          : 'hover:bg-[#2A2A2A] text-gray-500 hover:text-[#3A9FFF]'
-                      }`}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                      style={isInWatchlist(stock.symbol) ? { color: 'var(--accent-primary)', cursor: 'not-allowed' } : sidebarStyles.iconButton}
+                      onMouseEnter={(e) => {
+                        if (!isInWatchlist(stock.symbol)) {
+                          Object.assign(e.currentTarget.style, sidebarStyles.iconButtonHover);
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isInWatchlist(stock.symbol)) {
+                          Object.assign(e.currentTarget.style, sidebarStyles.iconButton);
+                        }
+                      }}
                       title={isInWatchlist(stock.symbol) ? '已在自选股中' : '添加到自选股'}
                     >
                       {isInWatchlist(stock.symbol) ? (
-                        <Star className="w-4 h-4 fill-[#3A9FFF]" />
+                        <Star className="w-4 h-4" style={{ fill: 'var(--accent-primary)' }} />
                       ) : (
                         <Plus className="w-4 h-4" />
                       )}
@@ -224,8 +264,8 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="p-4 border-t border-[#2A2A2A]">
-        <div className="text-xs text-gray-500 text-center">
+      <div className="p-4" style={sidebarStyles.footer}>
+        <div className="text-xs text-center">
           AstraTrade v1.0
         </div>
       </div>
