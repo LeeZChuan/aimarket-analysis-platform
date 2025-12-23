@@ -54,8 +54,6 @@ export function TradingView() {
       >
         <div className="flex items-center gap-1">
           <ThemeSwitcher />
-        </div>
-        <div className="flex items-center gap-1">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
             className="p-0.5 rounded transition-colors"

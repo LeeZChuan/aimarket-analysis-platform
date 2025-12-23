@@ -98,7 +98,7 @@ export function ChatInput({
 
   return (
     <>
-      <div className="p-4 border-t border-[#2A2A2A] space-y-3">
+      <div className="p-4 space-y-3" style={{ borderTop: '1px solid var(--border-primary)' }}>
         {uploadedImages.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             {uploadedImages.map((img, index) => (
@@ -106,11 +106,13 @@ export function ChatInput({
                 <img
                   src={img}
                   alt={`Upload ${index + 1}`}
-                  className="w-16 h-16 object-cover rounded-lg border border-[#2A2A2A]"
+                  className="w-16 h-16 object-cover rounded-lg"
+                  style={{ border: '1px solid var(--border-primary)' }}
                 />
                 <button
                   onClick={() => removeImage(index)}
-                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ color: 'white' }}
                   title="删除图片"
                 >
                   <X className="w-3 h-3" />
@@ -120,13 +122,14 @@ export function ChatInput({
           </div>
         )}
 
-        <div className="bg-[#0D0D0D] border border-[#2A2A2A] rounded-xl overflow-hidden">
+        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="分析市场、技术指标或上传图表..."
-            className="w-full bg-transparent px-4 pt-3 pb-2 text-sm text-white placeholder-gray-500 focus:outline-none resize-none"
+            className="w-full bg-transparent px-4 pt-3 pb-2 text-sm focus:outline-none resize-none"
+            style={{ color: 'var(--text-primary)' }}
             rows={3}
           />
 
@@ -142,34 +145,65 @@ export function ChatInput({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 hover:bg-[#2A2A2A] rounded-lg transition-colors group"
+                className="p-1.5 rounded-lg transition-colors group"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                  const icon = e.currentTarget.querySelector('svg');
+                  if (icon instanceof HTMLElement) icon.style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  const icon = e.currentTarget.querySelector('svg');
+                  if (icon instanceof HTMLElement) icon.style.color = 'var(--text-muted)';
+                }}
                 title="上传图片"
               >
-                <ImageIcon className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                <ImageIcon className="w-4 h-4" />
               </button>
 
               <button
                 onClick={handleRegionSelection}
-                className={`p-1.5 rounded-lg transition-colors group ${
-                  isInSelectionMode 
-                    ? 'bg-[#3A9FFF]/20 cursor-default' 
-                    : 'hover:bg-[#2A2A2A]'
-                }`}
+                className="p-1.5 rounded-lg transition-colors group"
+                style={
+                  isInSelectionMode
+                    ? { background: 'var(--bg-active)', cursor: 'default', color: 'var(--accent-primary)' }
+                    : { color: 'var(--text-muted)' }
+                }
+                onMouseEnter={(e) => {
+                  if (!isInSelectionMode) {
+                    e.currentTarget.style.background = 'var(--bg-tertiary)';
+                    const icon = e.currentTarget.querySelector('svg');
+                    if (icon instanceof HTMLElement) icon.style.color = 'var(--text-primary)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isInSelectionMode) {
+                    e.currentTarget.style.background = 'transparent';
+                    const icon = e.currentTarget.querySelector('svg');
+                    if (icon instanceof HTMLElement) icon.style.color = 'var(--text-muted)';
+                  }
+                }}
                 title={isInSelectionMode ? "已在框选模式中" : "框选图表区域"}
               >
-                <Box className={`w-4 h-4 ${
-                  isInSelectionMode 
-                    ? 'text-[#3A9FFF]' 
-                    : 'text-gray-400 group-hover:text-white'
-                }`} />
+                <Box className="w-4 h-4" />
               </button>
 
-              <div className="h-4 w-px bg-[#2A2A2A]" />
+              <div className="h-4 w-px" style={{ background: 'var(--border-primary)' }} />
 
               <button
                 ref={modelButtonRef}
                 onClick={handleModelPickerToggle}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
                 title="选择AI模型"
               >
                 <span className="font-mono">
@@ -182,7 +216,21 @@ export function ChatInput({
             <button
               onClick={handleSend}
               disabled={(!input.trim() && uploadedImages.length === 0) || isLoading}
-              className="p-1.5 bg-[#3A9FFF] text-white rounded-lg hover:bg-[#2A8FEF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: 'var(--accent-primary)',
+                color: 'white',
+              }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.background = 'var(--accent-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.background = 'var(--accent-primary)';
+                }
+              }}
               title="发送"
             >
               <Send className="w-4 h-4" />
@@ -194,8 +242,10 @@ export function ChatInput({
       {showModelPicker && (
         <div
           ref={modelPickerRef}
-          className="fixed bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[10000]"
+          className="fixed rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[10000]"
           style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-primary)',
             top: `${pickerPosition.top}px`,
             left: `${pickerPosition.left}px`,
             transform: 'translateY(-100%)',
@@ -208,22 +258,34 @@ export function ChatInput({
                 onModelChange(model.id);
                 setShowModelPicker(false);
               }}
-              className={`w-full px-3 py-2 text-left text-xs hover:bg-[#2A2A2A] transition-colors ${
-                selectedModel === model.id ? 'bg-[#2A2A2A] text-white' : 'text-gray-400'
-              }`}
+              className="w-full px-3 py-2 text-left text-xs transition-colors"
+              style={
+                selectedModel === model.id
+                  ? { background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
+                  : { color: 'var(--text-muted)' }
+              }
+              onMouseEnter={(e) => {
+                if (selectedModel !== model.id) {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedModel !== model.id) {
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
               title={model.description}
             >
               <div className="font-medium">{model.name}</div>
-              <div className="text-[10px] text-gray-500">{model.description}</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>{model.description}</div>
             </button>
           ))}
         </div>
       )}
 
-      {/* Toast 提示 */}
       {showToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] animate-fade-in">
-          <div className="bg-[#1A1A1A] border border-[#3A9FFF]/50 text-[#3A9FFF] px-4 py-2 rounded-lg shadow-lg text-sm">
+          <div className="px-4 py-2 rounded-lg shadow-lg text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }}>
             已在框选模式中，请先完成或取消当前框选
           </div>
         </div>

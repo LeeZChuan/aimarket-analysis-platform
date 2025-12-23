@@ -7,26 +7,22 @@ export function ThemeSwitcher() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg transition-all duration-300"
+      className="p-0.5 rounded transition-colors"
       style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-primary)',
-        color: 'var(--text-primary)',
+        color: 'var(--text-muted)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-hover)';
         e.currentTarget.style.background = 'var(--bg-tertiary)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-primary)';
-        e.currentTarget.style.background = 'var(--bg-secondary)';
+        e.currentTarget.style.background = 'transparent';
       }}
       title={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
     >
       {theme === 'dark' ? (
-        <Sun className="w-5 h-5" />
+        <Sun className="w-3.5 h-3.5" />
       ) : (
-        <Moon className="w-5 h-5" />
+        <Moon className="w-3.5 h-3.5" />
       )}
     </button>
   );

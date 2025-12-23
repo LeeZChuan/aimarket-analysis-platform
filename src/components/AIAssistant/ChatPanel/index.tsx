@@ -96,11 +96,11 @@ export function ChatPanel() {
 
   return (
     <>
-      <div className="bg-[#1A1A1A] flex flex-col h-full w-full">
-        <div className="p-4 border-b border-[#2A2A2A]">
+      <div className="flex flex-col h-full w-full" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#3A9FFF]" />
-            <h2 className="text-lg font-semibold text-white">AI 分析助手</h2>
+            <Sparkles className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>AI 分析助手</h2>
           </div>
         </div>
 

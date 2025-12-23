@@ -76,25 +76,51 @@ export function ConversationTabBar({
   };
 
   return (
-    <div className="relative flex items-center bg-[#0D0D0D] border-b border-[#2A2A2A]">
+    <div className="relative flex items-center" style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-primary)' }}>
       <button
         onClick={onShowHistory}
-        className="sticky left-0 flex-shrink-0 p-1.5 px-2 bg-[#0D0D0D] hover:bg-[#2A2A2A] rounded transition-colors group z-10 border-r border-[#2A2A2A]"
+        className="sticky left-0 flex-shrink-0 p-1.5 px-2 rounded transition-colors group z-10"
+        style={{
+          background: 'var(--bg-primary)',
+          borderRight: '1px solid var(--border-primary)',
+          color: 'var(--text-muted)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--bg-tertiary)';
+          const icon = e.currentTarget.querySelector('svg');
+          if (icon instanceof HTMLElement) icon.style.color = 'var(--text-primary)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--bg-primary)';
+          const icon = e.currentTarget.querySelector('svg');
+          if (icon instanceof HTMLElement) icon.style.color = 'var(--text-muted)';
+        }}
         title="对话历史"
       >
-        <History className="w-4 h-4 text-gray-400 group-hover:text-white" />
+        <History className="w-4 h-4" />
       </button>
 
-      <div className="flex items-center gap-1 px-2 py-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+      <div className="flex items-center gap-1 px-2 py-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-track-transparent">
         <div className="flex items-center gap-1 min-w-0">
           {openTabs.map((tab) => (
             <div
               key={tab.id}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-t transition-colors cursor-pointer group min-w-[120px] max-w-[200px] ${
+              className="flex items-center gap-1 px-3 py-1.5 rounded-t transition-colors cursor-pointer group min-w-[120px] max-w-[200px]"
+              style={
                 activeTabId === tab.id
-                  ? 'bg-[#1A1A1A] text-white'
-                  : 'bg-[#0D0D0D] text-gray-400 hover:bg-[#1A1A1A]'
-              }`}
+                  ? { background: 'var(--bg-secondary)', color: 'var(--text-primary)' }
+                  : { background: 'var(--bg-primary)', color: 'var(--text-muted)' }
+              }
+              onMouseEnter={(e) => {
+                if (activeTabId !== tab.id) {
+                  e.currentTarget.style.background = 'var(--bg-secondary)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTabId !== tab.id) {
+                  e.currentTarget.style.background = 'var(--bg-primary)';
+                }
+              }}
               onClick={() => onTabClick(tab.id)}
             >
               {editingTabId === tab.id ? (
@@ -114,7 +140,13 @@ export function ConversationTabBar({
                   {onRenameTab && (
                     <button
                       onClick={(e) => handleStartEdit(tab, e)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[#2A2A2A] rounded transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--bg-tertiary)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
                       title="重命名"
                     >
                       <Edit2 className="w-3 h-3" />
@@ -127,7 +159,13 @@ export function ConversationTabBar({
                   e.stopPropagation();
                   onTabClose(tab.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[#2A2A2A] rounded transition-opacity"
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
                 title="关闭"
               >
                 <X className="w-3 h-3" />
@@ -139,10 +177,25 @@ export function ConversationTabBar({
 
       <button
         onClick={onNewConversation}
-        className="sticky right-0 flex-shrink-0 p-1.5 px-2 bg-[#0D0D0D] hover:bg-[#2A2A2A] rounded transition-colors group z-10 border-l border-[#2A2A2A]"
+        className="sticky right-0 flex-shrink-0 p-1.5 px-2 rounded transition-colors group z-10"
+        style={{
+          background: 'var(--bg-primary)',
+          borderLeft: '1px solid var(--border-primary)',
+          color: 'var(--text-muted)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--bg-tertiary)';
+          const icon = e.currentTarget.querySelector('svg');
+          if (icon instanceof HTMLElement) icon.style.color = 'var(--text-primary)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--bg-primary)';
+          const icon = e.currentTarget.querySelector('svg');
+          if (icon instanceof HTMLElement) icon.style.color = 'var(--text-muted)';
+        }}
         title="新建对话"
       >
-        <Plus className="w-4 h-4 text-gray-400 group-hover:text-white" />
+        <Plus className="w-4 h-4" />
       </button>
     </div>
   );
