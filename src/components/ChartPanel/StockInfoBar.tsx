@@ -37,27 +37,27 @@ export function StockInfoBar({ stock, timeRange, hoveredData }: StockInfoBarProp
   const isPositive = currentPrice >= basePrice;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-[#0D0D0D] border-b border-[#2A2A2A] transition-all duration-200">
+    <div className="flex items-center gap-3 px-4 py-2 transition-all duration-200" style={{ background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-primary)' }}>
       <div className="flex items-center gap-2">
-        <h1 className="text-base font-bold text-white">
+        <h1 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
           {stock?.symbol || 'AAPL'}
         </h1>
-        <span className="text-xs text-gray-500">·</span>
-        <span className="text-xs text-gray-400">{timeRange}</span>
-        <span className="text-xs text-gray-500">·</span>
-        <span className="text-xs text-gray-500">NASDAQ</span>
+        <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>·</span>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{timeRange}</span>
+        <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>·</span>
+        <span className="text-xs" style={{ color: 'var(--text-disabled)' }}>NASDAQ</span>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-500">O</span>
-          <span className="text-sm font-mono text-white">
+          <span className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>O</span>
+          <span className="text-sm font-mono" style={{ color: 'var(--text-primary)' }}>
             {displayData.open.toFixed(2)}
           </span>
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-500">C</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>C</span>
           <span className={`text-sm font-mono font-bold ${
             isPositive ? 'text-[#00D09C]' : 'text-[#FF4976]'
           }`}>

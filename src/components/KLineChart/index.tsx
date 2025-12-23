@@ -17,6 +17,8 @@ import { useEffect, useRef } from 'react';
 import { init, dispose } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { KLineChartData } from '../../types/chart';
+import { useTheme } from '../../hooks/useTheme';
+import { getChartThemeStyles } from '../../utils/chartTheme';
 
 interface KLineChartProps {
   data: KLineChartData;
@@ -26,40 +28,14 @@ interface KLineChartProps {
 export function KLineChart({ data, height = 500 }: KLineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     if (!chartRef.current) {
       const chart = init(chartContainerRef.current, {
-        styles: {
-          grid: {
-            horizontal: {
-              color: '#1A1A1A',
-            },
-            vertical: {
-              color: '#1A1A1A',
-            },
-          },
-          candle: {
-            type: 'candle_solid',
-            bar: {
-              upColor: '#26a69a',
-              downColor: '#ef5350',
-              upBorderColor: '#26a69a',
-              downBorderColor: '#ef5350',
-              upWickColor: '#26a69a',
-              downWickColor: '#ef5350',
-            },
-          },
-          technicalIndicator: {
-            line: [
-              { color: '#FF6B6B' },
-              { color: '#4ECDC4' },
-              { color: '#FFE66D' },
-            ],
-          },
-        },
+        styles: getChartThemeStyles(theme),
       });
 
       if (chart) {
@@ -91,6 +67,11 @@ export function KLineChart({ data, height = 500 }: KLineChartProps) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.setStyles(getChartThemeStyles(theme));
+  }, [theme]);
 
   useEffect(() => {
     if (!chartRef.current) return;
