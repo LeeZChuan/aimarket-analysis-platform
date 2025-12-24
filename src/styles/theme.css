@@ -4,6 +4,7 @@
 }
 
 [data-theme='dark'] {
+  --bg-transparent: rgba(0,0,0,0);
   --bg-primary: #0D0D0D;
   --bg-secondary: #1A1A1A;
   --bg-tertiary: #2A2A2A;
@@ -47,6 +48,7 @@
 }
 
 [data-theme='light'] {
+  --bg-transparent: rgba(255,255,255,0);
   --bg-primary: #FFFFFF;
   --bg-secondary: #F5F5F5;
   --bg-tertiary: #E5E5E5;

@@ -24,6 +24,7 @@ export const drawingToolbarStyles = {
 
   toolButton: {
     color: 'var(--text-muted)',
+    background: 'var(--bg-transparent)',
     transition: 'all 0.3s ease',
   },
 
