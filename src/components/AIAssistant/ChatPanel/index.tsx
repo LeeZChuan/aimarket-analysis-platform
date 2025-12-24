@@ -15,6 +15,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useStore } from '../../../store/useStore';
+import { useAIConfigStore } from '../../../store/useAIConfigStore';
 import { useConversationStore } from '../../../store/useConversationStore';
 import { sendAnalysisRequest } from '../../../services/aiService';
 import { ConversationTabBar } from '../ConversationTabBar';
@@ -23,15 +24,22 @@ import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
 import { ConversationListItem } from '../../../types/conversation';
 
-const AI_MODELS = [
-  { id: 'auto', name: 'Auto', description: '自动选择最佳模型' },
-  { id: 'gpt-4', name: 'GPT-4', description: '通用智能分析' },
-  { id: 'quant-llm', name: 'Quant-LLM', description: '量化分析模型' },
-  { id: 'news-bot', name: 'News-Bot', description: '市场新闻摘要' },
-];
-
 export function ChatPanel() {
-  const { selectedModel, setSelectedModel, selectedStock } = useStore();
+  const { selectedStock } = useStore();
+  const {
+    initialized,
+    initialize,
+    selectedSceneId,
+    selectedProviderId,
+    selectedModelId,
+    useMock,
+    scenes,
+    providers,
+    setSelectedScene,
+    setProviderAndModel,
+    getCurrentProviderModels,
+  } = useAIConfigStore();
+
   const {
     activeConversationId,
     activeConversation,
@@ -48,6 +56,11 @@ export function ChatPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
+  // 初始化 AI 配置
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
   useEffect(() => {
     initializeDefaultConversation();
   }, [initializeDefaultConversation]);
@@ -62,7 +75,10 @@ export function ChatPanel() {
       const response = await sendAnalysisRequest(message, {
         stockSymbol: selectedStock?.symbol || activeConversation?.metadata.stockSymbol || 'AAPL',
         stockPrice: selectedStock?.price || activeConversation?.metadata.stockPrice || 178.72,
-        modelId: selectedModel,
+        modelId: selectedModelId,
+        providerId: selectedProviderId,
+        sceneId: selectedSceneId,
+        useMock,
         images,
       });
 
@@ -94,6 +110,21 @@ export function ChatPanel() {
     openTab(conversation);
   };
 
+  // 格式化供应商和模型选项供 ChatInput 使用
+  const modelOptions = providers.flatMap(p =>
+    p.models.map(m => ({
+      id: `${p.provider.id}/${m.id}`,
+      name: `${p.provider.name} - ${m.name}`,
+      description: m.description,
+      providerId: p.provider.id,
+      modelId: m.id,
+    }))
+  );
+
+  const currentModelOption = modelOptions.find(
+    m => m.providerId === selectedProviderId && m.modelId === selectedModelId
+  );
+
   return (
     <>
       <div className="flex flex-col h-full w-full" style={{ background: 'var(--bg-secondary)' }}>
@@ -124,9 +155,19 @@ export function ChatPanel() {
         <ChatInput
           onSend={handleSend}
           isLoading={isLoading}
-          selectedModel={selectedModel}
-          availableModels={AI_MODELS}
-          onModelChange={setSelectedModel}
+          // 场景选择
+          selectedSceneId={selectedSceneId}
+          availableScenes={scenes}
+          onSceneChange={setSelectedScene}
+          // 模型选择
+          selectedModel={currentModelOption?.id || ''}
+          availableModels={modelOptions}
+          onModelChange={(id) => {
+            const option = modelOptions.find(m => m.id === id);
+            if (option) {
+              setProviderAndModel(option.providerId, option.modelId);
+            }
+          }}
         />
       </div>
 

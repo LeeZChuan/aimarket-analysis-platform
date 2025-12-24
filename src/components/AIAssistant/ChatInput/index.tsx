@@ -4,7 +4,8 @@
  * 功能：
  * - 提供多行文本输入框用于用户输入消息
  * - 支持图片上传功能（可上传多张图片）
- * - AI模型选择下拉菜单（支持GPT-4、Quant-LLM等模型）
+ * - AI模型选择下拉菜单（支持多供应商、多模型）
+ * - 场景选择器（技术分析、基本面分析等）
  * - 快捷键支持（Enter发送，Shift+Enter换行）
  * - 实时预览已上传的图片并支持删除
  *
@@ -15,18 +16,35 @@
 import { useState, useRef } from 'react';
 import { Send, Image as ImageIcon, X, ChevronDown, Box } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
+import type { SceneConfig } from '../../../prompt';
+
+interface ModelOption {
+  id: string;
+  name: string;
+  description: string;
+  providerId: string;
+  modelId: string;
+}
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void;
   isLoading: boolean;
+  // 场景选择
+  selectedSceneId: string;
+  availableScenes: SceneConfig[];
+  onSceneChange: (sceneId: string) => void;
+  // 模型选择
   selectedModel: string;
-  availableModels: Array<{ id: string; name: string; description: string }>;
+  availableModels: ModelOption[];
   onModelChange: (modelId: string) => void;
 }
 
 export function ChatInput({
   onSend,
   isLoading,
+  selectedSceneId,
+  availableScenes,
+  onSceneChange,
   selectedModel,
   availableModels,
   onModelChange,
@@ -35,11 +53,13 @@ export function ChatInput({
   const [input, setInput] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showScenePicker, setShowScenePicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
   const [showToast, setShowToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
+  const sceneButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -84,17 +104,59 @@ export function ChatInput({
       });
     }
     setShowModelPicker(!showModelPicker);
+    setShowScenePicker(false);
+  };
+
+  const handleScenePickerToggle = () => {
+    if (!showScenePicker && sceneButtonRef.current) {
+      const rect = sceneButtonRef.current.getBoundingClientRect();
+      setPickerPosition({
+        top: rect.top - 8,
+        left: rect.left,
+      });
+    }
+    setShowScenePicker(!showScenePicker);
+    setShowModelPicker(false);
   };
 
   const handleRegionSelection = () => {
     if (isInSelectionMode) {
-      // 已经在框选模式中，显示提示
       setShowToast(true);
       setTimeout(() => setShowToast(false), 2000);
       return;
     }
     setTriggerRegionSelection(true);
   };
+
+  const currentModel = availableModels.find((m) => m.id === selectedModel);
+  const currentScene = availableScenes.find((s) => s.id === selectedSceneId);
+
+  // 获取模型简称
+  const getModelShortName = (model: ModelOption | undefined): string => {
+    if (!model) return 'Model';
+    const modelName = model.modelId;
+    // 常见模型简称映射
+    const shortNames: Record<string, string> = {
+      'gpt-4o': '4o',
+      'gpt-4o-mini': '4o-mini',
+      'gpt-4-turbo': '4-turbo',
+      'gpt-3.5-turbo': '3.5',
+      'deepseek-chat': 'DS-Chat',
+      'deepseek-reasoner': 'DS-R1',
+      'mock-instant': 'Mock',
+      'mock-delay': 'Mock-D',
+    };
+    return shortNames[modelName] || modelName;
+  };
+
+  // 按供应商分组模型
+  const groupedModels = availableModels.reduce((acc, model) => {
+    if (!acc[model.providerId]) {
+      acc[model.providerId] = [];
+    }
+    acc[model.providerId].push(model);
+    return acc;
+  }, {} as Record<string, ModelOption[]>);
 
   return (
     <>
@@ -133,8 +195,8 @@ export function ChatInput({
             rows={3}
           />
 
-          <div className="flex items-center justify-between px-3 pb-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between px-2 pb-2">
+            <div className="flex items-center gap-1">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -145,17 +207,15 @@ export function ChatInput({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded-lg transition-colors group"
+                className="p-1 rounded transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'var(--bg-tertiary)';
-                  const icon = e.currentTarget.querySelector('svg');
-                  if (icon instanceof HTMLElement) icon.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
-                  const icon = e.currentTarget.querySelector('svg');
-                  if (icon instanceof HTMLElement) icon.style.color = 'var(--text-muted)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
                 }}
                 title="上传图片"
               >
@@ -164,7 +224,7 @@ export function ChatInput({
 
               <button
                 onClick={handleRegionSelection}
-                className="p-1.5 rounded-lg transition-colors group"
+                className="p-1 rounded transition-colors"
                 style={
                   isInSelectionMode
                     ? { background: 'var(--bg-active)', cursor: 'default', color: 'var(--accent-primary)' }
@@ -173,15 +233,13 @@ export function ChatInput({
                 onMouseEnter={(e) => {
                   if (!isInSelectionMode) {
                     e.currentTarget.style.background = 'var(--bg-tertiary)';
-                    const icon = e.currentTarget.querySelector('svg');
-                    if (icon instanceof HTMLElement) icon.style.color = 'var(--text-primary)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isInSelectionMode) {
                     e.currentTarget.style.background = 'transparent';
-                    const icon = e.currentTarget.querySelector('svg');
-                    if (icon instanceof HTMLElement) icon.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.color = 'var(--text-muted)';
                   }
                 }}
                 title={isInSelectionMode ? "已在框选模式中" : "框选图表区域"}
@@ -189,12 +247,30 @@ export function ChatInput({
                 <Box className="w-4 h-4" />
               </button>
 
-              <div className="h-4 w-px" style={{ background: 'var(--border-primary)' }} />
+              <div className="h-3 w-px mx-0.5" style={{ background: 'var(--border-primary)' }} />
 
+              {/* 场景选择器 - 只显示 icon */}
+              <button
+                ref={sceneButtonRef}
+                onClick={handleScenePickerToggle}
+                className="p-1 rounded transition-colors text-sm"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+                title={`场景: ${currentScene?.name || '选择场景'}`}
+              >
+                <span>{currentScene?.icon || '💬'}</span>
+              </button>
+
+              {/* 模型选择器 - 简称显示 */}
               <button
                 ref={modelButtonRef}
                 onClick={handleModelPickerToggle}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors"
+                className="flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] rounded transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = 'var(--text-primary)';
@@ -204,11 +280,9 @@ export function ChatInput({
                   e.currentTarget.style.color = 'var(--text-muted)';
                   e.currentTarget.style.background = 'transparent';
                 }}
-                title="选择AI模型"
+                title={`模型: ${currentModel?.name || '选择模型'}`}
               >
-                <span className="font-mono">
-                  {availableModels.find((m) => m.id === selectedModel)?.name}
-                </span>
+                <span className="font-mono">{getModelShortName(currentModel)}</span>
                 <ChevronDown className="w-3 h-3" />
               </button>
             </div>
@@ -216,7 +290,7 @@ export function ChatInput({
             <button
               onClick={handleSend}
               disabled={(!input.trim() && uploadedImages.length === 0) || isLoading}
-              className="p-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: 'var(--accent-primary)',
                 color: 'white',
@@ -239,9 +313,9 @@ export function ChatInput({
         </div>
       </div>
 
-      {showModelPicker && (
+      {/* 场景选择弹窗 */}
+      {showScenePicker && (
         <div
-          ref={modelPickerRef}
           className="fixed rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[10000]"
           style={{
             background: 'var(--bg-secondary)',
@@ -251,34 +325,89 @@ export function ChatInput({
             transform: 'translateY(-100%)',
           }}
         >
-          {availableModels.map((model) => (
+          <div className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-primary)' }}>
+            分析场景
+          </div>
+          {availableScenes.map((scene) => (
             <button
-              key={model.id}
+              key={scene.id}
               onClick={() => {
-                onModelChange(model.id);
-                setShowModelPicker(false);
+                onSceneChange(scene.id);
+                setShowScenePicker(false);
               }}
               className="w-full px-3 py-2 text-left text-xs transition-colors"
               style={
-                selectedModel === model.id
+                selectedSceneId === scene.id
                   ? { background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
                   : { color: 'var(--text-muted)' }
               }
               onMouseEnter={(e) => {
-                if (selectedModel !== model.id) {
+                if (selectedSceneId !== scene.id) {
                   e.currentTarget.style.background = 'var(--bg-tertiary)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (selectedModel !== model.id) {
+                if (selectedSceneId !== scene.id) {
                   e.currentTarget.style.background = 'transparent';
                 }
               }}
-              title={model.description}
+              title={scene.description}
             >
-              <div className="font-medium">{model.name}</div>
-              <div className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>{model.description}</div>
+              <div className="font-medium">{scene.icon} {scene.name}</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>{scene.description}</div>
             </button>
+          ))}
+        </div>
+      )}
+
+      {/* 模型选择弹窗 */}
+      {showModelPicker && (
+        <div
+          ref={modelPickerRef}
+          className="fixed rounded-lg shadow-xl overflow-hidden min-w-[240px] max-h-[400px] overflow-y-auto z-[10000]"
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-primary)',
+            top: `${pickerPosition.top}px`,
+            left: `${pickerPosition.left}px`,
+            transform: 'translateY(-100%)',
+          }}
+        >
+          {Object.entries(groupedModels).map(([providerId, models]) => (
+            <div key={providerId}>
+              <div className="px-3 py-2 text-xs font-medium sticky top-0" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
+                {models[0]?.name.split(' - ')[0] || providerId}
+              </div>
+              {models.map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => {
+                    onModelChange(model.id);
+                    setShowModelPicker(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs transition-colors"
+                  style={
+                    selectedModel === model.id
+                      ? { background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
+                      : { color: 'var(--text-muted)' }
+                  }
+                  onMouseEnter={(e) => {
+                    if (selectedModel !== model.id) {
+                      e.currentTarget.style.background = 'var(--bg-tertiary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedModel !== model.id) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                  title={model.description}
+                >
+                  <div className="font-medium">{model.name.split(' - ')[1]}</div>
+                  <div className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>{model.description}</div>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}

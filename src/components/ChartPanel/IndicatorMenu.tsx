@@ -85,7 +85,6 @@ export function IndicatorMenu({ activeIndicators, onToggleIndicator, isOpen, onT
         title="技术指标"
       >
         <BarChart3 className="w-3 h-3" />
-        <span>指标</span>
       </button>
 
       {isOpen && (
