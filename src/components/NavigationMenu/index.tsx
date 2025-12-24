@@ -62,17 +62,18 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
       />
 
       <div
-        className={`fixed left-0 top-0 h-full w-64 bg-[#1A1A1A] border-r border-[#2A2A2A] transform transition-transform duration-300 z-50 flex flex-col ${
+        className={`fixed left-0 top-0 h-full w-64 transform transition-transform duration-300 z-50 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-primary)' }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-          <h2 className="text-lg font-semibold text-white">导航</h2>
+        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>导航</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-[#2A2A2A] rounded transition-colors"
+            className="p-1 rounded transition-colors hover:bg-[var(--bg-tertiary)]"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
 
@@ -87,8 +88,8 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
                 onClick={() => handleNavigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-[#3A9FFF] text-white'
-                    : 'text-gray-400 hover:bg-[#2A2A2A] hover:text-white'
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -98,19 +99,19 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
           })}
         </nav>
 
-        <div className="border-t border-[#2A2A2A] p-4">
+        <div className="p-4" style={{ borderTop: '1px solid var(--border-primary)' }}>
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-[#3A9FFF]/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-[#3A9FFF]" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
+              <User className="w-4 h-4" style={{ color: 'var(--text-primary)' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user?.name}</p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
           >
             <LogOut className="w-4 h-4" />
             <span className="text-sm font-medium">退出登录</span>

@@ -38,7 +38,7 @@ export function ChatMessageList({ messages, isLoading }: ChatMessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-center text-gray-500">
+        <div className="text-center" style={{ color: 'var(--text-muted)' }}>
           <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm">开始对话分析市场趋势</p>
           <p className="text-xs mt-2">试试：分析当前走势</p>
@@ -55,11 +55,20 @@ export function ChatMessageList({ messages, isLoading }: ChatMessageListProps) {
           className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
           <div
-            className={`max-w-[85%] rounded-lg p-3 ${
+            className="max-w-[85%] rounded-lg p-3"
+            style={
               message.role === 'user'
-                ? 'bg-[#3A9FFF] text-white'
-                : 'bg-[#0D0D0D] text-gray-200 border border-[#2A2A2A]'
-            }`}
+                ? {
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-primary)',
+                  color: 'var(--text-primary)',
+                }
+                : {
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-primary)',
+                  color: 'var(--text-secondary)',
+                }
+            }
           >
             <div className="text-sm">
               {message.role === 'user' || typeof message.content === 'string' ? (
@@ -77,11 +86,14 @@ export function ChatMessageList({ messages, isLoading }: ChatMessageListProps) {
 
       {isLoading && (
         <div className="flex justify-start">
-          <div className="bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg p-3">
+          <div
+            className="rounded-lg p-3"
+            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-primary)' }}
+          >
             <div className="flex gap-1">
-              <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-bounce delay-100" />
-              <div className="w-2 h-2 bg-[#3A9FFF] rounded-full animate-bounce delay-200" />
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-tertiary)' }} />
+              <div className="w-2 h-2 rounded-full animate-bounce delay-100" style={{ background: 'var(--text-tertiary)' }} />
+              <div className="w-2 h-2 rounded-full animate-bounce delay-200" style={{ background: 'var(--text-tertiary)' }} />
             </div>
           </div>
         </div>

@@ -41,15 +41,15 @@ export function ChartTabs({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex border-b border-gray-800">
+      <div className="flex" style={{ borderBottom: '1px solid var(--border-primary)' }}>
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-6 py-3 font-medium text-sm transition-colors ${
               activeTab === tab.key
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
+                ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
           >
             {tab.label}

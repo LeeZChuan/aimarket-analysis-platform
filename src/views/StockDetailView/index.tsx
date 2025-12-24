@@ -122,7 +122,7 @@ export function StockDetailView() {
           sortable: true,
           draggable: true,
           render: (value: number) => (
-            <span className={value >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'}>
+            <span style={{ color: value >= 0 ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
               {value >= 0 ? '+' : ''}{value.toFixed(2)}
             </span>
           ),
@@ -136,7 +136,7 @@ export function StockDetailView() {
           sortable: true,
           draggable: true,
           render: (value: number) => (
-            <span className={value >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'}>
+            <span style={{ color: value >= 0 ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
               {value >= 0 ? '+' : ''}{value.toFixed(2)}%
             </span>
           ),
@@ -253,11 +253,11 @@ export function StockDetailView() {
   const klineHeight = Math.floor(chartHeight * 0.55);
 
   return (
-    <div className="h-full w-full bg-[#0D0D0D] flex gap-4 p-4">
+    <div className="h-full w-full flex gap-4 p-4" style={{ background: 'var(--bg-primary)' }}>
       <div className="flex-1 min-w-0">
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-white">个股列表</h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>个股列表</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             共 {stockData.length} 只股票，支持虚拟滚动、固定列、排序和列拖拽
           </p>
         </div>
@@ -273,20 +273,22 @@ export function StockDetailView() {
         />
       </div>
       <div className="w-[600px] flex flex-col gap-4">
-        <div className="border border-[#2A2A2A] rounded overflow-hidden">
-          <div className="bg-[#1A1A1A] px-4 py-3 border-b border-[#2A2A2A]">
-            <h2 className="text-lg font-bold text-white">
+        <div className="border rounded overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
+          <div
+            className="px-4 py-3"
+            style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}
+          >
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
               {selectedStock ? `${selectedStock.name} (${selectedStock.code})` : '个股走势'}
             </h2>
             {selectedStock && (
               <div className="flex items-baseline gap-4 mt-2">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                   {selectedStock.price.toFixed(2)}
                 </span>
                 <span
-                  className={`text-lg ${
-                    selectedStock.change >= 0 ? 'text-[#00D09C]' : 'text-[#FF4976]'
-                  }`}
+                  className="text-lg"
+                  style={{ color: selectedStock.change >= 0 ? 'var(--text-secondary)' : 'var(--text-muted)' }}
                 >
                   {selectedStock.change >= 0 ? '+' : ''}
                   {selectedStock.change.toFixed(2)} ({selectedStock.changePercent.toFixed(2)}%)
@@ -303,7 +305,7 @@ export function StockDetailView() {
           </div>
         </div>
 
-        <div className="flex-1 border border-[#2A2A2A] rounded overflow-hidden">
+        <div className="flex-1 border rounded overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
           <ChartTabs
             stockId={selectedStock?.id}
             stockPrice={selectedStock?.price}

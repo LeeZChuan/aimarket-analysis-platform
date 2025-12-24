@@ -204,14 +204,19 @@ export function Table({
     const currentOrder = sortManager.current.getSortOrder(col.key);
 
     if (!currentOrder) {
-      return <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />;
+      return (
+        <ArrowUpDown
+          className="w-3.5 h-3.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ color: 'var(--text-tertiary)' }}
+        />
+      );
     }
 
     if (currentOrder === 'ascend') {
-      return <ArrowUp className="w-3.5 h-3.5 ml-1 text-blue-400" />;
+      return <ArrowUp className="w-3.5 h-3.5 ml-1" style={{ color: 'var(--text-primary)' }} />;
     }
 
-    return <ArrowDown className="w-3.5 h-3.5 ml-1 text-blue-400" />;
+    return <ArrowDown className="w-3.5 h-3.5 ml-1" style={{ color: 'var(--text-primary)' }} />;
   };
 
   const renderHeaderCell = (col: FlattenColumn, columnIndex?: number) => {
@@ -238,13 +243,13 @@ export function Table({
           textAlign: col.align || 'left',
         }}
         className={`table-th group ${
-          isSortable ? 'cursor-pointer hover:bg-[#2A2A2A]' : ''
+          isSortable ? 'cursor-pointer hover:bg-[var(--bg-tertiary)]' : ''
         } ${
           isDraggable ? 'cursor-move' : ''
         } ${
           isDragging ? 'opacity-50' : ''
         } ${
-          isDropTarget ? 'border-l-2 border-blue-400' : ''
+          isDropTarget ? 'border-l-2 border-[var(--text-primary)]' : ''
         }`}
         onClick={() => isSortable && handleSort(col)}
       >

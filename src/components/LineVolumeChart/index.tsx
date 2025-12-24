@@ -14,8 +14,9 @@
 
 import { useEffect, useRef } from 'react';
 import { init, dispose } from 'klinecharts';
-import type { Chart, KLineData } from 'klinecharts';
+import type { Chart, KLineData, Styles } from 'klinecharts';
 import { LineChartData, VolumeChartData } from '../../types/chart';
+import { useTheme } from '../../hooks/useTheme';
 
 interface LineVolumeChartProps {
   lineData: LineChartData[];
@@ -30,6 +31,34 @@ export function LineVolumeChart({
 }: LineVolumeChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
+  const { theme } = useTheme();
+
+  const getStyles = (t: 'dark' | 'light'): Partial<Styles> => {
+    const isDark = t === 'dark';
+    const grid = isDark ? '#2A2A2A' : '#E5E5E5';
+    const lineColor = isDark ? '#D9D9D9' : '#0D0D0D';
+    const fillTop = isDark ? 'rgba(217, 217, 217, 0.02)' : 'rgba(13, 13, 13, 0.02)';
+    const fillBottom = isDark ? 'rgba(217, 217, 217, 0.14)' : 'rgba(13, 13, 13, 0.14)';
+
+    return {
+      grid: {
+        horizontal: { color: grid },
+        vertical: { color: grid },
+      },
+      candle: {
+        type: 'area',
+        area: {
+          lineSize: 2,
+          lineColor,
+          value: 'close',
+          backgroundColor: [
+            { offset: 0, color: fillTop },
+            { offset: 1, color: fillBottom },
+          ],
+        },
+      },
+    };
+  };
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -37,32 +66,7 @@ export function LineVolumeChart({
     if (!chartRef.current) {
       const chart = init(chartContainerRef.current, {
         styles: {
-          grid: {
-            horizontal: {
-              color: '#1A1A1A',
-            },
-            vertical: {
-              color: '#1A1A1A',
-            },
-          },
-          candle: {
-            type: 'area',
-            area: {
-              lineSize: 2,
-              lineColor: '#3A9FFF',
-              value: 'close',
-              backgroundColor: [
-                {
-                  offset: 0,
-                  color: 'rgba(58, 159, 255, 0.01)',
-                },
-                {
-                  offset: 1,
-                  color: 'rgba(58, 159, 255, 0.2)',
-                },
-              ],
-            },
-          },
+          ...getStyles(theme),
         },
       });
 
@@ -93,7 +97,12 @@ export function LineVolumeChart({
         chartRef.current = null;
       }
     };
-  }, [height]);
+  }, [height, theme]);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.setStyles(getStyles(theme));
+  }, [theme]);
 
   useEffect(() => {
     if (!chartRef.current || lineData.length === 0) return;
