@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Table } from '../../components/Table';
 import { LineVolumeChart } from '../../components/LineVolumeChart';
 import { ChartTabs } from '../../components/ChartTabs';
 import { ColumnConfig } from '../../components/Table/types';
-import { generateLineChartData, generateVolumeData } from '../../mock/chartData';
+import { stockService, LineChartData, VolumeChartData } from '../../services/stockService';
 
 interface StockData {
   id: string;
@@ -21,62 +22,85 @@ interface StockData {
   marketCap: number;
   pe: number;
   pb: number;
+  sector?: string;
 }
 
 export function StockDetailView() {
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | undefined>(undefined);
+  const [stockData, setStockData] = useState<StockData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lineChartData, setLineChartData] = useState<LineChartData[]>([]);
+  const [volumeData, setVolumeData] = useState<VolumeChartData[]>([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
-  const generateMockStockData = (count: number): StockData[] => {
-    const stocks = [];
-    const baseNames = [
-      '中国平安', '贵州茅台', '招商银行', '工商银行', '建设银行',
-      '中国石油', '中国石化', '农业银行', '中国银行', '交通银行',
-      '中国人寿', '中国太保', '新华保险', '中国神华', '中国联通',
-      '中国移动', '中国电信', '中国铁建', '中国中铁', '中国建筑',
-    ];
-
-    for (let i = 0; i < count; i++) {
-      const baseName = baseNames[i % baseNames.length];
-      const basePrice = 10 + Math.random() * 190;
-      const change = (Math.random() - 0.5) * 10;
-      const changePercent = (change / basePrice) * 100;
-
-      stocks.push({
-        id: `stock-${i}`,
-        code: `${600000 + i}`,
-        name: count > 20 ? `${baseName}${Math.floor(i / 20)}` : baseName,
-        price: parseFloat((basePrice + change).toFixed(2)),
-        change: parseFloat(change.toFixed(2)),
-        changePercent: parseFloat(changePercent.toFixed(2)),
-        volume: Math.floor(Math.random() * 100000000),
-        amount: Math.floor(Math.random() * 10000000000),
-        open: parseFloat(basePrice.toFixed(2)),
-        high: parseFloat((basePrice + Math.random() * 5).toFixed(2)),
-        low: parseFloat((basePrice - Math.random() * 5).toFixed(2)),
-        close: parseFloat((basePrice + change).toFixed(2)),
-        marketCap: Math.floor(Math.random() * 1000000000000),
-        pe: parseFloat((10 + Math.random() * 40).toFixed(2)),
-        pb: parseFloat((1 + Math.random() * 5).toFixed(2)),
-      });
+  // 加载股票列表
+  const loadStockList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await stockService.getStockList(1, 100);
+      
+      // 转换为表格需要的数据格式
+      const tableData: StockData[] = response.stocks.map((stock, index) => ({
+        id: `stock-${index}`,
+        code: stock.symbol,
+        name: stock.name,
+        price: stock.price,
+        change: stock.price * (stock.change / 100),
+        changePercent: stock.change,
+        volume: stock.volume || 0,
+        amount: (stock.volume || 0) * stock.price,
+        open: stock.price * (1 - Math.random() * 0.02),
+        high: stock.price * (1 + Math.random() * 0.03),
+        low: stock.price * (1 - Math.random() * 0.03),
+        close: stock.price,
+        marketCap: stock.marketCap || 0,
+        pe: Math.random() * 40 + 10,
+        pb: Math.random() * 4 + 1,
+        sector: stock.sector,
+      }));
+      
+      setStockData(tableData);
+    } catch (err) {
+      console.error('Failed to load stock list:', err);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    return stocks;
-  };
+  // 加载分时图数据
+  const loadTimelineData = useCallback(async (symbol: string) => {
+    setChartLoading(true);
+    try {
+      const data = await stockService.getTimelineData(symbol, 100);
+      if (data) {
+        setLineChartData(data.lineData);
+        setVolumeData(data.volumeData);
+      } else {
+        // 如果API没有数据，使用空数组
+        setLineChartData([]);
+        setVolumeData([]);
+      }
+    } catch (err) {
+      console.error('Failed to load timeline data:', err);
+      setLineChartData([]);
+      setVolumeData([]);
+    } finally {
+      setChartLoading(false);
+    }
+  }, []);
 
-  const stockData = useMemo(() => generateMockStockData(2000), []);
+  // 初始加载股票列表
+  useEffect(() => {
+    loadStockList();
+  }, [loadStockList]);
 
-  const lineChartData = useMemo(() => {
-    const stockId = selectedStock?.id || 'default';
-    const basePrice = selectedStock?.price || 100;
-    return generateLineChartData(stockId, basePrice, 100);
-  }, [selectedStock?.id, selectedStock?.price]);
-
-  const volumeData = useMemo(() => {
-    const stockId = selectedStock?.id || 'default';
-    const baseVolume = selectedStock?.volume || 1000000;
-    return generateVolumeData(stockId, 100, baseVolume);
-  }, [selectedStock?.id, selectedStock?.volume]);
+  // 选中股票变化时加载分时图数据
+  useEffect(() => {
+    if (selectedStock?.code) {
+      loadTimelineData(selectedStock.code);
+    }
+  }, [selectedStock?.code, loadTimelineData]);
 
   const columns: ColumnConfig[] = [
     {
@@ -252,6 +276,14 @@ export function StockDetailView() {
   const lineVolumeHeight = Math.floor(chartHeight * 0.4);
   const klineHeight = Math.floor(chartHeight * 0.55);
 
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--text-disabled)' }} />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full flex gap-4 p-4" style={{ background: 'var(--bg-primary)' }}>
       <div className="flex-1 min-w-0">
@@ -297,17 +329,28 @@ export function StockDetailView() {
             )}
           </div>
           <div className="p-4">
-            <LineVolumeChart
-              lineData={lineChartData}
-              volumeData={volumeData}
-              height={lineVolumeHeight}
-            />
+            {chartLoading ? (
+              <div 
+                className="flex items-center justify-center"
+                style={{ height: lineVolumeHeight }}
+              >
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-disabled)' }} />
+              </div>
+            ) : (
+              <LineVolumeChart
+                lineData={lineChartData}
+                volumeData={volumeData}
+                height={lineVolumeHeight}
+              />
+            )}
           </div>
         </div>
 
         <div className="flex-1 border rounded overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
           <ChartTabs
             stockId={selectedStock?.id}
+            stockSymbol={selectedStock?.code}
+            stockSector={selectedStock?.sector}
             stockPrice={selectedStock?.price}
             height={klineHeight}
           />

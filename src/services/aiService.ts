@@ -1,41 +1,11 @@
 /**
  * AI 分析服务
  * 
- * 整合提示词引擎和 LLM 供应商层，提供统一的 AI 分析接口
+ * 提供统一的 AI 分析接口，通过后端API调用各种AI模型
  */
 
-import { AIAnalysisRequest, AIAnalysisResponse, AIMessageType } from '../types/ai';
-import { generateMockResponse } from '../mock/aiAnalysis';
-import {
-  templateRegistry,
-  initializeTemplates,
-  type PromptContext,
-  type SceneConfig,
-} from '../prompt';
-import {
-  providerRegistry,
-  initializeProviders,
-  type ChatRequest,
-  type SelectedModel,
-} from '../llm';
-
-// ==================== 初始化 ====================
-
-let initialized = false;
-
-/**
- * 初始化 AI 服务
- * 注册所有模板和 Provider
- */
-export function initializeAIService(): void {
-  if (initialized) return;
-
-  initializeTemplates();
-  initializeProviders();
-  initialized = true;
-
-  console.log('[AIService] Initialized');
-}
+import { http } from './request';
+import { AIAnalysisRequest, AIAnalysisResponse, AIMessageType, AIMessage } from '../types/ai';
 
 // ==================== 类型定义 ====================
 
@@ -47,22 +17,71 @@ export interface EnhancedAnalysisRequest extends AIAnalysisRequest {
   sceneId?: string;
   /** 供应商 ID */
   providerId?: string;
-  /** 是否使用 Mock（开发模式） */
-  useMock?: boolean;
 }
 
 /**
  * AI 服务配置
  */
 export interface AIServiceConfig {
-  /** 默认使用 Mock */
-  defaultUseMock: boolean;
   /** 默认场景 */
   defaultSceneId: string;
   /** 默认供应商 */
   defaultProviderId: string;
   /** 默认模型 */
   defaultModelId: string;
+}
+
+/**
+ * AI供应商信息
+ */
+export interface AIProvider {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * AI模型信息
+ */
+export interface AIModel {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * AI供应商及其模型
+ */
+export interface ProviderWithModels {
+  provider: AIProvider;
+  models: AIModel[];
+}
+
+/**
+ * 后端返回的 providers 结构（扁平：provider信息与models在同一层）
+ */
+interface BackendProvider {
+  id: string;
+  name: string;
+  description: string;
+  models: AIModel[];
+}
+
+/**
+ * AI分析场景
+ */
+export interface SceneConfig {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * 选中的模型
+ */
+export interface SelectedModel {
+  providerId: string;
+  modelId: string;
 }
 
 // ==================== AI 服务类 ====================
@@ -72,10 +91,9 @@ export interface AIServiceConfig {
  */
 class AIService {
   private config: AIServiceConfig = {
-    defaultUseMock: true, // 开发阶段默认使用 Mock
     defaultSceneId: 'general',
-    defaultProviderId: 'mock',
-    defaultModelId: 'mock-instant',
+    defaultProviderId: 'openai',
+    defaultModelId: 'gpt-4',
   };
 
   /**
@@ -93,120 +111,29 @@ class AIService {
   }
 
   /**
-   * 发送分析请求（兼容旧接口）
+   * 发送分析请求
    */
   async analyze(request: AIAnalysisRequest): Promise<AIAnalysisResponse> {
-    // 确保初始化
-    initializeAIService();
-
-    // 如果使用 Mock 或旧模式
-    if (this.config.defaultUseMock || !request.modelId || request.modelId === 'auto') {
-      return this.analyzeMock(request);
-    }
-
-    // 使用新的 LLM 系统
-    return this.analyzeWithLLM(request as EnhancedAnalysisRequest);
+    return this.analyzeEnhanced(request as EnhancedAnalysisRequest);
   }
 
   /**
    * 使用增强请求进行分析
    */
   async analyzeEnhanced(request: EnhancedAnalysisRequest): Promise<AIAnalysisResponse> {
-    initializeAIService();
-
-    if (request.useMock ?? this.config.defaultUseMock) {
-      return this.analyzeMock(request);
-    }
-
-    return this.analyzeWithLLM(request);
-  }
-
-  /**
-   * Mock 分析（开发用）
-   */
-  private async analyzeMock(request: AIAnalysisRequest): Promise<AIAnalysisResponse> {
-    // 模拟网络延迟
-    await this.delay(800 + Math.random() * 400);
-
     try {
-      const response = generateMockResponse(
-        request.message,
-        request.stockSymbol || 'AAPL',
-        request.stockPrice || 178.72,
-        request.modelId || 'mock',
-        request.expectedType
-      );
+      const response = await http.post<AIAnalysisResponse>('/ai/analyze', {
+        message: request.message,
+        stockSymbol: request.stockSymbol,
+        stockPrice: request.stockPrice,
+        modelId: request.modelId || this.config.defaultModelId,
+        images: request.images,
+        expectedType: request.expectedType,
+        sceneId: request.sceneId || this.config.defaultSceneId,
+        providerId: request.providerId || this.config.defaultProviderId,
+      });
 
-      return response;
-    } catch (error) {
-      return this.createErrorResponse(request.modelId || 'mock', error);
-    }
-  }
-
-  /**
-   * 使用 LLM 进行分析
-   */
-  private async analyzeWithLLM(request: EnhancedAnalysisRequest): Promise<AIAnalysisResponse> {
-    try {
-      // 1. 获取场景和渲染提示词
-      const sceneId = request.sceneId || this.config.defaultSceneId;
-      const providerId = request.providerId || this.config.defaultProviderId;
-      const modelId = request.modelId || this.config.defaultModelId;
-
-      // 2. 构建渲染上下文
-      const context: PromptContext = {
-        stock: request.stockSymbol
-          ? {
-              symbol: request.stockSymbol,
-              price: request.stockPrice,
-            }
-          : undefined,
-        user: {
-          message: request.message,
-          images: request.images,
-        },
-      };
-
-      // 3. 渲染提示词
-      let systemPrompt: string | undefined;
-      let userPrompt: string;
-
-      const scene = templateRegistry.getScene(sceneId);
-      if (scene) {
-        const rendered = templateRegistry.renderByScene(sceneId, context);
-        systemPrompt = rendered.systemPrompt;
-        userPrompt = rendered.userPrompt;
-      } else {
-        // 回退到直接使用用户消息
-        userPrompt = request.message;
-      }
-
-      // 4. 构建 LLM 请求
-      const chatRequest: ChatRequest = {
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt,
-          },
-        ],
-        systemPrompt,
-        temperature: 0.7,
-      };
-
-      // 5. 调用 LLM
-      const response = await providerRegistry.chat(providerId, modelId, chatRequest);
-
-      // 6. 转换为 AIAnalysisResponse
-      return {
-        message: {
-          id: response.id,
-          type: AIMessageType.MARKDOWN,
-          content: response.content,
-          timestamp: Date.now(),
-        },
-        status: 'success',
-        modelId: `${providerId}/${response.model}`,
-      };
+      return response.data;
     } catch (error) {
       return this.createErrorResponse(
         request.modelId || 'unknown',
@@ -239,43 +166,42 @@ class AIService {
     return Promise.all(requests.map(req => this.analyze(req)));
   }
 
-  /**
-   * 模拟延迟
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
   // ==================== 配置查询方法 ====================
 
   /**
    * 获取所有可用场景
    */
-  getScenes(): SceneConfig[] {
-    initializeAIService();
-    return templateRegistry.listScenes();
+  async getScenes(): Promise<SceneConfig[]> {
+    try {
+      const response = await http.get<{ scenes: SceneConfig[] }>('/ai/scenes');
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.ts:getScenes',message:'getScenes resolved',data:{isArray:Array.isArray(response.data?.scenes),count:response.data?.scenes?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
+      return response.data?.scenes || [];
+    } catch {
+      return [];
+    }
   }
 
   /**
    * 获取所有可用供应商和模型
    */
-  getProviders(): Array<{
-    provider: { id: string; name: string; description: string };
-    models: Array<{ id: string; name: string; description: string }>;
-  }> {
-    initializeAIService();
-    return providerRegistry.getAllModels().map(({ provider, models }) => ({
-      provider: {
-        id: provider.id,
-        name: provider.name,
-        description: provider.description,
-      },
-      models: models.map(m => ({
-        id: m.id,
-        name: m.name,
-        description: m.description,
-      })),
-    }));
+  async getProviders(): Promise<ProviderWithModels[]> {
+    try {
+      const response = await http.get<{ providers: BackendProvider[] }>('/ai/providers');
+      const list = response.data?.providers || [];
+      // 归一化为前端期望结构：{ provider:{...}, models:[...] }
+      const normalized: ProviderWithModels[] = list.map((p) => ({
+        provider: { id: p.id, name: p.name, description: p.description },
+        models: Array.isArray(p.models) ? p.models : [],
+      }));
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.ts:getProviders',message:'getProviders normalized',data:{rawIsArray:Array.isArray(list),rawFirstKeys:list[0]?Object.keys(list[0]).slice(0,6):[],count:normalized.length,firstProviderId:normalized[0]?.provider?.id,firstModelsCount:normalized[0]?.models?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
+      return normalized;
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -317,7 +243,7 @@ class AIService {
 export const aiService = new AIService();
 
 /**
- * 便捷方法：发送分析请求（向后兼容）
+ * 便捷方法：发送分析请求
  */
 export const sendAnalysisRequest = async (
   message: string,
@@ -328,7 +254,6 @@ export const sendAnalysisRequest = async (
     images?: string[];
     sceneId?: string;
     providerId?: string;
-    useMock?: boolean;
   } = {}
 ): Promise<AIAnalysisResponse> => {
   const request: EnhancedAnalysisRequest = {
@@ -339,7 +264,6 @@ export const sendAnalysisRequest = async (
     images: options.images,
     sceneId: options.sceneId,
     providerId: options.providerId,
-    useMock: options.useMock,
   };
 
   return aiService.analyzeEnhanced(request);
@@ -354,3 +278,10 @@ export const getSceneOptions = () => aiService.getScenes();
  * 获取供应商列表（供 UI 使用）
  */
 export const getProviderOptions = () => aiService.getProviders();
+
+/**
+ * 初始化AI服务（向后兼容）
+ */
+export function initializeAIService(): void {
+  console.log('[AIService] Initialized with API backend');
+}

@@ -1,4 +1,9 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+/**
+ * 对话服务
+ * 提供AI对话会话和消息的管理接口
+ */
+
+import { http } from './request';
 import {
   Conversation,
   ConversationWithMessages,
@@ -13,379 +18,276 @@ import {
 } from '../types/conversation';
 import { AIMessage } from '../types/ai';
 
-let supabase: SupabaseClient | null = null;
-
-function getSupabaseClient(): SupabaseClient {
-  if (!supabase) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn('⚠️ Supabase environment variables not found. Conversation features will not work.');
-      console.warn('Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  }
-
-  return supabase;
-}
-
+/**
+ * 对话服务类
+ * 实现 ConversationStorage 接口
+ */
 class ConversationService implements ConversationStorage {
+  /**
+   * 获取对话列表
+   * @param filter - 过滤条件
+   * @param limit - 每页数量
+   * @param cursor - 分页游标
+   */
   async getConversations(
     filter?: ConversationFilter,
     limit: number = 20,
     cursor?: string
   ): Promise<PaginatedConversations> {
-    const client = getSupabaseClient();
-    let query = client
-      .from('conversations')
-      .select('id, title, stock_symbol, last_activity, message_count, created_at', { count: 'exact' })
-      .order('last_activity', { ascending: false })
-      .limit(limit);
+    const params: Record<string, any> = {
+      limit,
+    };
 
     if (filter?.status) {
-      query = query.eq('status', filter.status);
-    } else {
-      query = query.eq('status', ConversationStatus.ACTIVE);
+      params.status = filter.status;
     }
-
     if (filter?.stockSymbol) {
-      query = query.eq('stock_symbol', filter.stockSymbol);
+      params.stockSymbol = filter.stockSymbol;
     }
-
     if (filter?.dateFrom) {
-      query = query.gte('created_at', filter.dateFrom.toISOString());
+      params.dateFrom = filter.dateFrom.toISOString();
     }
-
     if (filter?.dateTo) {
-      query = query.lte('created_at', filter.dateTo.toISOString());
+      params.dateTo = filter.dateTo.toISOString();
     }
-
     if (filter?.searchQuery) {
-      query = query.ilike('title', `%${filter.searchQuery}%`);
+      params.searchQuery = filter.searchQuery;
     }
-
     if (cursor) {
-      query = query.lt('last_activity', cursor);
+      params.cursor = cursor;
     }
 
-    const { data, error, count } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch conversations: ${error.message}`);
-    }
-
-    const conversations: ConversationListItem[] = await Promise.all(
-      (data || []).map(async (conv) => {
-        const { data: lastMsg } = await client
-          .from('chat_history')
-          .select('content')
-          .eq('conversation_id', conv.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let lastMessage: string | undefined;
-        if (lastMsg?.content) {
-          try {
-            const parsed = JSON.parse(lastMsg.content);
-            lastMessage = typeof parsed === 'string' ? parsed : parsed.content || 'AI Message';
-          } catch {
-            lastMessage = lastMsg.content.substring(0, 100);
-          }
-        }
-
-        return {
-          id: conv.id,
-          title: conv.title,
-          lastMessage,
-          lastActivity: new Date(conv.last_activity),
-          messageCount: conv.message_count,
-          stockSymbol: conv.stock_symbol,
-        };
-      })
-    );
+    const response = await http.get<PaginatedConversations>('/conversations', params);
+    
+    // 转换日期字符串为Date对象
+    const conversations = response.data.conversations.map(conv => ({
+      ...conv,
+      lastActivity: new Date(conv.lastActivity),
+    }));
 
     return {
+      ...response.data,
       conversations,
-      total: count || 0,
-      hasMore: (data?.length || 0) === limit,
-      cursor: data && data.length > 0 ? data[data.length - 1].last_activity : undefined,
     };
   }
 
+  /**
+   * 获取单个对话详情（含消息）
+   * @param id - 对话ID
+   */
   async getConversation(id: string): Promise<ConversationWithMessages | null> {
-    const client = getSupabaseClient();
-    const { data: convData, error: convError } = await client
-      .from('conversations')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    try {
+      const response = await http.get<ConversationWithMessages>(`/conversations/${id}`);
+      
+      if (!response.data) {
+        return null;
+      }
 
-    if (convError || !convData) {
+      const data = response.data;
+      
+      // 转换日期字符串为Date对象
+      return {
+        ...data,
+        metadata: {
+          ...data.metadata,
+          lastActivity: new Date(data.metadata.lastActivity),
+        },
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.updatedAt),
+        messages: data.messages.map(msg => ({
+          ...msg,
+          createdAt: new Date(msg.createdAt),
+          content: this.parseMessageContent(msg.content),
+        })),
+      };
+    } catch {
       return null;
     }
+  }
 
-    const { data: messagesData, error: messagesError } = await client
-      .from('chat_history')
-      .select('*')
-      .eq('conversation_id', id)
-      .order('created_at', { ascending: true });
-
-    if (messagesError) {
-      throw new Error(`Failed to fetch messages: ${messagesError.message}`);
-    }
-
-    const messages: ConversationMessage[] = (messagesData || []).map((msg) => {
-      let content: string | AIMessage;
-      try {
-        content = JSON.parse(msg.content);
-      } catch {
-        content = msg.content;
-      }
-
-      return {
-        id: msg.id,
-        conversationId: msg.conversation_id,
-        userId: msg.user_id,
-        role: msg.role as 'user' | 'assistant',
-        content,
-        model: msg.model,
-        createdAt: new Date(msg.created_at),
-      };
+  /**
+   * 创建新对话
+   * @param params - 创建参数
+   */
+  async createConversation(params: CreateConversationParams): Promise<Conversation> {
+    const response = await http.post<{ conversation: Conversation }>('/conversations', {
+      title: params.title || '新对话',
+      stockSymbol: params.stockSymbol,
+      stockName: params.stockName,
+      stockPrice: params.stockPrice,
+      tags: params.tags || [],
     });
 
-    const conversation: ConversationWithMessages = {
-      id: convData.id,
-      userId: convData.user_id,
-      title: convData.title,
-      status: convData.status as ConversationStatus,
-      metadata: {
-        stockSymbol: convData.stock_symbol,
-        stockName: convData.stock_name,
-        stockPrice: convData.stock_price ? parseFloat(convData.stock_price) : undefined,
-        tags: convData.tags || [],
-        lastActivity: new Date(convData.last_activity),
-        messageCount: convData.message_count,
-      },
-      createdAt: new Date(convData.created_at),
-      updatedAt: new Date(convData.updated_at),
-      messages,
-    };
-
-    return conversation;
-  }
-
-  async createConversation(params: CreateConversationParams): Promise<Conversation> {
-    const client = getSupabaseClient();
-    const { data: userData, error: userError } = await client.auth.getUser();
-
-    if (userError || !userData.user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { data, error } = await client
-      .from('conversations')
-      .insert({
-        user_id: userData.user.id,
-        title: params.title || 'New Conversation',
-        stock_symbol: params.stockSymbol,
-        stock_name: params.stockName,
-        stock_price: params.stockPrice,
-        tags: params.tags || [],
-      })
-      .select()
-      .single();
-
-    if (error || !data) {
-      throw new Error(`Failed to create conversation: ${error?.message}`);
-    }
-
+    const data = response.data.conversation;
+    
     return {
-      id: data.id,
-      userId: data.user_id,
-      title: data.title,
-      status: data.status as ConversationStatus,
+      ...data,
       metadata: {
-        stockSymbol: data.stock_symbol,
-        stockName: data.stock_name,
-        stockPrice: data.stock_price ? parseFloat(data.stock_price) : undefined,
-        tags: data.tags || [],
-        lastActivity: new Date(data.last_activity),
-        messageCount: data.message_count,
+        ...data.metadata,
+        lastActivity: new Date(data.metadata.lastActivity),
       },
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      createdAt: new Date(data.createdAt),
+      updatedAt: new Date(data.updatedAt),
     };
   }
 
+  /**
+   * 更新对话
+   * @param id - 对话ID
+   * @param params - 更新参数
+   */
   async updateConversation(id: string, params: UpdateConversationParams): Promise<Conversation> {
-    const client = getSupabaseClient();
-    const updateData: any = {};
+    const response = await http.put<{ conversation: Conversation }>(`/conversations/${id}`, params);
 
-    if (params.title !== undefined) {
-      updateData.title = params.title;
-    }
-
-    if (params.status !== undefined) {
-      updateData.status = params.status;
-    }
-
-    if (params.metadata) {
-      if (params.metadata.stockSymbol !== undefined) {
-        updateData.stock_symbol = params.metadata.stockSymbol;
-      }
-      if (params.metadata.stockName !== undefined) {
-        updateData.stock_name = params.metadata.stockName;
-      }
-      if (params.metadata.stockPrice !== undefined) {
-        updateData.stock_price = params.metadata.stockPrice;
-      }
-      if (params.metadata.tags !== undefined) {
-        updateData.tags = params.metadata.tags;
-      }
-    }
-
-    const { data, error } = await client
-      .from('conversations')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error || !data) {
-      throw new Error(`Failed to update conversation: ${error?.message}`);
-    }
-
+    const data = response.data.conversation;
+    
     return {
-      id: data.id,
-      userId: data.user_id,
-      title: data.title,
-      status: data.status as ConversationStatus,
+      ...data,
       metadata: {
-        stockSymbol: data.stock_symbol,
-        stockName: data.stock_name,
-        stockPrice: data.stock_price ? parseFloat(data.stock_price) : undefined,
-        tags: data.tags || [],
-        lastActivity: new Date(data.last_activity),
-        messageCount: data.message_count,
+        ...data.metadata,
+        lastActivity: new Date(data.metadata.lastActivity),
       },
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      createdAt: new Date(data.createdAt),
+      updatedAt: new Date(data.updatedAt),
     };
   }
 
+  /**
+   * 删除对话（软删除）
+   * @param id - 对话ID
+   */
   async deleteConversation(id: string): Promise<void> {
-    const client = getSupabaseClient();
-    const { error } = await client
-      .from('conversations')
-      .update({ status: ConversationStatus.DELETED })
-      .eq('id', id);
-
-    if (error) {
-      throw new Error(`Failed to delete conversation: ${error.message}`);
-    }
+    await http.delete(`/conversations/${id}`);
   }
 
+  /**
+   * 添加消息到对话
+   * @param conversationId - 对话ID
+   * @param message - 消息内容
+   */
   async addMessage(
     conversationId: string,
     message: Omit<ConversationMessage, 'id' | 'conversationId' | 'createdAt'>
   ): Promise<ConversationMessage> {
-    const client = getSupabaseClient();
     const contentString = typeof message.content === 'string'
       ? message.content
       : JSON.stringify(message.content);
 
-    const { data, error } = await client
-      .from('chat_history')
-      .insert({
-        conversation_id: conversationId,
-        user_id: message.userId,
+    const response = await http.post<{ message: ConversationMessage }>(
+      `/conversations/${conversationId}/messages`,
+      {
         role: message.role,
         content: contentString,
         model: message.model || 'auto',
-      })
-      .select()
-      .single();
+      }
+    );
 
-    if (error || !data) {
-      throw new Error(`Failed to add message: ${error?.message}`);
-    }
-
-    let content: string | AIMessage;
-    try {
-      content = JSON.parse(data.content);
-    } catch {
-      content = data.content;
-    }
-
+    const data = response.data.message;
+    
     return {
-      id: data.id,
-      conversationId: data.conversation_id,
-      userId: data.user_id,
-      role: data.role as 'user' | 'assistant',
-      content,
-      model: data.model,
-      createdAt: new Date(data.created_at),
+      ...data,
+      createdAt: new Date(data.createdAt),
+      content: this.parseMessageContent(data.content),
     };
   }
 
+  /**
+   * 获取对话消息列表
+   * @param conversationId - 对话ID
+   * @param limit - 每页数量
+   * @param cursor - 分页游标
+   */
   async getMessages(
     conversationId: string,
     limit: number = 50,
     cursor?: string
   ): Promise<ConversationMessage[]> {
-    const client = getSupabaseClient();
-    let query = client
-      .from('chat_history')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-      .limit(limit);
-
+    const params: Record<string, any> = { limit };
     if (cursor) {
-      query = query.lt('created_at', cursor);
+      params.cursor = cursor;
     }
 
-    const { data, error } = await query;
+    const response = await http.get<{ messages: ConversationMessage[] }>(
+      `/conversations/${conversationId}/messages`,
+      params
+    );
 
-    if (error) {
-      throw new Error(`Failed to fetch messages: ${error.message}`);
-    }
+    return (response.data.messages || []).map(msg => ({
+      ...msg,
+      createdAt: new Date(msg.createdAt),
+      content: this.parseMessageContent(msg.content),
+    }));
+  }
 
-    return (data || []).map((msg) => {
-      let content: string | AIMessage;
+  /**
+   * 解析消息内容
+   * @param content - 消息内容（可能是字符串或AIMessage）
+   */
+  private parseMessageContent(content: string | AIMessage): string | AIMessage {
+    if (typeof content === 'string') {
       try {
-        content = JSON.parse(msg.content);
+        return JSON.parse(content);
       } catch {
-        content = msg.content;
+        return content;
       }
-
-      return {
-        id: msg.id,
-        conversationId: msg.conversation_id,
-        userId: msg.user_id,
-        role: msg.role as 'user' | 'assistant',
-        content,
-        model: msg.model,
-        createdAt: new Date(msg.created_at),
-      };
-    });
+    }
+    return content;
   }
 }
 
+/**
+ * 导出对话服务单例
+ */
 export const conversationService = new ConversationService();
 
+/**
+ * 便捷方法：创建对话
+ */
 export const createConversation = (params: CreateConversationParams): Promise<Conversation> =>
   conversationService.createConversation(params);
 
+/**
+ * 便捷方法：获取对话列表
+ */
 export const getConversations = (
   filter?: ConversationFilter,
   limit?: number,
   cursor?: string
 ): Promise<PaginatedConversations> => conversationService.getConversations(filter, limit, cursor);
 
+/**
+ * 便捷方法：获取单个对话
+ */
 export const getConversation = (id: string): Promise<ConversationWithMessages | null> =>
   conversationService.getConversation(id);
+
+/**
+ * 便捷方法：更新对话
+ */
+export const updateConversation = (id: string, params: UpdateConversationParams): Promise<Conversation> =>
+  conversationService.updateConversation(id, params);
+
+/**
+ * 便捷方法：删除对话
+ */
+export const deleteConversation = (id: string): Promise<void> =>
+  conversationService.deleteConversation(id);
+
+/**
+ * 便捷方法：添加消息
+ */
+export const addMessage = (
+  conversationId: string,
+  message: Omit<ConversationMessage, 'id' | 'conversationId' | 'createdAt'>
+): Promise<ConversationMessage> =>
+  conversationService.addMessage(conversationId, message);
+
+/**
+ * 便捷方法：获取消息列表
+ */
+export const getMessages = (
+  conversationId: string,
+  limit?: number,
+  cursor?: string
+): Promise<ConversationMessage[]> =>
+  conversationService.getMessages(conversationId, limit, cursor);

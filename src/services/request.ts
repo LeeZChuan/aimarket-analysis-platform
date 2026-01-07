@@ -175,6 +175,10 @@ class HttpService {
 
       const fullURL = this.buildURL(url, method === 'GET' ? params : undefined);
 
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:176',message:'API Request Start',data:{method,fullURL,params,hasData:!!data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -204,10 +208,21 @@ class HttpService {
         responseData = await response.text();
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:210',message:'API Response Received',data:{status:response.status,ok:response.ok,contentType,responseDataKeys:typeof responseData==='object'?Object.keys(responseData||{}):[],responseDataPreview:JSON.stringify(responseData).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+
       if (!response.ok) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:217',message:'API Response Not OK',data:{status:response.status,statusText:response.statusText,responseData},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        const errorMessage =
+          responseData?.message ||
+          responseData?.error?.message ||
+          `HTTP ${response.status}: ${response.statusText}`;
         return this.handleError(
           {
-            message: responseData.message || `HTTP ${response.status}: ${response.statusText}`,
+            message: errorMessage,
             code: response.status,
           },
           requestId
@@ -216,15 +231,27 @@ class HttpService {
 
       const apiResponse: ApiResponse<T> = {
         data: responseData.data !== undefined ? responseData.data : responseData,
-        message: responseData.message || 'Success',
-        code: responseData.code !== undefined ? responseData.code : BusinessCode.SUCCESS,
+        message: responseData?.message || responseData?.error?.message || 'Success',
+        code:
+          responseData?.code !== undefined
+            ? responseData.code
+            : responseData?.error?.code !== undefined
+              ? responseData.error.code
+              : BusinessCode.SUCCESS,
         requestId: responseData.requestId || requestId,
         timestamp: responseData.timestamp || Date.now(),
         success: responseData.success !== undefined ? responseData.success : true,
       };
 
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:239',message:'API Response Processed',data:{success:apiResponse.success,code:apiResponse.code,hasData:!!apiResponse.data,dataType:typeof apiResponse.data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+
       return this.executeResponseInterceptors(apiResponse);
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:247',message:'API Request Error',data:{errorName:error.name,errorMessage:error.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       if (error.name === 'AbortError') {
         return this.handleError(
           { message: '请求超时', code: ApiStatusCode.REQUEST_TIMEOUT },
@@ -303,12 +330,23 @@ class HttpService {
 export const http = new HttpService();
 
 /**
+ * API基础路径配置
+ * 开发环境: /api (通过Vite代理到localhost:3000)
+ * 生产环境: 根据实际部署地址配置
+ */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+http.setBaseURL(API_BASE_URL);
+
+/**
  * 默认配置：添加通用请求拦截器
  */
 http.addRequestInterceptor((config) => {
   const token = localStorage.getItem('token');
-  if (token && config.headers) {
-    config.headers['Authorization'] = `Bearer ${token}`;
+  if (token) {
+    config.headers = {
+      ...config.headers,
+      'Authorization': `Bearer ${token}`,
+    };
   }
   return config;
 });

@@ -3,17 +3,95 @@
  * 提供股票、自选股的查询和管理接口
  */
 
+import { http } from './request';
 import {
   Stock,
   StockListResponse,
   WatchlistResponse,
   StockSearchRequest,
+  StockDetail,
 } from '../types/stock';
-import {
-  MOCK_STOCKS,
-  MOCK_WATCHLIST,
-  searchStocks,
-} from '../mock/stockData';
+
+/**
+ * K线数据
+ */
+export interface KLineData {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+/**
+ * K线响应
+ */
+export interface KLineResponse {
+  symbol: string;
+  period: string;
+  data: KLineData[];
+}
+
+/**
+ * 分时图数据（价格线）
+ */
+export interface LineChartData {
+  timestamp: number;
+  value: number;
+}
+
+/**
+ * 成交量数据
+ */
+export interface VolumeChartData {
+  timestamp: number;
+  value: number;
+  color?: string;
+}
+
+/**
+ * 分时图响应
+ */
+export interface TimelineResponse {
+  symbol: string;
+  lineData: LineChartData[];
+  volumeData: VolumeChartData[];
+}
+
+/**
+ * 完整K线图表数据（含均线）
+ */
+export interface KLineChartData {
+  candlestick: KLineData[];
+  volume: VolumeChartData[];
+  ma5?: { timestamp: number; value: number }[];
+  ma10?: { timestamp: number; value: number }[];
+  ma20?: { timestamp: number; value: number }[];
+  ma60?: { timestamp: number; value: number }[];
+  ma120?: { timestamp: number; value: number }[];
+}
+
+/**
+ * 实时行情
+ */
+export interface StockQuote {
+  symbol: string;
+  price: number;
+  changeAmount: number;
+  changePercent: number;
+  open: number;
+  high: number;
+  low: number;
+  prevClose: number;
+  volume: number;
+  turnover?: number;
+  week52High?: number;
+  week52Low?: number;
+  peRatio?: number;
+  dividendYield?: number;
+  updatedAt: string;
+}
 
 /**
  * 股票服务类
@@ -21,105 +99,240 @@ import {
 class StockService {
   /**
    * 获取股票列表
-   * @param page - 页码（可选）
-   * @param limit - 每页数量（可选）
-   * @returns Promise<StockListResponse>
+   * @param page - 页码
+   * @param limit - 每页数量
+   * @param filters - 过滤条件
    */
-  async getStockList(page: number = 1, limit: number = 50): Promise<StockListResponse> {
-    await this.delay(300);
-
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedStocks = MOCK_STOCKS.slice(startIndex, endIndex);
-
-    return {
-      stocks: paginatedStocks,
-      total: MOCK_STOCKS.length,
-      timestamp: Date.now(),
-    };
-  }
-
-
-  /**
-   * 获取自选股列表
-   * @returns Promise<WatchlistResponse>
-   */
-  async getWatchlist(): Promise<WatchlistResponse> {
-    await this.delay(200);
-
-    return {
-      watchlist: MOCK_WATCHLIST,
-      total: MOCK_WATCHLIST.length,
-      timestamp: Date.now(),
-    };
+  async getStockList(
+    page: number = 1,
+    limit: number = 50,
+    filters?: { sector?: string; region?: string }
+  ): Promise<StockListResponse> {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'stockService.ts:111',message:'getStockList called',data:{page,limit,filters},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    const response = await http.get<StockListResponse>('/stocks', {
+      page,
+      limit,
+      ...filters,
+    });
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'stockService.ts:119',message:'getStockList response',data:{hasData:!!response.data,stocksCount:response.data?.stocks?.length,total:response.data?.total},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    return response.data;
   }
 
   /**
    * 搜索股票
    * @param request - 搜索请求参数
-   * @returns Promise<StockListResponse>
    */
   async searchStock(request: StockSearchRequest): Promise<StockListResponse> {
-    await this.delay(300);
-
-    const results = searchStocks(request.keyword, MOCK_STOCKS);
-
-    const page = request.page || 1;
-    const limit = request.limit || 20;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedResults = results.slice(startIndex, endIndex);
-
-    return {
-      stocks: paginatedResults,
-      total: results.length,
-      timestamp: Date.now(),
-    };
+    const response = await http.get<StockListResponse>('/stocks/search', {
+      keyword: request.keyword,
+      type: request.type,
+      page: request.page || 1,
+      limit: request.limit || 20,
+    });
+    return response.data;
   }
-
 
   /**
    * 根据股票代码获取股票详情
    * @param symbol - 股票代码
-   * @returns Promise<Stock | null>
    */
   async getStockBySymbol(symbol: string): Promise<Stock | null> {
-    await this.delay(200);
-
-    const stock = MOCK_STOCKS.find(
-      (s) => s.symbol.toUpperCase() === symbol.toUpperCase()
-    );
-
-    return stock || null;
-  }
-
-
-  /**
-   * 添加到自选股（Mock实现，实际应该调用API）
-   * @param stock - 股票对象
-   * @returns Promise<boolean>
-   */
-  async addToWatchlist(stock: Stock): Promise<boolean> {
-    await this.delay(200);
-    return true;
+    try {
+      const response = await http.get<{ stock: Stock }>(`/stocks/${symbol}`);
+      return response.data?.stock || null;
+    } catch {
+      return null;
+    }
   }
 
   /**
-   * 从自选股移除（Mock实现，实际应该调用API）
+   * 获取股票详细信息（包含更多字段）
    * @param symbol - 股票代码
-   * @returns Promise<boolean>
+   */
+  async getStockDetail(symbol: string): Promise<StockDetail | null> {
+    try {
+      const response = await http.get<{ stock: StockDetail }>(`/stocks/${symbol}`);
+      return response.data?.stock || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 获取股票实时行情
+   * @param symbol - 股票代码
+   */
+  async getStockQuote(symbol: string): Promise<StockQuote | null> {
+    try {
+      const response = await http.get<{ quote: StockQuote }>(`/stocks/${symbol}/quote`);
+      return response.data?.quote || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 获取股票K线数据
+   * @param symbol - 股票代码
+   * @param period - 周期 (day/week/month)
+   * @param start - 开始日期 (YYYY-MM-DD)
+   * @param end - 结束日期 (YYYY-MM-DD)
+   */
+  async getKLineData(
+    symbol: string,
+    period: 'day' | 'week' | 'month' = 'day',
+    start?: string,
+    end?: string
+  ): Promise<KLineData[]> {
+    try {
+      const response = await http.get<KLineResponse>(`/stocks/${symbol}/kline`, {
+        period,
+        start,
+        end,
+      });
+      return response.data?.data || [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * 获取完整K线图表数据（含均线）
+   * @param symbol - 股票代码
+   * @param period - 周期 (day/week/month)
+   * @param days - 获取天数
+   */
+  async getKLineChartData(
+    symbol: string,
+    period: 'day' | 'week' | 'month' = 'day',
+    days: number = 120
+  ): Promise<KLineChartData | null> {
+    try {
+      const response = await http.get<{ data: KLineChartData }>(`/stocks/${symbol}/kline/full`, {
+        period,
+        days,
+      });
+      return response.data?.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 获取分时图数据（价格线 + 成交量）
+   * @param symbol - 股票代码
+   * @param days - 获取天数（默认1天即当日分时）
+   */
+  async getTimelineData(
+    symbol: string,
+    days: number = 1
+  ): Promise<TimelineResponse | null> {
+    try {
+      const response = await http.get<{ data: TimelineResponse }>(`/stocks/${symbol}/timeline`, {
+        days,
+      });
+      return response.data?.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 获取行业指数K线数据
+   * @param sector - 行业代码
+   * @param period - 周期
+   * @param days - 天数
+   */
+  async getIndustryKLine(
+    sector: string,
+    period: 'day' | 'week' | 'month' = 'day',
+    days: number = 120
+  ): Promise<KLineChartData | null> {
+    try {
+      const response = await http.get<{ data: KLineChartData }>(`/stocks/industry/${sector}/kline`, {
+        period,
+        days,
+      });
+      return response.data?.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 获取大盘指数K线数据
+   * @param index - 指数代码（如 SPX, DJI, IXIC）
+   * @param period - 周期
+   * @param days - 天数
+   */
+  async getMarketIndexKLine(
+    index: string = 'SPX',
+    period: 'day' | 'week' | 'month' = 'day',
+    days: number = 120
+  ): Promise<KLineChartData | null> {
+    try {
+      const response = await http.get<{ data: KLineChartData }>(`/stocks/market/${index}/kline`, {
+        period,
+        days,
+      });
+      return response.data?.data || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 获取自选股列表
+   */
+  async getWatchlist(): Promise<WatchlistResponse> {
+    const response = await http.get<WatchlistResponse>('/watchlist');
+    return response.data;
+  }
+
+  /**
+   * 添加到自选股
+   * @param stock - 股票对象或股票信息
+   */
+  async addToWatchlist(stock: Stock | { symbol: string; name: string }): Promise<boolean> {
+    try {
+      const response = await http.post('/watchlist', {
+        symbol: stock.symbol,
+        name: stock.name,
+      });
+      return response.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 从自选股移除
+   * @param symbol - 股票代码
    */
   async removeFromWatchlist(symbol: string): Promise<boolean> {
-    await this.delay(200);
-    return true;
+    try {
+      const response = await http.delete(`/watchlist/${symbol}`);
+      return response.success;
+    } catch {
+      return false;
+    }
   }
 
   /**
-   * 模拟网络延迟
-   * @param ms - 延迟毫秒数
+   * 调整自选股排序
+   * @param items - 排序项
    */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  async sortWatchlist(items: Array<{ symbol: string; sortOrder: number }>): Promise<boolean> {
+    try {
+      const response = await http.put('/watchlist/sort', { items });
+      return response.success;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -136,7 +349,6 @@ export const getAllStocks = async (): Promise<Stock[]> => {
   return response.stocks;
 };
 
-
 /**
  * 便捷方法：获取自选股
  */
@@ -144,4 +356,3 @@ export const getWatchlist = async (): Promise<Stock[]> => {
   const response = await stockService.getWatchlist();
   return response.watchlist;
 };
-

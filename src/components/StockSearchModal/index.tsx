@@ -15,10 +15,10 @@
  * - /components/Sidebar/index.tsx - 点击搜索按钮弹出
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { X, Search, TrendingUp, TrendingDown, Plus, Star } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Search, TrendingUp, TrendingDown, Plus, Star, Loader2 } from 'lucide-react';
 import { Stock } from '../../types/stock';
-import { MOCK_STOCKS } from '../../mock/stockData';
+import { stockService } from '../../services/stockService';
 import { useStore } from '../../store/useStore';
 
 interface StockSearchModalProps {
@@ -44,27 +44,77 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
   const { watchlist, addToWatchlist } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<Region>('all');
-  const [filteredStocks, setFilteredStocks] = useState<Stock[]>([]);
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isInWatchlist = (symbol: string) => {
     return watchlist.some(stock => stock.symbol === symbol);
   };
 
-  const handleAddToWatchlist = (stock: Stock, e: React.MouseEvent) => {
+  const handleAddToWatchlist = async (stock: Stock, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isInWatchlist(stock.symbol)) {
       addToWatchlist(stock);
+      // 同步到后端
+      await stockService.addToWatchlist(stock);
     }
   };
 
+  // 加载股票列表
+  const loadStocks = useCallback(async (keyword: string, region: Region) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      let response;
+      if (keyword.trim()) {
+        // 有搜索关键词时使用搜索接口
+        response = await stockService.searchStock({
+          keyword,
+          limit: 100,
+        });
+      } else {
+        // 无关键词时获取股票列表
+        response = await stockService.getStockList(1, 100, {
+          region: region !== 'all' ? region : undefined,
+        });
+      }
+      
+      let filteredStocks = response.stocks;
+      
+      // 如果有搜索关键词且需要按地区过滤
+      if (keyword.trim() && region !== 'all') {
+        filteredStocks = filteredStocks.filter(stock => stock.region === region);
+      }
+      
+      setStocks(filteredStocks);
+    } catch (err) {
+      setError('加载股票列表失败，请稍后重试');
+      console.error('Failed to load stocks:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 初始加载
+  useEffect(() => {
+    if (isOpen) {
+      loadStocks('', selectedRegion);
+    }
+  }, [isOpen, loadStocks, selectedRegion]);
+
+  // 聚焦搜索框
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isOpen]);
 
+  // 处理点击外部关闭和ESC关闭
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -89,24 +139,22 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
     };
   }, [isOpen, onClose]);
 
+  // 防抖搜索
   useEffect(() => {
-    let stocks = MOCK_STOCKS;
-
-    if (selectedRegion !== 'all') {
-      stocks = stocks.filter(stock => stock.region === selectedRegion);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      loadStocks(searchQuery, selectedRegion);
+    }, 300);
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      stocks = stocks.filter(
-        stock =>
-          stock.symbol.toLowerCase().includes(query) ||
-          stock.name.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredStocks(stocks);
-  }, [searchQuery, selectedRegion]);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, selectedRegion, loadStocks]);
 
   const handleSelectStock = (stock: Stock) => {
     onSelectStock(stock);
@@ -199,14 +247,30 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {filteredStocks.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12" style={{ color: 'var(--text-disabled)' }}>
+              <Loader2 className="w-8 h-8 animate-spin mb-3" />
+              <p className="text-sm">加载中...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12" style={{ color: 'var(--text-disabled)' }}>
+              <p className="text-sm text-red-500">{error}</p>
+              <button
+                onClick={() => loadStocks(searchQuery, selectedRegion)}
+                className="mt-2 text-sm px-4 py-1 rounded"
+                style={{ background: 'var(--accent-primary)', color: 'white' }}
+              >
+                重试
+              </button>
+            </div>
+          ) : stocks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12" style={{ color: 'var(--text-disabled)' }}>
               <Search className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-sm">未找到匹配的股票</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredStocks.map((stock) => (
+              {stocks.map((stock) => (
                 <div
                   key={stock.symbol}
                   className="w-full p-3 rounded-lg transition-all group cursor-pointer"
@@ -304,7 +368,7 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
         </div>
 
         <div className="px-6 py-4 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-disabled)' }}>
-          <span>共找到 {filteredStocks.length} 只股票</span>
+          <span>共找到 {stocks.length} 只股票</span>
           <span>点击股票可切换到该股票的K线图</span>
         </div>
       </div>

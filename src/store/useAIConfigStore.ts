@@ -51,7 +51,7 @@ interface AIConfigState {
   providers: ProviderOption[];
 
   // Actions
-  initialize: () => void;
+  initialize: () => Promise<void>;
   setSelectedScene: (sceneId: string) => void;
   setSelectedProvider: (providerId: string) => void;
   setSelectedModel: (modelId: string) => void;
@@ -75,31 +75,55 @@ export const useAIConfigStore = create<AIConfigState>()(
     (set, get) => ({
       initialized: false,
       selectedSceneId: 'general',
-      selectedProviderId: 'mock',
-      selectedModelId: 'mock-instant',
-      useMock: true,
+      selectedProviderId: 'openai',
+      selectedModelId: 'gpt-4',
+      useMock: false,
       scenes: [],
       providers: [],
 
-      initialize: () => {
+      initialize: async () => {
         const state = get();
         if (state.initialized) return;
 
-        // 获取可用选项
-        const scenes = getSceneOptions();
-        const providers = getProviderOptions();
+        // 获取可用选项（注意：为异步 Promise）
+        const [scenes, providers] = await Promise.all([
+          getSceneOptions(),
+          getProviderOptions(),
+        ]);
+
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAIConfigStore.ts:initialize',message:'AI config initialized (async)',data:{scenesIsArray:Array.isArray(scenes),scenesCount:(scenes as any[])?.length,providersIsArray:Array.isArray(providers),providersCount:(providers as any[])?.length,firstProviderId:(providers as any[])?.[0]?.provider?.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H'})}).catch(()=>{});
+        // #endregion
+
+        // 若当前选择不存在，则回退到第一个可用项
+        const nextSceneId =
+          scenes.find((s) => s.id === state.selectedSceneId)?.id || scenes[0]?.id || 'general';
+
+        const providerExists = providers.find((p) => p.provider.id === state.selectedProviderId);
+        const nextProviderId = providerExists?.provider.id || providers[0]?.provider.id || 'openai';
+        const nextModelId =
+          providers
+            .find((p) => p.provider.id === nextProviderId)
+            ?.models.find((m) => m.id === state.selectedModelId)?.id ||
+          providers.find((p) => p.provider.id === nextProviderId)?.models[0]?.id ||
+          state.selectedModelId ||
+          'gpt-4';
 
         set({
           initialized: true,
           scenes,
           providers,
+          selectedSceneId: nextSceneId,
+          selectedProviderId: nextProviderId,
+          selectedModelId: nextModelId,
+          useMock: false,
         });
 
         // 同步到 aiService
         aiService.setDefaultSelection({
-          sceneId: state.selectedSceneId,
-          providerId: state.selectedProviderId,
-          modelId: state.selectedModelId,
+          sceneId: nextSceneId,
+          providerId: nextProviderId,
+          modelId: nextModelId,
         });
       },
 
@@ -131,7 +155,6 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       setUseMock: (useMock) => {
         set({ useMock });
-        aiService.configure({ defaultUseMock: useMock });
       },
 
       setProviderAndModel: (providerId, modelId) => {
