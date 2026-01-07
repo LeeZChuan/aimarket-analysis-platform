@@ -11,6 +11,7 @@ import {
   ApiStatusCode,
   BusinessCode,
 } from '../types/common';
+import { notifyError, notifyWarning } from '../utils/notify';
 
 /**
  * 请求拦截器函数类型
@@ -144,7 +145,7 @@ class HttpService {
    */
   private async handleError(error: any, requestId: string): Promise<never> {
     const apiError: ApiError = {
-      code: ApiStatusCode.INTERNAL_SERVER_ERROR,
+      code: error?.code ?? ApiStatusCode.INTERNAL_SERVER_ERROR,
       message: error.message || '请求失败',
       details: error.stack,
       requestId,
@@ -175,10 +176,6 @@ class HttpService {
 
       const fullURL = this.buildURL(url, method === 'GET' ? params : undefined);
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:176',message:'API Request Start',data:{method,fullURL,params,hasData:!!data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -208,14 +205,7 @@ class HttpService {
         responseData = await response.text();
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:210',message:'API Response Received',data:{status:response.status,ok:response.ok,contentType,responseDataKeys:typeof responseData==='object'?Object.keys(responseData||{}):[],responseDataPreview:JSON.stringify(responseData).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-
       if (!response.ok) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:217',message:'API Response Not OK',data:{status:response.status,statusText:response.statusText,responseData},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         const errorMessage =
           responseData?.message ||
           responseData?.error?.message ||
@@ -243,15 +233,8 @@ class HttpService {
         success: responseData.success !== undefined ? responseData.success : true,
       };
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:239',message:'API Response Processed',data:{success:apiResponse.success,code:apiResponse.code,hasData:!!apiResponse.data,dataType:typeof apiResponse.data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-
       return this.executeResponseInterceptors(apiResponse);
     } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:247',message:'API Request Error',data:{errorName:error.name,errorMessage:error.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       if (error.name === 'AbortError') {
         return this.handleError(
           { message: '请求超时', code: ApiStatusCode.REQUEST_TIMEOUT },
@@ -357,6 +340,7 @@ http.addRequestInterceptor((config) => {
 http.addResponseInterceptor((response) => {
   if (response.code !== BusinessCode.SUCCESS && response.code !== ApiStatusCode.SUCCESS) {
     console.warn(`API Warning [${response.requestId}]:`, response.message);
+    notifyWarning('请求返回异常', response.message);
   }
   return response;
 });
@@ -366,6 +350,7 @@ http.addResponseInterceptor((response) => {
  */
 http.addErrorInterceptor((error) => {
   console.error(`API Error [${error.requestId}]:`, error.message);
+  notifyError('请求失败', error.message);
 
   if (error.code === ApiStatusCode.UNAUTHORIZED) {
     localStorage.removeItem('token');

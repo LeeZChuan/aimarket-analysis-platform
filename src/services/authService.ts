@@ -89,10 +89,6 @@ export const authService = {
         message: response.message,
       };
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authService.ts:login',message:'authService.login mapped result',data:{success:result.success,hasUser:!!result.user,userId:result.user?.id,hasToken:!!result.token},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F',runId:'pre-fix'})}).catch(()=>{});
-      // #endregion
-
       return result;
     } catch (error: any) {
       // 返回错误信息而不是抛出异常

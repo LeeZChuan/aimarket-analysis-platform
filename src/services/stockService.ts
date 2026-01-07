@@ -108,17 +108,11 @@ class StockService {
     limit: number = 50,
     filters?: { sector?: string; region?: string }
   ): Promise<StockListResponse> {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'stockService.ts:111',message:'getStockList called',data:{page,limit,filters},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     const response = await http.get<StockListResponse>('/stocks', {
       page,
       limit,
       ...filters,
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'stockService.ts:119',message:'getStockList response',data:{hasData:!!response.data,stocksCount:response.data?.stocks?.length,total:response.data?.total},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     return response.data;
   }
 

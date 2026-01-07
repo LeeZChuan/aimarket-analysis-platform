@@ -174,9 +174,6 @@ class AIService {
   async getScenes(): Promise<SceneConfig[]> {
     try {
       const response = await http.get<{ scenes: SceneConfig[] }>('/ai/scenes');
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.ts:getScenes',message:'getScenes resolved',data:{isArray:Array.isArray(response.data?.scenes),count:response.data?.scenes?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       return response.data?.scenes || [];
     } catch {
       return [];
@@ -195,9 +192,6 @@ class AIService {
         provider: { id: p.id, name: p.name, description: p.description },
         models: Array.isArray(p.models) ? p.models : [],
       }));
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.ts:getProviders',message:'getProviders normalized',data:{rawIsArray:Array.isArray(list),rawFirstKeys:list[0]?Object.keys(list[0]).slice(0,6):[],count:normalized.length,firstProviderId:normalized[0]?.provider?.id,firstModelsCount:normalized[0]?.models?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       return normalized;
     } catch {
       return [];

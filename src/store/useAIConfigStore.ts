@@ -91,10 +91,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           getProviderOptions(),
         ]);
 
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/612e1b3b-bc5b-4e1c-a1fd-4fad9ce18f4e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAIConfigStore.ts:initialize',message:'AI config initialized (async)',data:{scenesIsArray:Array.isArray(scenes),scenesCount:(scenes as any[])?.length,providersIsArray:Array.isArray(providers),providersCount:(providers as any[])?.length,firstProviderId:(providers as any[])?.[0]?.provider?.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H'})}).catch(()=>{});
-        // #endregion
-
         // 若当前选择不存在，则回退到第一个可用项
         const nextSceneId =
           scenes.find((s) => s.id === state.selectedSceneId)?.id || scenes[0]?.id || 'general';
