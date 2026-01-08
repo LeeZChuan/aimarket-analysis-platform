@@ -14,7 +14,7 @@
  * - /views/TradingView/index.tsx - 交易视图（左侧股票列表栏）
  */
 
-import { Search, TrendingUp, X, Star, BarChart3, Plus } from 'lucide-react';
+import { Search, X, Star, BarChart3, Plus } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useState, useEffect } from 'react';
 import { stockService } from '../../services/stockService';
@@ -25,7 +25,16 @@ import { sidebarStyles } from './SidebarStyles';
 type TabType = 'watchlist' | 'stocks';
 
 export function Sidebar() {
-  const { watchlist, selectedStock, setSelectedStock, removeFromWatchlist, addToWatchlist } = useStore();
+  const {
+    watchlist,
+    watchlistLoading,
+    loadWatchlist,
+    isAuthenticated,
+    selectedStock,
+    setSelectedStock,
+    removeFromWatchlist,
+    addToWatchlist,
+  } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('watchlist');
   const [stocks, setStocks] = useState<Stock[]>([]);
@@ -33,24 +42,35 @@ export function Sidebar() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
+    let cancelled = false;
+
+    const loadStocks = async () => {
       setIsLoading(true);
       try {
-        if (activeTab === 'stocks') {
-          const response = await stockService.getStockList(1, 100);
+        const response = await stockService.getStockList(1, 100);
+        if (!cancelled) {
           setStocks(response.stocks);
         }
       } catch (error) {
-        console.error('Failed to load data:', error);
+        console.error('Failed to load stock list:', error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    if (activeTab !== 'watchlist') {
-      loadData();
+    if (activeTab === 'stocks') {
+      loadStocks();
+    } else if (activeTab === 'watchlist' && isAuthenticated) {
+      // 初始化/切换回自选股 tab/登录状态变更时，确保触发拉取
+      loadWatchlist();
     }
-  }, [activeTab]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, isAuthenticated, loadWatchlist]);
 
   const getCurrentList = () => {
     switch (activeTab) {
@@ -104,6 +124,8 @@ export function Sidebar() {
   const handleSelectStock = (stock: Stock) => {
     setSelectedStock(stock);
   };
+
+  const listIsLoading = activeTab === 'watchlist' ? watchlistLoading : isLoading;
 
   return (
     <div className="flex flex-col h-full w-full" style={sidebarStyles.container}>
@@ -162,7 +184,7 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
-          {isLoading ? (
+          {listIsLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-sm" style={sidebarStyles.loadingText}>加载中...</div>
             </div>

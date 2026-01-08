@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Stock } from '../types/stock';
 import { AIMessage } from '../types/ai';
 import { stockService } from '../services/stockService';
+import { notifySuccess } from '../utils/notify';
 
 interface Message {
   id: string;
@@ -28,7 +29,7 @@ interface AppState {
   setSelectedStock: (stock: Stock | null) => void;
   setWatchlist: (stocks: Stock[]) => void;
   loadWatchlist: () => Promise<void>;
-  addToWatchlist: (stock: Stock) => void;
+  addToWatchlist: (stock: Stock) => Promise<void>;
   removeFromWatchlist: (symbol: string) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setSelectedModel: (model: string) => void;
@@ -67,12 +68,19 @@ export const useStore = create<AppState>()(
         }
       },
 
-      addToWatchlist: (stock) => {
+      addToWatchlist: async (stock) => {
         set((state) => ({
           watchlist: [...state.watchlist, stock],
         }));
-        // 同步到后端（异步，不阻塞UI）
-        stockService.addToWatchlist(stock).catch(console.error);
+        // 同步到后端（异步，不阻塞UI），成功后提示
+        try {
+          const ok = await stockService.addToWatchlist(stock);
+          if (ok) {
+            notifySuccess('已添加到自选股');
+          }
+        } catch (e) {
+          console.error(e);
+        }
       },
 
       removeFromWatchlist: (symbol) => {

@@ -55,12 +55,10 @@ export function StockSearchModal({ isOpen, onClose, onSelectStock }: StockSearch
     return watchlist.some(stock => stock.symbol === symbol);
   };
 
-  const handleAddToWatchlist = async (stock: Stock, e: React.MouseEvent) => {
+  const handleAddToWatchlist = (stock: Stock, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isInWatchlist(stock.symbol)) {
       addToWatchlist(stock);
-      // 同步到后端
-      await stockService.addToWatchlist(stock);
     }
   };
 
