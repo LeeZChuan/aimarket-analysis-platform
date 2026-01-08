@@ -249,21 +249,24 @@ export function ChatInput({
 
               <div className="h-3 w-px mx-0.5" style={{ background: 'var(--border-primary)' }} />
 
-              {/* 场景选择器 - 只显示 icon */}
+              {/* 场景选择器 - 显示全部文字 */}
               <button
                 ref={sceneButtonRef}
                 onClick={handleScenePickerToggle}
-                className="p-1 rounded transition-colors text-sm"
+                className="flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] rounded transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-primary)';
                   e.currentTarget.style.background = 'var(--bg-tertiary)';
                 }}
                 onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-muted)';
                   e.currentTarget.style.background = 'transparent';
                 }}
-                title={`场景: ${currentScene?.name || '选择场景'}`}
+                title={currentScene?.description}
               >
-                <span>{currentScene?.icon || '💬'}</span>
+                <span className="font-mono">{currentScene?.name || '选择场景'}</span>
+                <ChevronDown className="w-3 h-3" />
               </button>
 
               {/* 模型选择器 - 简称显示 */}
