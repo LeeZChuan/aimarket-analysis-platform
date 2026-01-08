@@ -268,6 +268,119 @@ export const marketSentimentScene: PromptTemplate = {
 };
 
 /**
+ * 新闻解读场景模板（对应后端 scene: news）
+ */
+export const newsInterpretationScene: PromptTemplate = {
+  metadata: {
+    id: 'scene-news-interpretation',
+    name: '新闻解读',
+    description: '解读市场新闻/公告对股价与预期的影响',
+    category: 'scene',
+    tags: ['news', 'event', 'announcement'],
+    version: '1.0.0',
+  },
+  template: `## 用户问题
+{{ user.message }}
+
+## 分析要求
+请从以下维度解读相关新闻/公告（如用户未提供，请先列出需要补充的信息）：
+
+### 1. 事实梳理
+- 新闻来源与发布时间
+- 核心事实点（避免臆测）
+
+### 2. 影响路径
+- 对公司基本面/盈利预期的影响
+- 对行业/竞争格局的影响
+- 对市场情绪与资金偏好的影响
+
+### 3. 情景与概率
+- 乐观/中性/悲观三种情景
+- 关键验证点与可能的时间窗口
+
+### 4. 操作建议
+- 适合的策略（观望/波段/中长期）
+- 需要关注的风险与反证信号
+
+> 风险提示：以上为信息解读与分析，不构成投资建议。`,
+};
+
+/**
+ * 风险评估场景模板（对应后端 scene: risk）
+ */
+export const riskAssessmentScene: PromptTemplate = {
+  metadata: {
+    id: 'scene-risk-assessment',
+    name: '风险评估',
+    description: '评估投资风险、潜在回撤与应对策略',
+    category: 'scene',
+    tags: ['risk', 'drawdown', 'position'],
+    version: '1.0.0',
+  },
+  template: `## 用户问题
+{{ user.message }}
+
+## 风险评估要求
+请围绕“风险-收益-可执行性”给出结构化评估：
+
+### 1. 主要风险清单
+- 价格波动/流动性风险
+- 业绩与估值风险
+- 政策/监管风险
+- 事件风险（业绩预告、解禁、诉讼等）
+
+### 2. 关键指标与阈值
+- 关键价位：止损/止盈/失效位
+- 关键指标：波动率、成交量、趋势/均线（如适用）
+
+### 3. 仓位与计划
+- 建议仓位与分批策略
+- 触发条件（买入/加仓/减仓/退出）
+
+### 4. 结论
+- 风险等级（低/中/高）与一句话结论
+
+> 风险提示：市场有不确定性，请自行评估并谨慎决策。`,
+};
+
+/**
+ * 对比分析场景模板（对应后端 scene: compare）
+ */
+export const compareAnalysisScene: PromptTemplate = {
+  metadata: {
+    id: 'scene-compare-analysis',
+    name: '对比分析',
+    description: '对比同行业公司表现与关键差异点',
+    category: 'scene',
+    tags: ['compare', 'peer', 'valuation'],
+    version: '1.0.0',
+  },
+  template: `## 用户问题
+{{ user.message }}
+
+## 对比分析要求
+请对比目标公司与 2-4 家可比公司（若用户未给出可比公司，请先给出候选列表并说明选择理由）：
+
+### 1. 业务与护城河
+- 核心产品/商业模式差异
+- 竞争优势与风险点
+
+### 2. 增长与盈利质量
+- 收入/利润增速（趋势与驱动）
+- 毛利率/净利率/现金流质量
+
+### 3. 估值对比
+- PE/PB/PS 与历史区间
+- 估值差异的合理性解释
+
+### 4. 投资结论
+- 更优标的与理由
+- 需要验证的关键变量
+
+> 风险提示：对比分析依赖数据口径与时间窗口，请谨慎使用。`,
+};
+
+/**
  * 快速总结场景模板
  */
 export const quickSummaryScene: PromptTemplate = {
@@ -337,64 +450,9 @@ export const generalQAScene: PromptTemplate = {
 };
 
 // ==================== 场景配置 ====================
-
-/**
- * 预置场景配置
- */
-export const defaultScenes: SceneConfig[] = [
-  {
-    id: 'technical',
-    name: '技术分析',
-    description: '基于图表和技术指标的股票分析',
-    icon: '📊',
-    systemTemplateId: 'system-stock-analyst',
-    sceneTemplateId: 'scene-technical-analysis',
-  },
-  {
-    id: 'fundamental',
-    name: '基本面分析',
-    description: '基于财务数据和公司基本面的分析',
-    icon: '📈',
-    systemTemplateId: 'system-stock-analyst',
-    sceneTemplateId: 'scene-fundamental-analysis',
-  },
-  {
-    id: 'sentiment',
-    name: '市场情绪',
-    description: '分析市场情绪和资金流向',
-    icon: '💡',
-    systemTemplateId: 'system-news-analyst',
-    sceneTemplateId: 'scene-market-sentiment',
-  },
-  {
-    id: 'quant',
-    name: '量化分析',
-    description: '数据驱动的量化策略分析',
-    icon: '🔢',
-    systemTemplateId: 'system-quant-analyst',
-    sceneTemplateId: 'scene-technical-analysis',
-    recommendedModel: {
-      provider: 'deepseek',
-      model: 'deepseek-reasoner',
-    },
-  },
-  {
-    id: 'quick',
-    name: '快速总结',
-    description: '简洁快速的分析要点',
-    icon: '⚡',
-    systemTemplateId: 'system-stock-analyst',
-    sceneTemplateId: 'scene-quick-summary',
-  },
-  {
-    id: 'general',
-    name: '自由问答',
-    description: '通用金融问题解答',
-    icon: '💬',
-    systemTemplateId: 'system-stock-analyst',
-    sceneTemplateId: 'scene-general-qa',
-  },
-];
+//
+// 注意：场景（SceneConfig）不再在前端写死，改为由后端 /api/ai/scenes 提供。
+// 前端仅保留“模板（PromptTemplate）”预置；场景负责把 sceneId 映射到 systemTemplateId/sceneTemplateId。
 
 // ==================== 模板集合 ====================
 
@@ -414,6 +472,9 @@ export const sceneTemplates: PromptTemplate[] = [
   technicalAnalysisScene,
   fundamentalAnalysisScene,
   marketSentimentScene,
+  newsInterpretationScene,
+  riskAssessmentScene,
+  compareAnalysisScene,
   quickSummaryScene,
   generalQAScene,
 ];
@@ -436,9 +497,6 @@ export const allTemplates: PromptTemplate[] = [
 export function initializeTemplates(): void {
   // 注册所有模板
   templateRegistry.registerAll(allTemplates, { override: true });
-  
-  // 注册所有场景
-  templateRegistry.registerScenes(defaultScenes);
 
   console.log('[PromptEngine] Templates initialized:', templateRegistry.stats());
 }

@@ -12,6 +12,8 @@ import {
 import type { AIMessage } from '../types/ai';
 import { conversationService } from '../services/conversationService';
 import { notifyError } from '../utils/notify';
+import { templateRegistry } from '../prompt';
+import type { PromptContext } from '../prompt';
 
 // 当前项目统一走后端接口，不使用本地模式/Mock
 const DEFAULT_USE_LOCAL_MODE = false;
@@ -748,8 +750,40 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       return;
     }
 
-    // 1. 立即显示用户消息
-    addLocalUserMessage(request.content);
+    // 1) UI 显示：始终展示用户原始输入（不展示加工后的 prompt）
+    const rawUserInput = request.content;
+    addLocalUserMessage(rawUserInput);
+
+    // 2) 请求发送：若提供 sceneId，则用模板渲染加工后的提示词
+    //   - content: 渲染后的 userPrompt
+    //   - systemPrompt: 渲染后的 systemPrompt（若存在）
+    let outboundRequest: ChatRequest = { ...request };
+    if (request.sceneId) {
+      try {
+        const activeConv = get().activeConversation;
+        const ctx: PromptContext = {
+          user: {
+            message: rawUserInput,
+          },
+          stock: activeConv?.metadata?.stockSymbol
+            ? {
+                symbol: activeConv.metadata.stockSymbol,
+                name: activeConv.metadata.stockName,
+                price: activeConv.metadata.stockPrice,
+              }
+            : undefined,
+        };
+
+        const rendered = templateRegistry.renderByScene(request.sceneId, ctx);
+        outboundRequest = {
+          ...request,
+          content: rendered.userPrompt,
+          systemPrompt: rendered.systemPrompt,
+        };
+      } catch (e) {
+        console.warn('[PromptEngine] renderByScene failed, fallback to raw content:', e);
+      }
+    }
 
     // 2. 开始流式请求
     set({ isLoading: true, error: null });
@@ -762,7 +796,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     try {
       await conversationService.chatWithStream(
         activeConversationId,
-        request,
+        outboundRequest,
         (event: ChatSSEEvent) => {
           switch (event.type) {
             case 'meta':

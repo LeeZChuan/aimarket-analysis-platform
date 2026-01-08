@@ -96,6 +96,8 @@ export interface ConversationStorage {
 export interface ChatRequest {
   /** 用户输入内容（必填） */
   content: string;
+  /** 系统提示词（可选；若后端支持，将插入 messages 开头） */
+  systemPrompt?: string;
   /** 模型ID，如 gpt-4 / deepseek-chat */
   modelId?: string;
   /** 供应商ID，如 openai / deepseek */

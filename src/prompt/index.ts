@@ -29,6 +29,5 @@ export {
   systemTemplates,
   sceneTemplates,
   allTemplates,
-  defaultScenes,
 } from './templates';
 
