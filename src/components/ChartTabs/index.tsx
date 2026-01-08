@@ -97,12 +97,12 @@ export function ChartTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as ChartTabType)} className="flex flex-col h-full">
-      <TabsList className="w-full rounded-none border-b" style={{ borderColor: 'var(--border-primary)' }}>
+      <TabsList className="w-full h-9 rounded-none border-b p-1" style={{ borderColor: 'var(--border-primary)' }}>
         {TABS.map((tab) => (
           <TabsTrigger
             key={tab.key}
             value={tab.key}
-            className="px-6 py-3 text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[var(--text-primary)]"
+            className="flex-1 px-6 text-sm rounded-none"
           >
             {tab.label}
           </TabsTrigger>
