@@ -10,6 +10,8 @@
  * - /components/ChartPanel/index.tsx - 图表顶部工具栏
  */
 
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+
 export type TimeRange = '1D' | '5D' | '1W' | '1M' | '3M' | '1Y';
 
 interface TimeRangeSelectorProps {
@@ -28,21 +30,19 @@ const TIME_RANGES: { value: TimeRange; label: string; description: string }[] = 
 
 export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
   return (
-    <div className="flex gap-0.5">
-      {TIME_RANGES.map((range) => (
-        <button
-          key={range.value}
-          onClick={() => onChange(range.value)}
-          className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
-            value === range.value
-              ? 'bg-[#3A9FFF]/20 text-[#3A9FFF] border border-[#3A9FFF]/50'
-              : 'text-gray-500 hover:text-gray-300 hover:bg-[#2A2A2A]/50 border border-transparent'
-          }`}
-          title={`查看${range.description}`}
-        >
-          {range.label}
-        </button>
-      ))}
-    </div>
+    <Tabs value={value} onValueChange={(val) => onChange(val as TimeRange)}>
+      <TabsList className="h-7">
+        {TIME_RANGES.map((range) => (
+          <TabsTrigger
+            key={range.value}
+            value={range.value}
+            className="px-2 py-0.5 text-[10px]"
+            title={`查看${range.description}`}
+          >
+            {range.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 }

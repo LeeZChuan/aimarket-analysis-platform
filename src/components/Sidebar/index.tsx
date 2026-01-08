@@ -21,6 +21,7 @@ import { stockService } from '../../services/stockService';
 import { Stock } from '../../types/stock';
 import { StockSearchModal } from '../StockSearchModal';
 import { sidebarStyles } from './SidebarStyles';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 type TabType = 'watchlist' | 'stocks';
 
@@ -156,30 +157,21 @@ export function Sidebar() {
           搜索代码或名称...
         </button>
 
-        <div className="flex gap-2">
-          {(['watchlist', 'stocks'] as TabType[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all"
-              style={activeTab === tab ? sidebarStyles.tabButtonActive : sidebarStyles.tabButton}
-              onMouseEnter={(e) => {
-                if (activeTab !== tab) {
-                  Object.assign(e.currentTarget.style, sidebarStyles.tabButtonHover);
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== tab) {
-                  Object.assign(e.currentTarget.style, sidebarStyles.tabButton);
-                }
-              }}
-              title={getTabLabel(tab)}
-            >
-              {getTabIcon(tab)}
-              <span className="hidden xl:inline">{getTabLabel(tab)}</span>
-            </button>
-          ))}
-        </div>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabType)} className="w-full">
+          <TabsList className="w-full grid grid-cols-2 h-8">
+            {(['watchlist', 'stocks'] as TabType[]).map((tab) => (
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                className="flex items-center justify-center gap-1 text-[11px]"
+                title={getTabLabel(tab)}
+              >
+                {getTabIcon(tab)}
+                <span className="hidden xl:inline">{getTabLabel(tab)}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="flex-1 overflow-y-auto">

@@ -16,6 +16,7 @@ import { Loader2 } from 'lucide-react';
 import { ChartTabType, ChartTab } from '../../types/chart';
 import { KLineChart } from '../KLineChart';
 import { stockService, KLineChartData } from '../../services/stockService';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
 interface ChartTabsProps {
   stockId?: string;
@@ -95,49 +96,47 @@ export function ChartTabs({
   }, [activeTab, stockId, loadKLineData]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+    <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as ChartTabType)} className="flex flex-col h-full">
+      <TabsList className="w-full rounded-none border-b" style={{ borderColor: 'var(--border-primary)' }}>
         {TABS.map((tab) => (
-          <button
+          <TabsTrigger
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-6 py-3 font-medium text-sm transition-colors ${
-              activeTab === tab.key
-                ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
+            value={tab.key}
+            className="px-6 py-3 text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[var(--text-primary)]"
           >
             {tab.label}
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
-      <div className="flex-1 p-4">
-        {loading ? (
-          <div 
-            className="flex items-center justify-center"
-            style={{ height: height }}
-          >
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--text-disabled)' }} />
-          </div>
-        ) : error ? (
-          <div 
-            className="flex flex-col items-center justify-center"
-            style={{ height: height, color: 'var(--text-disabled)' }}
-          >
-            <p className="text-sm">{error}</p>
-            <button
-              onClick={() => loadKLineData(activeTab)}
-              className="mt-2 text-sm px-4 py-1 rounded"
-              style={{ background: 'var(--accent-primary)', color: 'white' }}
+      {TABS.map((tab) => (
+        <TabsContent key={tab.key} value={tab.key} className="flex-1 p-4 mt-0">
+          {loading ? (
+            <div
+              className="flex items-center justify-center"
+              style={{ height: height }}
             >
-              重试
-            </button>
-          </div>
-        ) : (
-          <KLineChart data={klineData} height={height} />
-        )}
-      </div>
-    </div>
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--text-disabled)' }} />
+            </div>
+          ) : error ? (
+            <div
+              className="flex flex-col items-center justify-center"
+              style={{ height: height, color: 'var(--text-disabled)' }}
+            >
+              <p className="text-sm">{error}</p>
+              <button
+                onClick={() => loadKLineData(activeTab)}
+                className="mt-2 text-sm px-4 py-1 rounded"
+                style={{ background: 'var(--accent-primary)', color: 'white' }}
+              >
+                重试
+              </button>
+            </div>
+          ) : (
+            <KLineChart data={klineData} height={height} />
+          )}
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
