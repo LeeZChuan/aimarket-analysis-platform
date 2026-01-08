@@ -1,14 +1,20 @@
 import { create } from 'zustand';
 import {
-  Conversation,
   ConversationWithMessages,
   ConversationMessage,
   ConversationListItem,
   ConversationFilter,
   CreateConversationParams,
   ConversationStatus,
+  ChatRequest,
+  ChatSSEEvent,
 } from '../types/conversation';
+import type { AIMessage } from '../types/ai';
 import { conversationService } from '../services/conversationService';
+import { notifyError } from '../utils/notify';
+
+// 当前项目统一走后端接口，不使用本地模式/Mock
+const DEFAULT_USE_LOCAL_MODE = false;
 
 interface LocalConversation {
   id: string;
@@ -31,13 +37,18 @@ interface ConversationState {
   error: string | null;
   useLocalMode: boolean;
 
+  // 流式消息状态
+  streamingMessageId: string | null;
+  streamingContent: string;
+  isStreaming: boolean;
+
   setActiveConversation: (conversationId: string) => Promise<void>;
   createNewConversation: (params?: CreateConversationParams) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
   loadConversations: (filter?: ConversationFilter) => Promise<void>;
   addMessageToActive: (
     role: 'user' | 'assistant',
-    content: string | any,
+    content: string | AIMessage,
     model?: string
   ) => Promise<ConversationMessage | null>;
   updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
@@ -46,6 +57,18 @@ interface ConversationState {
   deleteConversation: (conversationId: string) => Promise<void>;
   clearError: () => void;
   initializeDefaultConversation: () => void;
+
+  // 流式消息管理方法
+  /** 添加本地用户消息到 UI（不调用后端，仅用于即时显示） */
+  addLocalUserMessage: (content: string) => ConversationMessage | null;
+  /** 开始流式消息（创建占位消息） */
+  startStreamingMessage: (messageId: string, model?: string) => void;
+  /** 追加内容到流式消息 */
+  appendToStreamingMessage: (content: string) => void;
+  /** 完成流式消息 */
+  finalizeStreamingMessage: (messageId: string, fullContent: string) => void;
+  /** 发送聊天消息（集成流式处理） */
+  sendChatMessage: (request: ChatRequest) => Promise<void>;
 }
 
 export const useConversationStore = create<ConversationState>((set, get) => ({
@@ -56,7 +79,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   localConversations: new Map(),
   isLoading: false,
   error: null,
-  useLocalMode: true,
+  useLocalMode: DEFAULT_USE_LOCAL_MODE,
+
+  // 流式消息状态初始值
+  streamingMessageId: null,
+  streamingContent: '',
+  isStreaming: false,
 
   setActiveConversation: async (conversationId: string) => {
     const { useLocalMode, localConversations } = get();
@@ -247,6 +275,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     if (useLocalMode) {
       const localList: ConversationListItem[] = Array.from(localConversations.values()).map(
         (conv) => ({
+          // local 模式下 content 可能是结构化 AIMessage，这里只截取字符串用于列表展示
           id: conv.id,
           title: conv.title,
           lastActivity: conv.lastActivity,
@@ -254,9 +283,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           stockSymbol: conv.stockSymbol,
           lastMessage:
             conv.messages.length > 0
-              ? typeof conv.messages[conv.messages.length - 1].content === 'string'
-                ? conv.messages[conv.messages.length - 1].content.substring(0, 100)
-                : 'AI Message'
+              ? (() => {
+                  const lastContent = conv.messages[conv.messages.length - 1].content;
+                  return typeof lastContent === 'string'
+                    ? lastContent.substring(0, 100)
+                    : 'AI Message';
+                })()
               : undefined,
         })
       );
@@ -287,7 +319,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   addMessageToActive: async (
     role: 'user' | 'assistant',
-    content: string | any,
+    content: string | AIMessage,
     model?: string
   ): Promise<ConversationMessage | null> => {
     const { activeConversationId, activeConversation, useLocalMode, localConversations } = get();
@@ -565,9 +597,229 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   initializeDefaultConversation: () => {
-    const { openTabs, activeConversationId } = get();
+    const { openTabs, activeConversationId, useLocalMode } = get();
+    // local 模式下：默认创建一个本地会话，保证用户打开面板即可直接输入
+    // remote 模式下：不自动创建空会话；仅在用户首次发送消息时再创建（避免无意义的后端会话记录）
+    if (!useLocalMode) return;
     if (openTabs.length === 0 && !activeConversationId) {
       get().createNewConversation({ title: 'New Conversation' });
+    }
+  },
+
+  // ==================== 流式消息管理方法 ====================
+
+  addLocalUserMessage: (content: string): ConversationMessage | null => {
+    const { activeConversationId, activeConversation } = get();
+    if (!activeConversationId || !activeConversation) {
+      return null;
+    }
+
+    const now = new Date();
+    const newMessage: ConversationMessage = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      conversationId: activeConversationId,
+      userId: activeConversation.userId,
+      role: 'user',
+      content,
+      createdAt: now,
+    };
+
+    // 更新本地状态，立即显示用户消息
+    set((state) => ({
+      activeConversation: state.activeConversation
+        ? {
+            ...state.activeConversation,
+            messages: [...state.activeConversation.messages, newMessage],
+            metadata: {
+              ...state.activeConversation.metadata,
+              messageCount: state.activeConversation.metadata.messageCount + 1,
+              lastActivity: now,
+            },
+          }
+        : null,
+      openTabs: state.openTabs.map((tab) =>
+        tab.id === activeConversationId
+          ? {
+              ...tab,
+              messageCount: tab.messageCount + 1,
+              lastActivity: now,
+              lastMessage: content.substring(0, 100),
+            }
+          : tab
+      ),
+    }));
+
+    return newMessage;
+  },
+
+  startStreamingMessage: (messageId: string, model?: string) => {
+    const { activeConversationId, activeConversation } = get();
+    if (!activeConversationId || !activeConversation) return;
+
+    const now = new Date();
+    const streamingMessage: ConversationMessage = {
+      id: messageId,
+      conversationId: activeConversationId,
+      userId: activeConversation.userId,
+      role: 'assistant',
+      content: '',
+      model,
+      createdAt: now,
+    };
+
+    set((state) => ({
+      streamingMessageId: messageId,
+      streamingContent: '',
+      isStreaming: true,
+      activeConversation: state.activeConversation
+        ? {
+            ...state.activeConversation,
+            messages: [...state.activeConversation.messages, streamingMessage],
+          }
+        : null,
+    }));
+  },
+
+  appendToStreamingMessage: (content: string) => {
+    const { streamingMessageId, activeConversation } = get();
+    if (!streamingMessageId || !activeConversation) return;
+
+    set((state) => {
+      const newStreamingContent = state.streamingContent + content;
+      return {
+        streamingContent: newStreamingContent,
+        activeConversation: state.activeConversation
+          ? {
+              ...state.activeConversation,
+              messages: state.activeConversation.messages.map((msg) =>
+                msg.id === streamingMessageId
+                  ? { ...msg, content: newStreamingContent }
+                  : msg
+              ),
+            }
+          : null,
+      };
+    });
+  },
+
+  finalizeStreamingMessage: (messageId: string, fullContent: string) => {
+    const { activeConversationId, activeConversation } = get();
+    if (!activeConversation) return;
+
+    const now = new Date();
+
+    set((state) => ({
+      streamingMessageId: null,
+      streamingContent: '',
+      isStreaming: false,
+      activeConversation: state.activeConversation
+        ? {
+            ...state.activeConversation,
+            messages: state.activeConversation.messages.map((msg) =>
+              msg.id === state.streamingMessageId || msg.id === messageId
+                ? { ...msg, id: messageId, content: fullContent }
+                : msg
+            ),
+            metadata: {
+              ...state.activeConversation.metadata,
+              messageCount: state.activeConversation.metadata.messageCount + 1,
+              lastActivity: now,
+            },
+          }
+        : null,
+      openTabs: state.openTabs.map((tab) =>
+        tab.id === activeConversationId
+          ? {
+              ...tab,
+              messageCount: tab.messageCount + 1,
+              lastActivity: now,
+              lastMessage: fullContent.substring(0, 100),
+            }
+          : tab
+      ),
+    }));
+  },
+
+  sendChatMessage: async (request: ChatRequest) => {
+    const { activeConversationId, addLocalUserMessage, startStreamingMessage, appendToStreamingMessage, finalizeStreamingMessage } = get();
+
+    if (!activeConversationId) {
+      set({ error: 'No active conversation' });
+      return;
+    }
+
+    // 1. 立即显示用户消息
+    addLocalUserMessage(request.content);
+
+    // 2. 开始流式请求
+    set({ isLoading: true, error: null });
+
+    // 临时消息ID，等待后端返回真实ID
+    const tempMessageId = `temp_${Date.now()}`;
+    let realAssistantMessageId = tempMessageId;
+    let hasStartedStreaming = false;
+
+    try {
+      await conversationService.chatWithStream(
+        activeConversationId,
+        request,
+        (event: ChatSSEEvent) => {
+          switch (event.type) {
+            case 'meta':
+              // 收到 meta 事件，开始流式消息
+              if (!hasStartedStreaming) {
+                startStreamingMessage(tempMessageId, request.modelId);
+                hasStartedStreaming = true;
+              }
+              break;
+
+            case 'delta':
+              // 追加增量内容
+              if (event.data.content) {
+                appendToStreamingMessage(event.data.content);
+              }
+              break;
+
+            case 'done':
+              // 完成流式消息，使用真实的消息ID
+              realAssistantMessageId = event.data.assistantMessageId;
+              finalizeStreamingMessage(realAssistantMessageId, event.data.content);
+              set({ isLoading: false });
+              break;
+
+            case 'error':
+              // 处理错误 - 弹出 toast 提示用户
+              notifyError('AI 响应失败', event.data.message);
+              set({
+                error: event.data.message,
+                isLoading: false,
+                isStreaming: false,
+                streamingMessageId: null,
+                streamingContent: '',
+              });
+              // 如果已经开始流式，需要在消息中显示错误
+              if (hasStartedStreaming) {
+                finalizeStreamingMessage(tempMessageId, `⚠️ 错误: ${event.data.message}`);
+              }
+              break;
+          }
+        }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '发送消息失败';
+      // 弹出 toast 提示用户
+      notifyError('发送消息失败', errorMessage);
+      set({
+        error: errorMessage,
+        isLoading: false,
+        isStreaming: false,
+        streamingMessageId: null,
+        streamingContent: '',
+      });
+      // 如果已经开始流式，显示错误
+      if (hasStartedStreaming) {
+        finalizeStreamingMessage(tempMessageId, `⚠️ 错误: ${errorMessage}`);
+      }
     }
   },
 }));

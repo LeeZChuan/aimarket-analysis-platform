@@ -6,6 +6,7 @@
  * - 协调会话标签栏、消息列表、输入框等子组件
  * - 处理消息发送、模型选择、会话管理等核心逻辑
  * - 支持多会话标签切换和历史记录查看
+ * - 支持 SSE 流式消息返回（打字机效果）
  *
  * 使用位置：
  * - /views/TradingView/index.tsx - 股票交易主视图（右侧AI助手面板）
@@ -17,7 +18,6 @@ import { Sparkles } from 'lucide-react';
 import { useStore } from '../../../store/useStore';
 import { useAIConfigStore } from '../../../store/useAIConfigStore';
 import { useConversationStore } from '../../../store/useConversationStore';
-import { sendAnalysisRequest } from '../../../services/aiService';
 import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
@@ -27,33 +27,31 @@ import { ConversationListItem } from '../../../types/conversation';
 export function ChatPanel() {
   const { selectedStock } = useStore();
   const {
-    initialized,
     initialize,
     selectedSceneId,
     selectedProviderId,
     selectedModelId,
-    useMock,
     scenes,
     providers,
     setSelectedScene,
     setProviderAndModel,
-    getCurrentProviderModels,
   } = useAIConfigStore();
 
   const {
     activeConversationId,
     activeConversation,
     openTabs,
+    isLoading,
+    isStreaming,
     setActiveConversation,
     createNewConversation,
-    addMessageToActive,
     updateConversationTitle,
     closeTab,
     openTab,
     initializeDefaultConversation,
+    sendChatMessage,
   } = useConversationStore();
 
-  const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   // 初始化 AI 配置
@@ -65,36 +63,37 @@ export function ChatPanel() {
     initializeDefaultConversation();
   }, [initializeDefaultConversation]);
 
+  /**
+   * 处理消息发送
+   * 使用后端 /api/conversations/:id/chat 接口，支持 SSE 流式返回
+   */
   const handleSend = async (message: string, images?: string[]) => {
-    if (!activeConversationId || isLoading) return;
+    // 如果正在加载或流式传输中，不允许发送
+    if (isLoading || isStreaming) return;
 
-    await addMessageToActive('user', message);
-    setIsLoading(true);
-
-    try {
-      const response = await sendAnalysisRequest(message, {
-        stockSymbol: selectedStock?.symbol || activeConversation?.metadata.stockSymbol || 'AAPL',
-        stockPrice: selectedStock?.price || activeConversation?.metadata.stockPrice || 178.72,
-        modelId: selectedModelId,
-        providerId: selectedProviderId,
-        sceneId: selectedSceneId,
-        useMock,
-        images,
+    // remote 模式下首次发送：如果当前没有会话，则先创建会话，再发送消息
+    let conversationId = activeConversationId;
+    if (!conversationId) {
+      await createNewConversation({
+        title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
+        stockSymbol: selectedStock?.symbol,
+        stockName: selectedStock?.name,
+        stockPrice: selectedStock?.price,
       });
-
-      if (response.status === 'success') {
-        await addMessageToActive('assistant', response.message, response.modelId);
-      } else {
-        await addMessageToActive(
-          'assistant',
-          `抱歉，分析请求失败：${response.error || '未知错误'}。请稍后重试。`
-        );
-      }
-    } catch (error) {
-      await addMessageToActive('assistant', '抱歉，系统出现错误，请稍后重试。');
-    } finally {
-      setIsLoading(false);
+      conversationId = useConversationStore.getState().activeConversationId;
     }
+
+    if (!conversationId) return;
+
+    // 使用新的聊天接口发送消息（支持 SSE 流式）
+    await sendChatMessage({
+      content: message,
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+      sceneId: selectedSceneId,
+      expectedType: 'markdown',
+      stream: true,
+    });
   };
 
   const handleNewConversation = () => {
@@ -148,13 +147,13 @@ export function ChatPanel() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <ChatMessageList
             messages={activeConversation?.messages || []}
-            isLoading={isLoading}
+            isLoading={isLoading || isStreaming}
           />
         </div>
 
         <ChatInput
           onSend={handleSend}
-          isLoading={isLoading}
+          isLoading={isLoading || isStreaming}
           // 场景选择
           selectedSceneId={selectedSceneId}
           availableScenes={scenes}

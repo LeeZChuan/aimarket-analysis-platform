@@ -15,8 +15,14 @@ import {
   UpdateConversationParams,
   ConversationStatus,
   ConversationStorage,
+  ChatRequest,
+  ChatSSEEvent,
+  ChatResponse,
 } from '../types/conversation';
 import { AIMessage } from '../types/ai';
+
+/** API 基础路径 */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * 对话服务类
@@ -233,6 +239,147 @@ class ConversationService implements ConversationStorage {
     }
     return content;
   }
+
+  // ==================== Chat API ====================
+
+  /**
+   * 发送聊天消息（支持 SSE 流式）
+   * 调用后端 POST /api/conversations/:id/chat 接口
+   * 
+   * @param conversationId - 对话ID
+   * @param request - 聊天请求参数
+   * @param onEvent - SSE 事件回调函数
+   */
+  async chatWithStream(
+    conversationId: string,
+    request: ChatRequest,
+    onEvent: (event: ChatSSEEvent) => void
+  ): Promise<void> {
+    const token = localStorage.getItem('token');
+    const url = `${API_BASE_URL}/conversations/${conversationId}/chat?stream=1`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Accept': 'text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...request,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      let errorMessage = `Chat failed: ${response.status}`;
+      try {
+        const errorData = JSON.parse(text);
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        if (text) errorMessage = text;
+      }
+      onEvent({ type: 'error', data: { message: errorMessage } });
+      throw new Error(errorMessage);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      onEvent({ type: 'error', data: { message: 'No response body' } });
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let currentEvent = 'message';
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE 事件以空行分隔
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) >= 0) {
+          const chunk = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+
+          const lines = chunk.split('\n').map(s => s.replace(/\r$/, ''));
+          let dataStr = '';
+          currentEvent = 'message';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              currentEvent = line.slice(6).trim();
+            }
+            if (line.startsWith('data:')) {
+              dataStr += line.slice(5).trim();
+            }
+          }
+
+          if (!dataStr) continue;
+
+          let data: any;
+          try {
+            data = JSON.parse(dataStr);
+          } catch {
+            data = dataStr;
+          }
+
+          // 根据事件类型触发回调
+          switch (currentEvent) {
+            case 'meta':
+              onEvent({ type: 'meta', data });
+              break;
+            case 'delta':
+              onEvent({ type: 'delta', data });
+              break;
+            case 'done':
+              onEvent({ type: 'done', data });
+              break;
+            case 'error':
+              onEvent({ type: 'error', data: { message: data.message || 'Unknown error' } });
+              break;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
+   * 发送聊天消息（非流式）
+   * 调用后端 POST /api/conversations/:id/chat 接口
+   * 
+   * @param conversationId - 对话ID
+   * @param request - 聊天请求参数
+   * @returns 包含 user 和 assistant 消息的响应
+   */
+  async chat(
+    conversationId: string,
+    request: Omit<ChatRequest, 'stream'>
+  ): Promise<ChatResponse> {
+    const response = await http.post<ChatResponse>(
+      `/conversations/${conversationId}/chat`,
+      {
+        ...request,
+        stream: false,
+      }
+    );
+
+    // 转换消息中的日期和内容
+    const messages = (response.data.messages || []).map(msg => ({
+      ...msg,
+      createdAt: new Date(msg.createdAt),
+      content: this.parseMessageContent(msg.content),
+    }));
+
+    return { messages };
+  }
 }
 
 /**
@@ -291,3 +438,22 @@ export const getMessages = (
   cursor?: string
 ): Promise<ConversationMessage[]> =>
   conversationService.getMessages(conversationId, limit, cursor);
+
+/**
+ * 便捷方法：发送聊天消息（流式）
+ */
+export const chatWithStream = (
+  conversationId: string,
+  request: ChatRequest,
+  onEvent: (event: ChatSSEEvent) => void
+): Promise<void> =>
+  conversationService.chatWithStream(conversationId, request, onEvent);
+
+/**
+ * 便捷方法：发送聊天消息（非流式）
+ */
+export const chat = (
+  conversationId: string,
+  request: Omit<ChatRequest, 'stream'>
+): Promise<ChatResponse> =>
+  conversationService.chat(conversationId, request);

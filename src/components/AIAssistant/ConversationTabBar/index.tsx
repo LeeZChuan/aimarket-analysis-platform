@@ -102,76 +102,86 @@ export function ConversationTabBar({
 
       <div className="flex items-center gap-1 px-2 py-1 flex-1 overflow-x-auto scrollbar-thin scrollbar-track-transparent">
         <div className="flex items-center gap-1 min-w-0">
-          {openTabs.map((tab) => (
+          {openTabs.length === 0 ? (
             <div
-              key={tab.id}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-t transition-colors cursor-pointer group min-w-[120px] max-w-[200px]"
-              style={
-                activeTabId === tab.id
-                  ? { background: 'var(--bg-secondary)', color: 'var(--text-primary)' }
-                  : { background: 'var(--bg-primary)', color: 'var(--text-muted)' }
-              }
-              onMouseEnter={(e) => {
-                if (activeTabId !== tab.id) {
-                  e.currentTarget.style.background = 'var(--bg-secondary)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTabId !== tab.id) {
-                  e.currentTarget.style.background = 'var(--bg-primary)';
-                }
-              }}
-              onClick={() => onTabClick(tab.id)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-t min-w-[120px] max-w-[200px]"
+              style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+              title="尚未创建会话：首次发送消息时才会创建"
             >
-              {editingTabId === tab.id ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={editingTitle}
-                  onChange={(e) => setEditingTitle(e.target.value)}
-                  onBlur={handleSaveEdit}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 bg-transparent text-xs focus:outline-none"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <>
-                  <span className="flex-1 text-xs truncate">{tab.title}</span>
-                  {onRenameTab && (
-                    <button
-                      onClick={(e) => handleStartEdit(tab, e)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--bg-tertiary)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                      }}
-                      title="重命名"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTabClose(tab.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
+              <span className="flex-1 text-xs truncate">新对话</span>
+            </div>
+          ) : (
+            openTabs.map((tab) => (
+              <div
+                key={tab.id}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-t transition-colors cursor-pointer group min-w-[120px] max-w-[200px]"
+                style={
+                  activeTabId === tab.id
+                    ? { background: 'var(--bg-secondary)', color: 'var(--text-primary)' }
+                    : { background: 'var(--bg-primary)', color: 'var(--text-muted)' }
+                }
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                  if (activeTabId !== tab.id) {
+                    e.currentTarget.style.background = 'var(--bg-secondary)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
+                  if (activeTabId !== tab.id) {
+                    e.currentTarget.style.background = 'var(--bg-primary)';
+                  }
                 }}
-                title="关闭"
+                onClick={() => onTabClick(tab.id)}
               >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
+                {editingTabId === tab.id ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onBlur={handleSaveEdit}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1 bg-transparent text-xs focus:outline-none"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <>
+                    <span className="flex-1 text-xs truncate">{tab.title}</span>
+                    {onRenameTab && (
+                      <button
+                        onClick={(e) => handleStartEdit(tab, e)}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--bg-tertiary)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                        title="重命名"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTabClose(tab.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-tertiary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                  title="关闭"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
