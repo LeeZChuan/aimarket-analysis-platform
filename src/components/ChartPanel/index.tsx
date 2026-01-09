@@ -20,11 +20,13 @@ import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
 import { useChartStore } from '../../store/useChartStore';
 import { useThemeStore } from '../../store/useThemeStore';
+import { stockService } from '../../services/stockService';
+import { notifyWarning } from '../../utils/notify';
 import { DrawingToolbar, DrawingTool } from './DrawingToolbar';
 import { TimeRange } from './TimeRangeSelector';
 import { StockInfoBar } from './StockInfoBar';
 import { ChartToolbar } from './ChartToolbar';
-import { generateMockData, convertKLineData } from './chartDataUtils';
+import { convertKLineData } from './chartDataUtils';
 import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
 import { RegionSelectionModal } from './RegionSelectionModal';
 import type { RegionSelectionData } from '../../store/useChartStore';
@@ -32,6 +34,35 @@ import type { RegionSelectionData } from '../../store/useChartStore';
 const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 };
+
+const normalizeTimestampToMs = (timestamp: number): number => {
+  // 兼容后端返回秒级时间戳的情况（秒级通常在 1e10 左右；毫秒级在 1e13 左右）
+  return timestamp < 1e12 ? timestamp * 1000 : timestamp;
+};
+
+const toChartKLineData = (
+  data: Array<{
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume?: number;
+  }>
+): KLineData[] => {
+  return data
+    .map((d) => ({
+      timestamp: normalizeTimestampToMs(d.timestamp),
+      open: d.open,
+      high: d.high,
+      low: d.low,
+      close: d.close,
+      volume: d.volume ?? 0,
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+};
+
+const formatDateYYYYMMDD = (date: Date): string => date.toISOString().slice(0, 10);
 
 export function ChartPanel() {
   const { selectedStock } = useStore();
@@ -56,6 +87,8 @@ export function ChartPanel() {
   const [hoveredData, setHoveredData] = useState<KLineData | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
   const [showSelectionModal, setShowSelectionModal] = useState(false);
+  const [dailyData, setDailyData] = useState<KLineData[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
@@ -64,75 +97,66 @@ export function ChartPanel() {
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    if (!chartRef.current) {
-      const chart = init(chartContainerRef.current, {
-        styles: {
-          grid: {
-            horizontal: { color: getCSSVar('--chart-grid') },
-            vertical: { color: getCSSVar('--chart-grid') },
-          },
-          candle: {
-            type: 'candle_solid',
-            bar: {
-              upColor: getCSSVar('--chart-candle-up'),
-              downColor: getCSSVar('--chart-candle-down'),
-              upBorderColor: getCSSVar('--chart-candle-up'),
-              downBorderColor: getCSSVar('--chart-candle-down'),
-              upWickColor: getCSSVar('--chart-candle-up'),
-              downWickColor: getCSSVar('--chart-candle-down'),
-            },
-          },
-          indicator: {
-            lastValueMark: { show: false },
-            tooltip: {
-              showRule: 'always',
-              showType: 'rect',
-              text: { size: 12, color: getCSSVar('--text-secondary') },
-            },
+    if (chartRef.current) return;
+
+    const chart = init(chartContainerRef.current, {
+      styles: {
+        grid: {
+          horizontal: { color: getCSSVar('--chart-grid') },
+          vertical: { color: getCSSVar('--chart-grid') },
+        },
+        candle: {
+          type: 'candle_solid',
+          bar: {
+            upColor: getCSSVar('--chart-candle-up'),
+            downColor: getCSSVar('--chart-candle-down'),
+            upBorderColor: getCSSVar('--chart-candle-up'),
+            downBorderColor: getCSSVar('--chart-candle-down'),
+            upWickColor: getCSSVar('--chart-candle-up'),
+            downWickColor: getCSSVar('--chart-candle-down'),
           },
         },
-      });
+        indicator: {
+          lastValueMark: { show: false },
+          tooltip: {
+            showRule: 'always',
+            showType: 'rect',
+            text: { size: 12, color: getCSSVar('--text-secondary') },
+          },
+        },
+      },
+    });
 
-      if (chart) {
-        chartRef.current = chart;
+    if (!chart) return;
 
-        if (!indicatorIdsRef.current.has('VOL')) {
-          const volId = chart.createIndicator('VOL', true);
-          if (volId) {
-            indicatorIdsRef.current.set('VOL', volId);
-            setIndicators(['VOL']);
-          }
-        }
+    chartRef.current = chart;
 
-        chart.subscribeAction('crosshair', (data) => {
-          if (data && data.kLineData) {
-            setHoveredData(data.kLineData as KLineData);
-          } else {
-            setHoveredData(null);
-          }
-        });
-
-        const resizeObserver = new ResizeObserver(() => {
-          if (chartContainerRef.current && chartRef.current) {
-            chartRef.current.resize();
-          }
-        });
-
-        if (chartContainerRef.current) {
-          resizeObserver.observe(chartContainerRef.current);
-        }
-
-        const dailyData = generateMockData(1250, selectedStock);
-        const convertedData = convertKLineData(dailyData, timeRange);
-        chart.applyNewData(convertedData);
-
-        return () => {
-          resizeObserver.disconnect();
-        };
+    if (!indicatorIdsRef.current.has('VOL')) {
+      const volId = chart.createIndicator('VOL', true);
+      if (volId) {
+        indicatorIdsRef.current.set('VOL', volId);
+        setIndicators(['VOL']);
       }
     }
 
+    chart.subscribeAction('crosshair', (data) => {
+      if (data && data.kLineData) {
+        setHoveredData(data.kLineData as KLineData);
+      } else {
+        setHoveredData(null);
+      }
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.resize();
+      }
+    });
+
+    resizeObserver.observe(chartContainerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       if (chartRef.current && chartContainerRef.current) {
         dispose(chartContainerRef.current);
         chartRef.current = null;
@@ -140,7 +164,73 @@ export function ChartPanel() {
         setIndicators([]);
       }
     };
-  }, [selectedStock, timeRange]);
+  }, []);
+
+  // 后端优先加载日K数据，失败/无数据则回退到 mock（保证图表可用）
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDailyKLine = async () => {
+      if (!selectedStock?.symbol) {
+        // 未选中股票：清空数据，交给 UI 显示“请选择股票”
+        if (!cancelled) {
+          setDailyData([]);
+          setIsLoadingData(false);
+        }
+        return;
+      }
+
+      try {
+        if (!cancelled) setIsLoadingData(true);
+        const days = 1250;
+        // trading-days 约 1250，对应自然日做一个近似放大，覆盖周末/节假日
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - Math.ceil(days * 1.7));
+        const end = new Date();
+        end.setHours(0, 0, 0, 0);
+
+        const apiData = await stockService.getKLineData(
+          selectedStock.symbol,
+          'day',
+          formatDateYYYYMMDD(start),
+          formatDateYYYYMMDD(end)
+        );
+
+        if (cancelled) return;
+
+        const normalized = toChartKLineData(apiData);
+        if (normalized.length > 0) {
+          setDailyData(normalized);
+        } else {
+          setDailyData([]);
+          notifyWarning('暂无K线数据');
+        }
+      } catch (e) {
+        if (!cancelled) setDailyData([]);
+        notifyWarning('获取K线数据失败');
+      } finally {
+        if (!cancelled) setIsLoadingData(false);
+      }
+    };
+
+    loadDailyKLine();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStock?.symbol]);
+
+  // 根据时间周期把日线转换为目标周期，并喂给图表
+  useEffect(() => {
+    if (!chartRef.current) return;
+    if (!dailyData || dailyData.length === 0) {
+      // 清空旧数据，避免切换到“无数据股票”时还展示上一个股票
+      chartRef.current.applyNewData([]);
+      return;
+    }
+    chartRef.current.applyNewData(convertKLineData(dailyData, timeRange));
+  }, [dailyData, timeRange]);
 
   useEffect(() => {
     if (chartRef.current) {
@@ -171,12 +261,6 @@ export function ChartPanel() {
   const handleTimeRangeChange = (range: TimeRange) => {
     if (timeRange === range) return;
     setTimeRange(range);
-
-    if (chartRef.current) {
-      const dailyData = generateMockData(1250, selectedStock);
-      const convertedData = convertKLineData(dailyData, range);
-      chartRef.current.applyNewData(convertedData);
-    }
   };
 
   const toggleIndicator = (indicator: string) => {
@@ -521,7 +605,25 @@ export function ChartPanel() {
             </div>
           )}
 
-          <div ref={chartContainerRef} className="flex-1 min-h-0" />
+          <div className="flex-1 min-h-0 relative">
+            <div ref={chartContainerRef} className="absolute inset-0" />
+
+            {!isLoadingData && !selectedStock?.symbol && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-sm" style={{ color: 'var(--text-disabled)' }}>
+                  请选择股票
+                </div>
+              </div>
+            )}
+
+            {!isLoadingData && selectedStock?.symbol && dailyData.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-sm" style={{ color: 'var(--text-disabled)' }}>
+                  暂无数据
+                </div>
+              </div>
+            )}
+          </div>
 
           <ChartToolbar
             timeRange={timeRange}

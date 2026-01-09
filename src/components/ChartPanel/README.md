@@ -118,13 +118,9 @@ ChartPanel/
 ### 8. chartDataUtils.ts (数据工具函数)
 - **职责**: K线数据生成和转换
 - **功能**:
-  - `generateMockData()`: 生成模拟K线数据
   - `convertKLineData()`: 转换不同时间周期数据
   - `aggregateKLineData()`: K线数据聚合
-- **算法**:
-  - 伪随机数生成（基于股票代码）
-  - 趋势模拟（涨跌趋势）
-  - 成交量计算
+  
 
 ## 重构收益
 
