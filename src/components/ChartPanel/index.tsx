@@ -35,10 +35,6 @@ const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 };
 
-const normalizeTimestampToMs = (timestamp: number): number => {
-  // 兼容后端返回秒级时间戳的情况（秒级通常在 1e10 左右；毫秒级在 1e13 左右）
-  return timestamp < 1e12 ? timestamp * 1000 : timestamp;
-};
 
 const toChartKLineData = (
   data: Array<{
@@ -50,19 +46,9 @@ const toChartKLineData = (
     volume?: number;
   }>
 ): KLineData[] => {
-  return data
-    .map((d) => ({
-      timestamp: normalizeTimestampToMs(d.timestamp),
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close,
-      volume: d.volume ?? 0,
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp);
+  return Array.from(data.values()).sort((a, b) => a.timestamp - b.timestamp);
 };
 
-const formatDateYYYYMMDD = (date: Date): string => date.toISOString().slice(0, 10);
 
 export function ChartPanel() {
   const { selectedStock } = useStore();
@@ -182,19 +168,15 @@ export function ChartPanel() {
 
       try {
         if (!cancelled) setIsLoadingData(true);
-        const days = 1250;
-        // trading-days 约 1250，对应自然日做一个近似放大，覆盖周末/节假日
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        start.setDate(start.getDate() - Math.ceil(days * 1.7));
-        const end = new Date();
-        end.setHours(0, 0, 0, 0);
+        // TODO: 这里起止时间计划走当前后台存的时间2000-01-03至近的数据
+        const start = '2000-01-03';
+        const end = '2025-12-31';
 
         const apiData = await stockService.getKLineData(
           selectedStock.symbol,
           'day',
-          formatDateYYYYMMDD(start),
-          formatDateYYYYMMDD(end)
+          start,
+          end
         );
 
         if (cancelled) return;

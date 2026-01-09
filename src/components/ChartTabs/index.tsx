@@ -63,15 +63,15 @@ export function ChartTabs({
       switch (tab) {
         case 'stock':
           // 获取个股K线
-          data = await stockService.getKLineChartData(stockSymbol, 'day', 120);
+          data = await stockService.getKLineChartData(stockSymbol, 'day', 3650);
           break;
         case 'industry':
           // 获取行业指数K线
-          data = await stockService.getIndustryKLine(stockSector, 'day', 120);
+          data = await stockService.getIndustryKLine(stockSector, 'day', 3650);
           break;
         case 'market':
           // 获取大盘指数K线（默认标普500）
-          data = await stockService.getMarketIndexKLine('SPX', 'day', 120);
+          data = await stockService.getMarketIndexKLine('SPX', 'day', 3650);
           break;
       }
       
