@@ -2,6 +2,11 @@
 
 一个基于 **React 18 + TypeScript + Vite** 的股票分析与交易前端示例，包含 K 线图表、股票搜索、自选股、AI 对话等模块。
 
+## 📦 部署文档
+
+- **[快速部署指南](./QUICK_DEPLOY.md)** - 5 分钟快速上手部署
+- **[完整部署文档](./DEPLOYMENT.md)** - 详细的部署流程、配置说明和故障排查
+
 ## 快速开始
 
 ### 环境要求
@@ -63,12 +68,13 @@ src/
 ## 关键约定（重要）
 
 ### 统一 UI 组件库
-- 项目已接入 **Mantine**（`@mantine/core`），新 UI 优先使用 Mantine 组件体系。
-- 全局顶部通知使用 `@mantine/notifications`，入口在 `src/main.tsx` 已挂载。
+- 项目已接入 **shadcn/ui + Tailwind CSS**，新 UI 优先使用 shadcn/ui 组件体系。
+- 全局顶部通知使用 `sonner`，入口在 `src/main.tsx` 已挂载 `<Toaster position="top-center" />`。
+- 通知封装在 `src/utils/notify.ts`（`notifyError/notifyWarning/notifySuccess`）。
 
 ### 统一请求与错误提示
 - 所有 HTTP 请求统一走 `src/services/request.ts`
-- 后端报错/非成功 code 会触发顶部通知（toast），通知封装在 `src/utils/notify.ts`
+- 后端报错/非成功 code 会触发顶部通知（toast）
 
 ## FAQ
 
