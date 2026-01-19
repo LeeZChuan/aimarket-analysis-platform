@@ -27,8 +27,6 @@ npm run build
 在 Bolt 项目设置中添加：
 ```
 VITE_API_BASE_URL=http://120.55.168.184
-VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co
-VITE_SUPABASE_ANON_KEY=（从 .env 文件复制完整 key）
 ```
 
 ### 5️⃣ 配置构建设置

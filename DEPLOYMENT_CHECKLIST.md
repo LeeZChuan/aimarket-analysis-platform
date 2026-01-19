@@ -18,12 +18,7 @@
   Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-Id
   ```
 - [ ] 所有必需的 API 端点已实现（见下方清单）
-
-### 数据库检查（Supabase）
-- [ ] Supabase 项目正常运行
-- [ ] 数据库表已创建
-- [ ] RLS 策略已配置
-- [ ] 环境变量中的 Supabase URL 和 Key 正确
+- [ ] （可选）后端数据库（MySQL）连接正常（查看后端日志/健康检查）
 
 ---
 
@@ -96,8 +91,6 @@
 ### 2. 环境变量配置
 在 Bolt 项目设置中添加：
 - [ ] `VITE_API_BASE_URL=http://120.55.168.184`
-- [ ] `VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co`
-- [ ] `VITE_SUPABASE_ANON_KEY=（完整的 key）`
 
 ### 3. 构建配置
 - [ ] Build Command: `npm run build`

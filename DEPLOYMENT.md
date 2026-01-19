@@ -15,14 +15,12 @@
 ### 技术栈
 - **前端框架**: React + TypeScript + Vite
 - **UI 组件**: shadcn/ui + Tailwind CSS
-- **数据库**: Supabase
+- **数据库**: MySQL（由后端 Node.js 服务内部使用）
 - **后端服务**: 120.55.168.184:80
 
 ### 架构说明
 ```
-前端 (React SPA)  ←→  后端 API (120.55.168.184:80)
-                 ↓
-              Supabase 数据库
+前端 (React SPA)  ←→  后端 API (120.55.168.184:80)  ←→  MySQL（后端内部）
 ```
 
 ---
@@ -36,10 +34,6 @@
 ```env
 # 后端 API 地址
 VITE_API_BASE_URL=http://120.55.168.184
-
-# Supabase 数据库配置
-VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGci...（已配置）
 ```
 
 ### 2. API 请求说明
@@ -105,8 +99,6 @@ npm run preview
 在 Bolt 项目设置中添加环境变量：
 ```
 VITE_API_BASE_URL=http://120.55.168.184
-VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co
-VITE_SUPABASE_ANON_KEY=（完整的 key）
 ```
 
 #### 步骤 5：配置构建命令
@@ -229,13 +221,12 @@ export default defineConfig({
 })
 ```
 
-### Q5: Supabase 连接失败
-**原因**: 环境变量未正确配置
+### Q5: 后端数据库相关错误（MySQL）
+**说明**: 本项目数据库使用 MySQL，且数据库逻辑在后端 Node.js 服务内；**前端部署无需单独配置/部署数据库**。
 
-**解决方案**:
-确认以下环境变量已设置：
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+**排查建议**:
+- 确认后端服务已正确配置 MySQL 连接并可用（查看后端日志）
+- 确认后端对外 API 正常返回数据（前端只依赖 API）
 
 ---
 

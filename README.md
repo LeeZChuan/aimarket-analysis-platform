@@ -28,10 +28,6 @@ npm run dev
 ```env
 # 可选：后端 API 基础地址（默认 /api，会被 Vite 代理到 http://localhost:3000）
 VITE_API_BASE_URL=/api
-
-# 可选：Supabase（仅在你启用对话持久化等能力时需要）
-VITE_SUPABASE_URL=xxx
-VITE_SUPABASE_ANON_KEY=xxx
 ```
 
 ## 常用命令
