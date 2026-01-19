@@ -36,6 +36,7 @@ export function Table({
   onRowClick,
   onSortChange,
   onColumnOrderChange,
+  onScroll,
   className = '',
 }: TableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -155,6 +156,10 @@ export function Table({
     rafRef.current = requestAnimationFrame(() => {
       setScrollTop(newScrollTop);
       setScrollLeft(newScrollLeft);
+
+      if (onScroll) {
+        onScroll(newScrollTop, target.scrollHeight, target.clientHeight);
+      }
     });
   };
 

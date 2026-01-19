@@ -103,3 +103,10 @@ Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-Id
 ---
 
 详细文档请查看：[DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
+更多文档：
+- [后端 API 规格说明](./BACKEND_API_SPEC.md)
+- [部署检查清单](./DEPLOYMENT_CHECKLIST.md)
+- [本地开发指南](./LOCAL_DEVELOPMENT.md)

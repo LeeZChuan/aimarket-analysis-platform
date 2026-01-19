@@ -77,6 +77,8 @@ export interface TableProps {
   onSortChange?: (sortState: SortState | null) => void;
   /** 列顺序变化回调 */
   onColumnOrderChange?: (newColumns: ColumnConfig[]) => void;
+  /** 滚动事件回调 */
+  onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void;
 }
 
 /**
