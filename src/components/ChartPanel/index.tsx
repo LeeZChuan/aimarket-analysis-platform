@@ -167,7 +167,11 @@ export function ChartPanel() {
       }
 
       try {
-        if (!cancelled) setIsLoadingData(true);
+        if (!cancelled) {
+          // 切换股票时，先清空旧数据，避免短暂显示上一只股票的K线
+          setIsLoadingData(true);
+          setDailyData([]);
+        }
         // TODO: 这里起止时间计划走当前后台存的时间2000-01-03至近的数据
         const start = '2000-01-03';
         const end = '2025-12-31';
@@ -589,6 +593,34 @@ export function ChartPanel() {
 
           <div className="flex-1 min-h-0 relative">
             <div ref={chartContainerRef} className="absolute inset-0" />
+
+            {isLoadingData && (
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  background: 'rgba(0,0,0,0.10)',
+                  backdropFilter: 'blur(2px)',
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-md shadow-sm"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-primary)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full animate-spin"
+                    style={{
+                      border: '2px solid var(--border-primary)',
+                      borderTopColor: 'var(--accent-primary)',
+                    }}
+                  />
+                  <span className="text-xs">加载K线中...</span>
+                </div>
+              </div>
+            )}
 
             {!isLoadingData && !selectedStock?.symbol && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
