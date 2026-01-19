@@ -33,7 +33,7 @@
 
 ```env
 # 后端 API 地址
-VITE_API_BASE_URL=http://120.55.168.184
+VITE_API_BASE_URL=http://120.55.168.184/api
 ```
 
 ### 2. API 请求说明

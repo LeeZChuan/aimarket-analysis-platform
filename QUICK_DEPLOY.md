@@ -26,7 +26,7 @@ npm run build
 ### 4️⃣ 配置环境变量
 在 Bolt 项目设置中添加：
 ```
-VITE_API_BASE_URL=http://120.55.168.184
+VITE_API_BASE_URL=http://120.55.168.184/api
 ```
 
 ### 5️⃣ 配置构建设置
