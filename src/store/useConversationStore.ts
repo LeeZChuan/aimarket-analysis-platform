@@ -12,8 +12,6 @@ import {
 import type { AIMessage } from '../types/ai';
 import { conversationService } from '../services/conversationService';
 import { notifyError } from '../utils/notify';
-import { templateRegistry } from '../prompt';
-import type { PromptContext } from '../prompt';
 
 // 当前项目统一走后端接口，不使用本地模式/Mock
 const DEFAULT_USE_LOCAL_MODE = false;
@@ -754,36 +752,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const rawUserInput = request.content;
     addLocalUserMessage(rawUserInput);
 
-    // 2) 请求发送：若提供 sceneId，则用模板渲染加工后的提示词
-    //   - content: 渲染后的 userPrompt
-    //   - systemPrompt: 渲染后的 systemPrompt（若存在）
-    let outboundRequest: ChatRequest = { ...request };
-    if (request.sceneId) {
-      try {
-        const activeConv = get().activeConversation;
-        const ctx: PromptContext = {
-          user: {
-            message: rawUserInput,
-          },
-          stock: activeConv?.metadata?.stockSymbol
-            ? {
-                symbol: activeConv.metadata.stockSymbol,
-                name: activeConv.metadata.stockName,
-                price: activeConv.metadata.stockPrice,
-              }
-            : undefined,
-        };
-
-        const rendered = templateRegistry.renderByScene(request.sceneId, ctx);
-        outboundRequest = {
-          ...request,
-          content: rendered.userPrompt,
-          systemPrompt: rendered.systemPrompt,
-        };
-      } catch (e) {
-        console.warn('[PromptEngine] renderByScene failed, fallback to raw content:', e);
-      }
-    }
+    // 2) 请求发送：直接发送给后端，后端负责提示词渲染
+    // 后端会根据 sceneId 使用对应的模板渲染提示词
+    const outboundRequest: ChatRequest = { ...request };
 
     // 2. 开始流式请求
     set({ isLoading: true, error: null });

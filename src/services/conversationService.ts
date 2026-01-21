@@ -68,6 +68,7 @@ class ConversationService implements ConversationStorage {
     // 转换日期字符串为Date对象
     const conversations = response.data.conversations.map(conv => ({
       ...conv,
+      id: String(conv.id),
       lastActivity: new Date(conv.lastActivity),
     }));
 
@@ -83,25 +84,42 @@ class ConversationService implements ConversationStorage {
    */
   async getConversation(id: string): Promise<ConversationWithMessages | null> {
     try {
-      const response = await http.get<ConversationWithMessages>(`/conversations/${id}`);
-      
+      const response = await http.get<ConversationWithMessages | { conversation: ConversationWithMessages; messages?: ConversationMessage[] }>(
+        `/conversations/${id}`
+      );
+
       if (!response.data) {
         return null;
       }
 
-      const data = response.data;
-      
+      const raw = response.data as any;
+      const conversation = raw.conversation ?? raw;
+      const messages = Array.isArray(raw.messages)
+        ? raw.messages
+        : Array.isArray(conversation.messages)
+          ? conversation.messages
+          : [];
+
+      if (!conversation) return null;
+
+      const safeLastActivity = conversation.metadata?.lastActivity
+        ? new Date(conversation.metadata.lastActivity)
+        : new Date();
+
       // 转换日期字符串为Date对象
       return {
-        ...data,
+        ...conversation,
+        id: String(conversation.id),
         metadata: {
-          ...data.metadata,
-          lastActivity: new Date(data.metadata.lastActivity),
+          ...conversation.metadata,
+          lastActivity: safeLastActivity,
         },
-        createdAt: new Date(data.createdAt),
-        updatedAt: new Date(data.updatedAt),
-        messages: data.messages.map(msg => ({
+        createdAt: new Date(conversation.createdAt),
+        updatedAt: new Date(conversation.updatedAt),
+        messages: messages.map((msg) => ({
           ...msg,
+          id: String(msg.id),
+          conversationId: String(msg.conversationId ?? conversation.id),
           createdAt: new Date(msg.createdAt),
           content: this.parseMessageContent(msg.content),
         })),
@@ -128,6 +146,7 @@ class ConversationService implements ConversationStorage {
     
     return {
       ...data,
+      id: String(data.id),
       metadata: {
         ...data.metadata,
         lastActivity: new Date(data.metadata.lastActivity),
@@ -149,6 +168,7 @@ class ConversationService implements ConversationStorage {
     
     return {
       ...data,
+      id: String(data.id),
       metadata: {
         ...data.metadata,
         lastActivity: new Date(data.metadata.lastActivity),
@@ -192,6 +212,8 @@ class ConversationService implements ConversationStorage {
     
     return {
       ...data,
+      id: String(data.id),
+      conversationId: String(data.conversationId),
       createdAt: new Date(data.createdAt),
       content: this.parseMessageContent(data.content),
     };
@@ -220,6 +242,8 @@ class ConversationService implements ConversationStorage {
 
     return (response.data.messages || []).map(msg => ({
       ...msg,
+      id: String(msg.id),
+      conversationId: String(msg.conversationId),
       createdAt: new Date(msg.createdAt),
       content: this.parseMessageContent(msg.content),
     }));

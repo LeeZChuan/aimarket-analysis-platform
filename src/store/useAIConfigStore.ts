@@ -7,8 +7,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { aiService, getSceneOptions, getProviderOptions } from '../services/aiService';
-import { templateRegistry } from '../prompt';
-import type { SceneConfig } from '../prompt';
+import type { SceneConfig } from '../types/scene';
 
 /**
  * 供应商和模型信息
@@ -91,14 +90,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           getSceneOptions(),
           getProviderOptions(),
         ]);
-
-        // 注册后端下发的场景映射（sceneId -> systemTemplateId/sceneTemplateId）
-        // 注意：模板本身由 initializeTemplates() 在应用启动时注册
-        try {
-          templateRegistry.registerScenes(scenes);
-        } catch (e) {
-          console.warn('[PromptEngine] Register scenes failed:', e);
-        }
 
         // 若当前选择不存在，则回退到第一个可用项
         const nextSceneId =
@@ -204,4 +195,3 @@ export const useAIConfigStore = create<AIConfigState>()(
     }
   )
 );
-

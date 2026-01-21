@@ -5,8 +5,8 @@
  */
 
 import { http } from './request';
-import { AIAnalysisRequest, AIAnalysisResponse, AIMessageType, AIMessage } from '../types/ai';
-import type { SceneConfig as PromptSceneConfig } from '../prompt';
+import { AIAnalysisRequest, AIAnalysisResponse, AIMessageType } from '../types/ai';
+import type { SceneConfig } from '../types/scene';
 
 // ==================== 类型定义 ====================
 
@@ -68,8 +68,8 @@ interface BackendProvider {
   models: AIModel[];
 }
 
-// 注意：场景配置类型以 prompt 模块的 SceneConfig 为准（包含模板映射字段）
-export type SceneConfig = PromptSceneConfig;
+// 导出 SceneConfig 类型供其他模块使用
+export type { SceneConfig };
 
 /**
  * 选中的模型

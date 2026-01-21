@@ -52,6 +52,7 @@ export function ChatPanel() {
     sendChatMessage,
   } = useConversationStore();
 
+
   const [showHistory, setShowHistory] = useState(false);
 
   // 初始化 AI 配置

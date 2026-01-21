@@ -16,7 +16,7 @@
 import { useState, useRef } from 'react';
 import { Send, Image as ImageIcon, X, ChevronDown, Box } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
-import type { SceneConfig } from '../../../prompt';
+import type { SceneConfig } from '../../../types/scene';
 
 interface ModelOption {
   id: string;
