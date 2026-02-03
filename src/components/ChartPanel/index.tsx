@@ -21,7 +21,8 @@ import { useStore } from '../../store/useStore';
 import { useChartStore } from '../../store/useChartStore';
 import { useThemeStore } from '../../store/useThemeStore';
 import { stockService } from '../../services/stockService';
-import { notifyWarning } from '../../utils/notify';
+import { notifyWarning, notifySuccess, notifyError } from '../../utils/notify';
+import { captureScreenshot } from '../../utils/screenshot';
 import { DrawingToolbar, DrawingTool } from './DrawingToolbar';
 import { TimeRange } from './TimeRangeSelector';
 import { StockInfoBar } from './StockInfoBar';
@@ -537,6 +538,16 @@ export function ChartPanel() {
     }
   };
 
+  const handleScreenshot = async () => {
+    try {
+      await captureScreenshot();
+      notifySuccess('截图已保存');
+    } catch (error) {
+      console.error('Screenshot error:', error);
+      notifyError('截图失败');
+    }
+  };
+
   return (
     <>
       <div className="h-full w-full flex" style={{ background: 'var(--bg-primary)' }}>
@@ -654,6 +665,7 @@ export function ChartPanel() {
             onToggleIndicatorMenu={() => setShowIndicatorMenu(!showIndicatorMenu)}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
+            onScreenshot={handleScreenshot}
           />
         </div>
       </div>
