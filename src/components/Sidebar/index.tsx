@@ -64,7 +64,6 @@ export function Sidebar() {
     if (activeTab === 'stocks') {
       loadStocks();
     } else if (activeTab === 'watchlist' && isAuthenticated) {
-      // 初始化/切换回自选股 tab/登录状态变更时，确保触发拉取
       loadWatchlist();
     }
 
@@ -72,6 +71,25 @@ export function Sidebar() {
       cancelled = true;
     };
   }, [activeTab, isAuthenticated, loadWatchlist]);
+
+  useEffect(() => {
+    if (
+      activeTab === 'watchlist' &&
+      watchlist.length > 0 &&
+      !watchlistLoading
+    ) {
+      if (!selectedStock) {
+        setSelectedStock(watchlist[0]);
+      } else {
+        const isSelectedStockInWatchlist = watchlist.some(
+          stock => stock.symbol === selectedStock.symbol
+        );
+        if (!isSelectedStockInWatchlist) {
+          setSelectedStock(watchlist[0]);
+        }
+      }
+    }
+  }, [watchlist, selectedStock, activeTab, watchlistLoading, setSelectedStock]);
 
   const getCurrentList = () => {
     switch (activeTab) {
