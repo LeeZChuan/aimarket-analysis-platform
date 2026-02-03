@@ -28,6 +28,9 @@ import { StockInfoBar } from './StockInfoBar';
 import { ChartToolbar } from './ChartToolbar';
 import { convertKLineData } from './chartDataUtils';
 import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
+import { rectOverlay } from './overlays/rectOverlay';
+import { circleOverlay } from './overlays/circleOverlay';
+import { triangleOverlay } from './overlays/triangleOverlay';
 import { RegionSelectionModal } from './RegionSelectionModal';
 import type { RegionSelectionData } from '../../store/useChartStore';
 
@@ -78,6 +81,9 @@ export function ChartPanel() {
 
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
+    registerOverlay(rectOverlay);
+    registerOverlay(circleOverlay);
+    registerOverlay(triangleOverlay);
   }, []);
 
   useEffect(() => {

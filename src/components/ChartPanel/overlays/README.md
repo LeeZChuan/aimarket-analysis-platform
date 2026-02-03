@@ -1,68 +1,185 @@
-# 图表自定义覆盖物
+# 图表自定义覆盖物 (Overlays)
 
 这个文件夹包含基于 klinecharts v9 的自定义覆盖物（Overlay）插件。
 
-## horizontalRegionSelection
+## 目录结构
+
+```
+overlays/
+├── README.md                      # 本文档
+├── horizontalRegionSelection.ts   # 水平区域选择工具
+├── rectOverlay.ts                 # 矩形绘制工具
+├── circleOverlay.ts               # 圆形绘制工具
+└── triangleOverlay.ts             # 三角形绘制工具
+```
+
+## 内置 Overlay 与自定义 Overlay
+
+### klinecharts v9 内置 Overlay
+
+以下 overlay 可直接使用，无需自定义：
+- 线条类：`horizontalRayLine`, `horizontalSegment`, `horizontalStraightLine`, `verticalRayLine`, `verticalSegment`, `verticalStraightLine`, `rayLine`, `segment`, `straightLine`
+- 价格线：`priceLine`, `priceChannelLine`, `parallelStraightLine`
+- 其他：`fibonacciLine`, `simpleAnnotation`, `simpleTag`
+
+### 自定义 Overlay（本目录实现）
+
+以下 overlay 需要自定义实现：
+- `rect` - 矩形
+- `circle` - 圆形
+- `triangle` - 三角形
+- `horizontalRegionSelection` - 水平区域选择
+
+## 各 Overlay 说明
+
+### horizontalRegionSelection
 
 **水平区域选择工具** - 允许用户在图表上框选一个区域用于分析。
 
-### 功能特性
+功能特性：
+- 可拖拽的矩形选择区域
+- 左右两个拖拽手柄（蓝色圆形）用于调整宽度
+- 左上角确认按钮（绿色）和关闭按钮（红色）
+- 半透明蓝色背景高亮选中区域
+- 使用几何图形替代图片，加载速度更快
 
-- ✅ 可拖拽的矩形选择区域
-- ✅ 左右两个拖拽手柄（蓝色矩形）用于调整宽度
-- ✅ 限制拖拽范围在可视区域内，最小宽度30px
-- ✅ 左上角关闭按钮（红色圆形+白色×）用于删除选择
-- ✅ 半透明蓝色背景高亮选中区域
-- ✅ 使用几何图形替代图片，加载速度更快
+### rectOverlay
 
-### 使用方式
+**矩形绘制工具** - 在图表上绘制矩形区域。
 
-#### 1. 通过快捷按钮（推荐）
-在 AI 聊天输入框左侧工具栏中，点击 **框选图标** 按钮即可激活。
+- `totalStep: 3` - 需要2个点（对角线两端）
+- 支持填充和边框样式
+- 默认蓝色半透明填充
 
-#### 2. 通过绘图工具栏
-在图表左侧绘图工具栏中选择对应工具。
+### circleOverlay
 
-#### 3. 程序调用
+**圆形绘制工具** - 在图表上绘制圆形。
+
+- `totalStep: 3` - 需要2个点（圆心和圆周上一点）
+- 半径由两点距离计算
+- 支持填充和边框样式
+
+### triangleOverlay
+
+**三角形绘制工具** - 在图表上绘制三角形。
+
+- `totalStep: 4` - 需要3个点（三个顶点）
+- 绘制过程中显示连接线
+- 支持填充和边框样式
+
+## 使用方式
+
+### 1. 注册 Overlay
+
 ```typescript
 import { registerOverlay } from 'klinecharts';
-import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
+import { rectOverlay } from './overlays/rectOverlay';
+import { circleOverlay } from './overlays/circleOverlay';
+import { triangleOverlay } from './overlays/triangleOverlay';
 
-// 注册覆盖物
-registerOverlay(horizontalRegionSelection);
-
-// 创建实例
-chart.createOverlay({ name: 'horizontalRegionSelection' });
+// 在组件初始化时注册
+useEffect(() => {
+  registerOverlay(rectOverlay);
+  registerOverlay(circleOverlay);
+  registerOverlay(triangleOverlay);
+}, []);
 ```
 
-### 插件架构
-
-该插件使用 klinecharts 的 `OverlayTemplate` 接口实现：
+### 2. 创建 Overlay 实例
 
 ```typescript
-{
-  name: 'horizontalRegionSelection',
-  totalStep: 2,              // 需要两个点（左右边界）
-  mode: 'strong_magnet',     // 强磁吸模式，对齐K线
-  createPointFigures: (params) => {
-    // 返回图形数组：矩形、线条、手柄图标
-  }
+// 创建矩形
+chart.createOverlay({ name: 'rect' });
+
+// 创建圆形
+chart.createOverlay({ name: 'circle' });
+
+// 创建三角形
+chart.createOverlay({ name: 'triangle' });
+```
+
+### 3. 通过绘图工具栏使用
+
+在图表左侧绘图工具栏中选择对应工具即可开始绘制。
+
+## 扩展开发
+
+如需创建新的 overlay，请参考以下结构：
+
+```typescript
+import type { OverlayTemplate } from 'klinecharts';
+
+export const myOverlay: OverlayTemplate = {
+  // 唯一标识名称
+  name: 'myOverlay',
+
+  // 完成绘制需要的步骤数（点击次数 + 1）
+  totalStep: 3,
+
+  // 是否需要默认的点图形
+  needDefaultPointFigure: true,
+
+  // 是否需要 X/Y 轴上的图形
+  needDefaultXAxisFigure: true,
+  needDefaultYAxisFigure: true,
+
+  // 默认样式
+  styles: {
+    // 根据图形类型配置
+  },
+
+  // 创建图形的核心方法
+  createPointFigures: ({ coordinates, overlay, bounding }) => {
+    // coordinates: 用户点击的坐标点数组
+    // overlay: overlay 实例
+    // bounding: 画布边界信息
+
+    // 返回图形数组
+    return [
+      {
+        type: 'rect',  // 基础图形类型：rect, circle, line, polygon, text, arc
+        attrs: { /* 图形属性 */ },
+        styles: { /* 样式 */ },
+        ignoreEvent: false  // 是否忽略事件
+      }
+    ];
+  },
+
+  // 可选的事件回调
+  onClick: (event) => { /* ... */ },
+  onDrawEnd: (event) => { /* ... */ },
+  // ... 更多事件
+};
+```
+
+### 基础图形类型
+
+klinecharts v9 内置的基础图形（可在 `createPointFigures` 中使用）：
+
+| 类型 | 说明 | 必需属性 |
+|------|------|----------|
+| `rect` | 矩形 | `x`, `y`, `width`, `height` |
+| `circle` | 圆形 | `x`, `y`, `r` |
+| `line` | 线条 | `coordinates: [{x, y}, ...]` |
+| `polygon` | 多边形 | `coordinates: [{x, y}, ...]` |
+| `arc` | 弧形 | `x`, `y`, `r`, `startAngle`, `endAngle` |
+| `text` | 文本 | `x`, `y`, `text` |
+| `rectText` | 带背景的文本 | `x`, `y`, `text` |
+
+### 样式配置
+
+```typescript
+styles: {
+  style: 'stroke_fill',  // 'stroke' | 'fill' | 'stroke_fill'
+  color: 'rgba(58, 159, 255, 0.25)',  // 填充色
+  borderColor: '#3A9FFF',              // 边框色
+  borderSize: 1                         // 边框宽度
 }
 ```
 
-### 扩展开发
+## 相关文件
 
-如需创建新的覆盖物，可以参考此文件的结构：
-
-1. 定义覆盖物配置（name, totalStep, mode 等）
-2. 实现 `createPointFigures` 方法绘制图形
-3. 在 `ChartPanel/index.tsx` 中注册
-4. 在 `DrawingToolbar.tsx` 中添加类型定义
-
-### 相关文件
-
-- `/src/components/ChartPanel/index.tsx` - 图表主组件
-- `/src/components/AIAssistant/ChatInput/index.tsx` - 快捷按钮
-- `/src/store/useChartStore.ts` - 图表状态管理
+- `/src/components/ChartPanel/index.tsx` - 图表主组件（注册 overlay）
 - `/src/components/ChartPanel/DrawingToolbar.tsx` - 绘图工具栏
-
+- `/src/store/useChartStore.ts` - 图表状态管理
+- `/src/components/AIAssistant/ChatInput/index.tsx` - AI 助手快捷按钮
