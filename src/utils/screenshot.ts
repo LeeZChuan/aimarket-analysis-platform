@@ -2,6 +2,8 @@ import html2canvas from 'html2canvas';
 
 export const captureScreenshot = async () => {
   try {
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     const canvas = await html2canvas(document.body, {
       useCORS: true,
       allowTaint: true,
@@ -11,7 +13,30 @@ export const captureScreenshot = async () => {
       windowWidth: document.documentElement.scrollWidth,
       windowHeight: document.documentElement.scrollHeight,
       scrollX: 0,
-      scrollY: 0
+      scrollY: 0,
+      foreignObjectRendering: false,
+      imageTimeout: 15000,
+      onclone: (clonedDoc) => {
+        const clonedBody = clonedDoc.body;
+
+        clonedBody.querySelectorAll('svg').forEach((svg) => {
+          const computedStyle = window.getComputedStyle(svg as Element);
+          const width = svg.getAttribute('width') || computedStyle.width;
+          const height = svg.getAttribute('height') || computedStyle.height;
+
+          if (width && width !== 'auto') svg.setAttribute('width', width);
+          if (height && height !== 'auto') svg.setAttribute('height', height);
+
+          svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        });
+
+        clonedBody.querySelectorAll('*').forEach((element) => {
+          const computedStyle = window.getComputedStyle(element as Element);
+          if (computedStyle.fontFamily) {
+            (element as HTMLElement).style.fontFamily = computedStyle.fontFamily;
+          }
+        });
+      }
     });
 
     canvas.toBlob((blob) => {
