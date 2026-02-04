@@ -4,7 +4,7 @@
  * 功能：
  * - 专业级K线图表展示（支持蜡烛图、MA、MACD、RSI等技术指标）
  * - 时间周期切换（1D/5D/1W/1M/3M/1Y）
- * - 绘图工具栏（趋势线、水平线、矩形、圆形、文本标注等）
+ * - 绘图工具栏（趋势线、水平线、矩形、圆形、椭圆形、三角形、文本标注等）
  * - 技术指标添加/移除（MA/EMA/BOLL/SAR/MACD/KDJ/RSI/VOL等）
  * - 图表缩放和拖拽交互
  * - 鼠标悬停显示详细数据
@@ -31,6 +31,7 @@ import { convertKLineData } from './chartDataUtils';
 import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
 import { rectOverlay } from './overlays/rectOverlay';
 import { circleOverlay } from './overlays/circleOverlay';
+import { ellipseOverlay } from './overlays/ellipseOverlay';
 import { triangleOverlay } from './overlays/triangleOverlay';
 import { RegionSelectionModal } from './RegionSelectionModal';
 import type { RegionSelectionData } from '../../store/useChartStore';
@@ -84,6 +85,7 @@ export function ChartPanel() {
     registerOverlay(horizontalRegionSelection);
     registerOverlay(rectOverlay);
     registerOverlay(circleOverlay);
+    registerOverlay(ellipseOverlay);
     registerOverlay(triangleOverlay);
   }, []);
 

@@ -10,6 +10,7 @@ overlays/
 ├── horizontalRegionSelection.ts   # 水平区域选择工具
 ├── rectOverlay.ts                 # 矩形绘制工具
 ├── circleOverlay.ts               # 圆形绘制工具
+├── ellipseOverlay.ts              # 椭圆形绘制工具
 └── triangleOverlay.ts             # 三角形绘制工具
 ```
 
@@ -27,6 +28,7 @@ overlays/
 以下 overlay 需要自定义实现：
 - `rect` - 矩形
 - `circle` - 圆形
+- `ellipse` - 椭圆形
 - `triangle` - 三角形
 - `horizontalRegionSelection` - 水平区域选择
 
@@ -59,6 +61,15 @@ overlays/
 - 半径由两点距离计算
 - 支持填充和边框样式
 
+### ellipseOverlay
+
+**椭圆形绘制工具** - 在图表上绘制椭圆形。
+
+- `totalStep: 3` - 需要2个点（外接矩形的对角线）
+- 支持通过4个控制点调整椭圆形状
+- 椭圆在外接矩形内自动适配
+- 支持填充和边框样式
+
 ### triangleOverlay
 
 **三角形绘制工具** - 在图表上绘制三角形。
@@ -75,12 +86,14 @@ overlays/
 import { registerOverlay } from 'klinecharts';
 import { rectOverlay } from './overlays/rectOverlay';
 import { circleOverlay } from './overlays/circleOverlay';
+import { ellipseOverlay } from './overlays/ellipseOverlay';
 import { triangleOverlay } from './overlays/triangleOverlay';
 
 // 在组件初始化时注册
 useEffect(() => {
   registerOverlay(rectOverlay);
   registerOverlay(circleOverlay);
+  registerOverlay(ellipseOverlay);
   registerOverlay(triangleOverlay);
 }, []);
 ```
@@ -93,6 +106,9 @@ chart.createOverlay({ name: 'rect' });
 
 // 创建圆形
 chart.createOverlay({ name: 'circle' });
+
+// 创建椭圆形
+chart.createOverlay({ name: 'ellipse' });
 
 // 创建三角形
 chart.createOverlay({ name: 'triangle' });

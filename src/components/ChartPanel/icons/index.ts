@@ -14,6 +14,7 @@ export {
   DiagonalSegment,
   ParallelLines,
   PriceChannel,
+  EllipseIcon,
   CustomIcons,
 } from './CustomIcons';
 

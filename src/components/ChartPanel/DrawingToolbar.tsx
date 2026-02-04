@@ -5,7 +5,7 @@
  * - 提供左侧垂直工具栏
  * - 水平线/垂直线/趋势线工具
  * - 价格线工具（价格线、价格通道、平行线等）
- * - 形状工具（矩形、圆形、三角形）
+ * - 形状工具（矩形、圆形、椭圆形、三角形）
  * - 标注工具（注释、标签）
  * - 其他工具（斐波那契、文本）
  * - 清除所有绘图功能
@@ -41,6 +41,7 @@ import {
   DiagonalSegment,
   ParallelLines,
   PriceChannel,
+  EllipseIcon,
 } from './icons/CustomIcons';
 import { drawingToolbarStyles } from './DrawingToolbarStyles';
 
@@ -63,6 +64,7 @@ export type DrawingTool =
   | 'simpleTag'
   | 'rect'
   | 'circle'
+  | 'ellipse'
   | 'arc'
   | 'triangle'
   | 'text'
@@ -170,6 +172,7 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
   const shapeTools: ToolGroup[] = [
     { tool: 'rect', icon: Square, label: '矩形' },
     { tool: 'circle', icon: Circle, label: '圆形' },
+    { tool: 'ellipse', icon: EllipseIcon, label: '椭圆形' },
     { tool: 'triangle', icon: Triangle, label: '三角形' },
   ];
 

@@ -231,6 +231,27 @@ export const PriceChannel: React.FC<IconProps> = ({ className = '', size = 24 })
   </svg>
 );
 
+// 椭圆形（带4个控制点）
+export const EllipseIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <ellipse cx="12" cy="12" rx="8" ry="5" />
+    <circle cx="4" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="20" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="7" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="17" r="1.2" fill="currentColor" />
+  </svg>
+);
+
 // 导出所有图标
 export const CustomIcons = {
   HorizontalLine,
@@ -244,5 +265,6 @@ export const CustomIcons = {
   DiagonalSegment,
   ParallelLines,
   PriceChannel,
+  EllipseIcon,
 };
 
