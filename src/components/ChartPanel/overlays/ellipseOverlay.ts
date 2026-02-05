@@ -3,7 +3,7 @@ import type { OverlayTemplate } from 'klinecharts';
 export const ellipseOverlay: OverlayTemplate = {
   name: 'ellipse',
   totalStep: 3,
-  needDefaultPointFigure: false,
+  needDefaultPointFigure: true,
   needDefaultXAxisFigure: true,
   needDefaultYAxisFigure: true,
   styles: {
@@ -12,10 +12,6 @@ export const ellipseOverlay: OverlayTemplate = {
       color: 'rgba(58, 159, 255, 0.25)',
       borderColor: '#3A9FFF',
       borderSize: 2
-    },
-    circle: {
-      style: 'fill',
-      color: '#3A9FFF'
     }
   },
   onDrawEnd: ({ overlay }) => {
@@ -89,7 +85,7 @@ export const ellipseOverlay: OverlayTemplate = {
       ellipsePoints.push({ x, y });
     }
 
-    const figures = [
+    return [
       {
         type: 'polygon',
         attrs: {
@@ -100,64 +96,8 @@ export const ellipseOverlay: OverlayTemplate = {
           color: 'rgba(58, 159, 255, 0.25)',
           borderColor: '#3A9FFF',
           borderSize: 2
-        },
-        ignoreEvent: true
+        }
       }
     ];
-
-    if (coordinates.length >= 2) {
-      figures.push(
-        {
-          type: 'circle',
-          attrs: {
-            x: centerX - radiusX,
-            y: centerY,
-            r: 5
-          },
-          styles: {
-            style: 'fill',
-            color: '#3A9FFF'
-          }
-        },
-        {
-          type: 'circle',
-          attrs: {
-            x: centerX + radiusX,
-            y: centerY,
-            r: 5
-          },
-          styles: {
-            style: 'fill',
-            color: '#3A9FFF'
-          }
-        },
-        {
-          type: 'circle',
-          attrs: {
-            x: centerX,
-            y: centerY - radiusY,
-            r: 5
-          },
-          styles: {
-            style: 'fill',
-            color: '#3A9FFF'
-          }
-        },
-        {
-          type: 'circle',
-          attrs: {
-            x: centerX,
-            y: centerY + radiusY,
-            r: 5
-          },
-          styles: {
-            style: 'fill',
-            color: '#3A9FFF'
-          }
-        }
-      );
-    }
-
-    return figures;
   }
 };
