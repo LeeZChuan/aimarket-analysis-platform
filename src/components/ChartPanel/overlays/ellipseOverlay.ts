@@ -28,8 +28,6 @@ export const ellipseOverlay: OverlayTemplate = {
 
       const centerX = (left + right) / 2;
       const centerY = (top + bottom) / 2;
-      const radiusX = (right - left) / 2;
-      const radiusY = (bottom - top) / 2;
 
       overlay.points = [
         { timestamp: left, value: centerY },
@@ -38,6 +36,62 @@ export const ellipseOverlay: OverlayTemplate = {
         { timestamp: centerX, value: bottom }
       ];
     }
+  },
+  onPressedMove: ({ overlay, pointIndex }) => {
+    if (overlay.points.length !== 4 || pointIndex === undefined) {
+      return;
+    }
+
+    const points = overlay.points;
+    const movedPoint = points[pointIndex];
+
+    if (pointIndex === 0) {
+      const right = points[1].timestamp;
+      const top = points[2].value;
+      const bottom = points[3].value;
+      const centerY = (top + bottom) / 2;
+      const centerX = (movedPoint.timestamp + right) / 2;
+
+      points[0] = { timestamp: movedPoint.timestamp, value: centerY };
+      points[1] = { timestamp: right, value: centerY };
+      points[2] = { timestamp: centerX, value: top };
+      points[3] = { timestamp: centerX, value: bottom };
+    } else if (pointIndex === 1) {
+      const left = points[0].timestamp;
+      const top = points[2].value;
+      const bottom = points[3].value;
+      const centerY = (top + bottom) / 2;
+      const centerX = (left + movedPoint.timestamp) / 2;
+
+      points[0] = { timestamp: left, value: centerY };
+      points[1] = { timestamp: movedPoint.timestamp, value: centerY };
+      points[2] = { timestamp: centerX, value: top };
+      points[3] = { timestamp: centerX, value: bottom };
+    } else if (pointIndex === 2) {
+      const left = points[0].timestamp;
+      const right = points[1].timestamp;
+      const bottom = points[3].value;
+      const centerX = (left + right) / 2;
+      const centerY = (movedPoint.value + bottom) / 2;
+
+      points[0] = { timestamp: left, value: centerY };
+      points[1] = { timestamp: right, value: centerY };
+      points[2] = { timestamp: centerX, value: movedPoint.value };
+      points[3] = { timestamp: centerX, value: bottom };
+    } else if (pointIndex === 3) {
+      const left = points[0].timestamp;
+      const right = points[1].timestamp;
+      const top = points[2].value;
+      const centerX = (left + right) / 2;
+      const centerY = (top + movedPoint.value) / 2;
+
+      points[0] = { timestamp: left, value: centerY };
+      points[1] = { timestamp: right, value: centerY };
+      points[2] = { timestamp: centerX, value: top };
+      points[3] = { timestamp: centerX, value: movedPoint.value };
+    }
+
+    overlay.points = points;
   },
   createPointFigures: ({ coordinates }) => {
     if (coordinates.length < 2) {
