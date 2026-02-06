@@ -2,16 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Type } from 'lucide-react';
 
 interface TextInputModalProps {
+  initialText?: string;
   onConfirm: (text: string) => void;
   onCancel: () => void;
 }
 
-export function TextInputModal({ onConfirm, onCancel }: TextInputModalProps) {
-  const [text, setText] = useState('');
+export function TextInputModal({ initialText = '', onConfirm, onCancel }: TextInputModalProps) {
+  const [text, setText] = useState(initialText);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    const el = inputRef.current;
+    if (el) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
   }, []);
 
   const handleSubmit = () => {

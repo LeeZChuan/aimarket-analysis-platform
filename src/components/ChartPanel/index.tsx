@@ -83,7 +83,9 @@ export function ChartPanel() {
   const [dailyData, setDailyData] = useState<KLineData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [showTextInputModal, setShowTextInputModal] = useState(false);
+  const [textInputInitialValue, setTextInputInitialValue] = useState('');
   const pendingTextOverlayIdRef = useRef<string | null>(null);
+  const isEditingTextRef = useRef(false);
 
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
@@ -516,13 +518,27 @@ export function ChartPanel() {
       const { id } = (event as CustomEvent).detail;
       if (id) {
         pendingTextOverlayIdRef.current = id;
+        isEditingTextRef.current = false;
+        setTextInputInitialValue('');
+        setShowTextInputModal(true);
+      }
+    };
+
+    const handleTextSegmentEdit = (event: Event) => {
+      const { id, currentText } = (event as CustomEvent).detail;
+      if (id) {
+        pendingTextOverlayIdRef.current = id;
+        isEditingTextRef.current = true;
+        setTextInputInitialValue(currentText || '');
         setShowTextInputModal(true);
       }
     };
 
     window.addEventListener('textSegmentDrawEnd', handleTextSegmentDrawEnd);
+    window.addEventListener('textSegmentEdit', handleTextSegmentEdit);
     return () => {
       window.removeEventListener('textSegmentDrawEnd', handleTextSegmentDrawEnd);
+      window.removeEventListener('textSegmentEdit', handleTextSegmentEdit);
     };
   }, []);
 
@@ -535,15 +551,17 @@ export function ChartPanel() {
       });
     }
     pendingTextOverlayIdRef.current = null;
+    isEditingTextRef.current = false;
     setShowTextInputModal(false);
   }, []);
 
   const handleTextInputCancel = useCallback(() => {
     const overlayId = pendingTextOverlayIdRef.current;
-    if (chartRef.current && overlayId) {
+    if (chartRef.current && overlayId && !isEditingTextRef.current) {
       chartRef.current.removeOverlay(overlayId);
     }
     pendingTextOverlayIdRef.current = null;
+    isEditingTextRef.current = false;
     setShowTextInputModal(false);
   }, []);
 
@@ -724,6 +742,7 @@ export function ChartPanel() {
 
       {showTextInputModal && (
         <TextInputModal
+          initialText={textInputInitialValue}
           onConfirm={handleTextInputConfirm}
           onCancel={handleTextInputCancel}
         />
