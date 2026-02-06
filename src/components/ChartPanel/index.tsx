@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { Check, X as XIcon } from 'lucide-react';
 import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
@@ -34,9 +35,8 @@ import { circleOverlay } from './overlays/circleOverlay';
 import { ellipseOverlay } from './overlays/ellipseOverlay';
 import { triangleOverlay } from './overlays/triangleOverlay';
 import { textSegmentOverlay } from './overlays/textSegmentOverlay';
-import { RegionSelectionModal } from './RegionSelectionModal';
 import { TextInputModal } from './TextInputModal';
-import type { RegionSelectionData, KLineDataItem } from '../../store/useChartStore';
+import type { KLineDataItem } from '../../store/useChartStore';
 
 const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -65,8 +65,6 @@ export function ChartPanel() {
     setTriggerRegionSelection,
     isInSelectionMode,
     setIsInSelectionMode,
-    selectionData,
-    setSelectionData,
     currentSelectionRange,
     setCurrentSelectionRange,
     setConfirmedSelectionData,
@@ -80,7 +78,6 @@ export function ChartPanel() {
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [hoveredData, setHoveredData] = useState<KLineData | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
-  const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [dailyData, setDailyData] = useState<KLineData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [showTextInputModal, setShowTextInputModal] = useState(false);
@@ -403,138 +400,70 @@ export function ChartPanel() {
   // 处理取消框选
   const handleCancelSelection = useCallback(() => {
     if (chartRef.current) {
-      // 恢复十字光标
-      chartRef.current.setStyles({
-        crosshair: {
-          show: true
-        }
-      });
-      
-      // 清除 overlay
-      chartRef.current.removeOverlay();
-    }
-    
-    setIsInSelectionMode(false);
-    setShowSelectionModal(false);
-    setSelectionData(null);
-    setActiveTool('none');
-  }, [setIsInSelectionMode, setSelectionData]);
-
-  const handleConfirmSelection = useCallback(() => {
-    if (chartRef.current && selectionData) {
-      const dataList = chartRef.current.getDataList();
-      const { startIndex, endIndex } = selectionData;
-
-      if (dataList && startIndex >= 0 && endIndex >= startIndex) {
-        const sliced = dataList.slice(startIndex, endIndex + 1);
-        const klineData: KLineDataItem[] = sliced.map((d) => ({
-          timestamp: d.timestamp,
-          open: d.open,
-          high: d.high,
-          low: d.low,
-          close: d.close,
-          volume: d.volume ?? 0,
-        }));
-
-        setConfirmedSelectionData({
-          stockSymbol: selectedStock?.symbol || '',
-          stockName: selectedStock?.name || '',
-          timeframe: selectionData.timeframe,
-          startTime: selectionData.startTime,
-          endTime: selectionData.endTime,
-          dataCount: klineData.length,
-          klineData,
-        });
-
-        notifySuccess(`已选择 ${klineData.length} 条K线数据`);
-      }
-
       chartRef.current.setStyles({ crosshair: { show: true } });
       chartRef.current.removeOverlay();
     }
-
     setIsInSelectionMode(false);
-    setShowSelectionModal(false);
     setActiveTool('none');
-  }, [selectionData, selectedStock, setIsInSelectionMode, setConfirmedSelectionData]);
+  }, [setIsInSelectionMode]);
 
-  // 监听框选确认事件
-  useEffect(() => {
-    if (!isInSelectionMode) return;
+  const handleConfirmSelection = useCallback(() => {
+    if (!chartRef.current) return;
 
-    const handleConfirmEvent = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const points = customEvent.detail?.points;
-      
-      if (!points || points.length < 2 || !chartRef.current) return;
+    const range = useChartStore.getState().currentSelectionRange;
+    if (!range) return;
 
-      // 获取图表数据
-      const dataList = chartRef.current.getDataList();
-      if (!dataList) return;
+    const dataList = chartRef.current.getDataList();
+    if (!dataList || dataList.length === 0) return;
 
-      // 根据坐标点的值（时间戳）计算数据范围
-      const leftTimestamp = points[0].value;
-      const rightTimestamp = points[1].value;
-      
-      // 找到对应的数据索引
-      let startIndex = -1;
-      let endIndex = -1;
-      
-      for (let i = 0; i < dataList.length; i++) {
-        if (dataList[i].timestamp >= leftTimestamp && startIndex === -1) {
-          startIndex = i;
-        }
-        if (dataList[i].timestamp <= rightTimestamp) {
-          endIndex = i;
-        }
+    const { startTimestamp, endTimestamp } = range;
+    let startIndex = -1;
+    let endIndex = -1;
+    for (let i = 0; i < dataList.length; i++) {
+      const ts = dataList[i].timestamp;
+      if (ts >= startTimestamp && ts <= endTimestamp) {
+        if (startIndex === -1) startIndex = i;
+        endIndex = i;
+      }
+    }
+
+    if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
+      const dataCount = endIndex - startIndex + 1;
+      if (dataCount > MAX_SELECTION_COUNT) {
+        notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${dataCount} 条`);
+        return;
       }
 
-      if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
-        const dataCount = endIndex - startIndex + 1;
+      const sliced = dataList.slice(startIndex, endIndex + 1);
+      const klineData: KLineDataItem[] = sliced.map((d) => ({
+        timestamp: d.timestamp,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume ?? 0,
+      }));
 
-        if (dataCount > MAX_SELECTION_COUNT) {
-          notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${dataCount} 条`);
-          return;
-        }
+      setConfirmedSelectionData({
+        stockSymbol: selectedStock?.symbol || '',
+        stockName: selectedStock?.name || '',
+        timeframe: timeRange,
+        startTime: range.startTime,
+        endTime: range.endTime,
+        dataCount: klineData.length,
+        klineData,
+      });
 
-        const newSelectionData: RegionSelectionData = {
-          startTime: new Date(dataList[startIndex].timestamp).toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          endTime: new Date(dataList[endIndex].timestamp).toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          dataCount,
-          startIndex,
-          endIndex,
-          timeframe: timeRange
-        };
+      notifySuccess(`已选择 ${klineData.length} 条K线数据`);
+    }
 
-        setSelectionData(newSelectionData);
-        setShowSelectionModal(true);
-      }
-    };
+    chartRef.current.setStyles({ crosshair: { show: true } });
+    chartRef.current.removeOverlay();
+    setIsInSelectionMode(false);
+    setActiveTool('none');
+  }, [selectedStock, timeRange, setIsInSelectionMode, setConfirmedSelectionData]);
 
-    const handleCancelEvent = () => {
-      handleCancelSelection();
-    };
-
-    window.addEventListener('regionSelectionConfirm', handleConfirmEvent);
-    window.addEventListener('regionSelectionCancel', handleCancelEvent);
-    
-    return () => {
-      window.removeEventListener('regionSelectionConfirm', handleConfirmEvent);
-      window.removeEventListener('regionSelectionCancel', handleCancelEvent);
-    };
-  }, [isInSelectionMode, setSelectionData, handleCancelSelection, timeRange]);
+  // (confirm/cancel buttons are now in the HTML info bar, no CustomEvent listeners needed)
 
   useEffect(() => {
     const handleTextSegmentDrawEnd = (event: Event) => {
@@ -698,9 +627,25 @@ export function ChartPanel() {
                 )}
               </div>
 
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                拖动手柄调整 · 绿色确认 · 红色取消
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs mr-1" style={{ color: 'var(--text-muted)' }}>拖动手柄调整范围</span>
+                <button
+                  onClick={handleConfirmSelection}
+                  className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-white transition-all hover:brightness-110 active:scale-95"
+                  style={{ background: '#00D09C' }}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  确认
+                </button>
+                <button
+                  onClick={handleCancelSelection}
+                  className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-white transition-all hover:brightness-110 active:scale-95"
+                  style={{ background: '#FF4976' }}
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                  取消
+                </button>
+              </div>
             </div>
           )}
 
@@ -765,15 +710,6 @@ export function ChartPanel() {
           />
         </div>
       </div>
-
-      {/* 区域选择确认弹窗 */}
-      {showSelectionModal && selectionData && (
-        <RegionSelectionModal
-          data={selectionData}
-          onConfirm={handleConfirmSelection}
-          onCancel={handleCancelSelection}
-        />
-      )}
 
       {showTextInputModal && (
         <TextInputModal
