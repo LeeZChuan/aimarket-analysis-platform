@@ -3,7 +3,7 @@ import type { OverlayTemplate } from 'klinecharts';
 export const ellipseOverlay: OverlayTemplate = {
   name: 'ellipse',
   totalStep: 3,
-  needDefaultPointFigure: true,
+  needDefaultPointFigure: false,
   needDefaultXAxisFigure: true,
   needDefaultYAxisFigure: true,
   styles: {
@@ -16,165 +16,141 @@ export const ellipseOverlay: OverlayTemplate = {
   },
   onDrawEnd: ({ overlay }) => {
     if (overlay.points.length === 2) {
-      const x1 = overlay.points[0].timestamp;
-      const y1 = overlay.points[0].value;
-      const x2 = overlay.points[1].timestamp;
-      const y2 = overlay.points[1].value;
+      const x1 = overlay.points[0].timestamp!;
+      const y1 = overlay.points[0].value!;
+      const x2 = overlay.points[1].timestamp!;
+      const y2 = overlay.points[1].value!;
 
-      const left = Math.min(x1, x2);
-      const right = Math.max(x1, x2);
-      const top = Math.min(y1, y2);
-      const bottom = Math.max(y1, y2);
-
-      const centerX = (left + right) / 2;
-      const centerY = (top + bottom) / 2;
+      const cx = (x1 + x2) / 2;
+      const cy = (y1 + y2) / 2;
+      const hw = Math.abs(x2 - x1) / 2;
+      const hh = Math.abs(y2 - y1) / 2;
 
       overlay.points = [
-        { timestamp: left, value: centerY },
-        { timestamp: right, value: centerY },
-        { timestamp: centerX, value: top },
-        { timestamp: centerX, value: bottom }
+        { timestamp: cx, value: cy },
+        { timestamp: cx + hw, value: cy },
+        { timestamp: cx, value: cy + hh }
       ];
     }
   },
   performEventPressedMove: ({ points, performPointIndex, performPoint }) => {
-    if (points.length !== 4) {
-      return;
-    }
+    if (points.length !== 3) return;
 
     if (performPointIndex === 0) {
-      const oldCenterTs = (points[0].timestamp! + points[1].timestamp!) / 2;
-      const oldCenterVal = (points[0].value! + points[1].value!) / 2;
-      const newCenterTs = (performPoint.timestamp! + points[1].timestamp!) / 2;
-      const newCenterVal = (performPoint.value! + points[1].value!) / 2;
-      const dTs = newCenterTs - oldCenterTs;
-      const dVal = newCenterVal - oldCenterVal;
-
+      const dTs = performPoint.timestamp! - points[0].timestamp!;
+      const dVal = performPoint.value! - points[0].value!;
+      const p1Ts = points[1].timestamp!;
+      const p1Val = points[1].value!;
       const p2Ts = points[2].timestamp!;
       const p2Val = points[2].value!;
-      const p3Ts = points[3].timestamp!;
-      const p3Val = points[3].value!;
 
       points[0].timestamp = performPoint.timestamp;
       points[0].value = performPoint.value;
-      points[2].timestamp = p2Ts + dTs;
-      points[2].value = p2Val + dVal;
-      points[3].timestamp = p3Ts + dTs;
-      points[3].value = p3Val + dVal;
-    } else if (performPointIndex === 1) {
-      const oldCenterTs = (points[0].timestamp! + points[1].timestamp!) / 2;
-      const oldCenterVal = (points[0].value! + points[1].value!) / 2;
-      const newCenterTs = (points[0].timestamp! + performPoint.timestamp!) / 2;
-      const newCenterVal = (points[0].value! + performPoint.value!) / 2;
-      const dTs = newCenterTs - oldCenterTs;
-      const dVal = newCenterVal - oldCenterVal;
-
-      const p2Ts = points[2].timestamp!;
-      const p2Val = points[2].value!;
-      const p3Ts = points[3].timestamp!;
-      const p3Val = points[3].value!;
-
-      points[1].timestamp = performPoint.timestamp;
-      points[1].value = performPoint.value;
-      points[2].timestamp = p2Ts + dTs;
-      points[2].value = p2Val + dVal;
-      points[3].timestamp = p3Ts + dTs;
-      points[3].value = p3Val + dVal;
-    } else if (performPointIndex === 2) {
-      const oldCenterTs = (points[2].timestamp! + points[3].timestamp!) / 2;
-      const oldCenterVal = (points[2].value! + points[3].value!) / 2;
-      const newCenterTs = (performPoint.timestamp! + points[3].timestamp!) / 2;
-      const newCenterVal = (performPoint.value! + points[3].value!) / 2;
-      const dTs = newCenterTs - oldCenterTs;
-      const dVal = newCenterVal - oldCenterVal;
-
-      const p0Ts = points[0].timestamp!;
-      const p0Val = points[0].value!;
-      const p1Ts = points[1].timestamp!;
-      const p1Val = points[1].value!;
-
-      points[2].timestamp = performPoint.timestamp;
-      points[2].value = performPoint.value;
-      points[0].timestamp = p0Ts + dTs;
-      points[0].value = p0Val + dVal;
       points[1].timestamp = p1Ts + dTs;
       points[1].value = p1Val + dVal;
-    } else if (performPointIndex === 3) {
-      const oldCenterTs = (points[2].timestamp! + points[3].timestamp!) / 2;
-      const oldCenterVal = (points[2].value! + points[3].value!) / 2;
-      const newCenterTs = (points[2].timestamp! + performPoint.timestamp!) / 2;
-      const newCenterVal = (points[2].value! + performPoint.value!) / 2;
-      const dTs = newCenterTs - oldCenterTs;
-      const dVal = newCenterVal - oldCenterVal;
-
-      const p0Ts = points[0].timestamp!;
-      const p0Val = points[0].value!;
-      const p1Ts = points[1].timestamp!;
-      const p1Val = points[1].value!;
-
-      points[3].timestamp = performPoint.timestamp;
-      points[3].value = performPoint.value;
-      points[0].timestamp = p0Ts + dTs;
-      points[0].value = p0Val + dVal;
-      points[1].timestamp = p1Ts + dTs;
-      points[1].value = p1Val + dVal;
+      points[2].timestamp = p2Ts + dTs;
+      points[2].value = p2Val + dVal;
+    } else {
+      points[performPointIndex].timestamp = performPoint.timestamp;
+      points[performPointIndex].value = performPoint.value;
     }
   },
   createPointFigures: ({ coordinates }) => {
-    if (coordinates.length < 2) {
-      return [];
-    }
+    if (coordinates.length < 2) return [];
 
+    const figures: any[] = [];
     const segments = 60;
-    const ellipsePoints: Array<{ x: number; y: number }> = [];
 
-    let cx: number, cy: number;
-    let ax: number, ay: number;
-    let bx: number, by: number;
+    if (coordinates.length >= 3) {
+      const cx = coordinates[0].x;
+      const cy = coordinates[0].y;
+      const ax = coordinates[1].x - cx;
+      const ay = coordinates[1].y - cy;
+      const bx = coordinates[2].x - cx;
+      const by = coordinates[2].y - cy;
 
-    if (coordinates.length === 4) {
-      cx = (coordinates[0].x + coordinates[1].x) / 2;
-      cy = (coordinates[0].y + coordinates[1].y) / 2;
-      ax = coordinates[0].x - cx;
-      ay = coordinates[0].y - cy;
-      bx = coordinates[2].x - cx;
-      by = coordinates[2].y - cy;
-    } else {
-      const x1 = coordinates[0].x;
-      const y1 = coordinates[0].y;
-      const x2 = coordinates[1].x;
-      const y2 = coordinates[1].y;
-      cx = (x1 + x2) / 2;
-      cy = (y1 + y2) / 2;
-      ax = (x2 - x1) / 2;
-      ay = 0;
-      bx = 0;
-      by = (y2 - y1) / 2;
-    }
+      const ellipsePoints: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = (i / segments) * 2 * Math.PI;
+        const cosT = Math.cos(t);
+        const sinT = Math.sin(t);
+        ellipsePoints.push({
+          x: cx + ax * cosT + bx * sinT,
+          y: cy + ay * cosT + by * sinT
+        });
+      }
 
-    for (let i = 0; i <= segments; i++) {
-      const t = (i / segments) * 2 * Math.PI;
-      const cosT = Math.cos(t);
-      const sinT = Math.sin(t);
-      ellipsePoints.push({
-        x: cx + ax * cosT + bx * sinT,
-        y: cy + ay * cosT + by * sinT
-      });
-    }
-
-    return [
-      {
+      figures.push({
         type: 'polygon',
-        attrs: {
-          coordinates: ellipsePoints
-        },
+        attrs: { coordinates: ellipsePoints },
         styles: {
           style: 'stroke_fill',
           color: 'rgba(58, 159, 255, 0.25)',
           borderColor: '#3A9FFF',
           borderSize: 2
         }
+      });
+
+      figures.push({
+        type: 'line',
+        attrs: { coordinates: [coordinates[0], coordinates[1]] },
+        styles: { style: 'dashed', color: 'rgba(58, 159, 255, 0.4)', size: 1, dashedValue: [4, 3] }
+      });
+
+      figures.push({
+        type: 'line',
+        attrs: { coordinates: [coordinates[0], coordinates[2]] },
+        styles: { style: 'dashed', color: 'rgba(6, 182, 212, 0.4)', size: 1, dashedValue: [4, 3] }
+      });
+
+      figures.push({
+        type: 'circle',
+        attrs: { x: cx, y: cy, r: 6 },
+        styles: { style: 'stroke_fill', color: '#FFFFFF', borderColor: '#3A9FFF', borderSize: 2 }
+      });
+
+      figures.push({
+        type: 'circle',
+        attrs: { x: coordinates[1].x, y: coordinates[1].y, r: 5 },
+        styles: { style: 'stroke_fill', color: '#3A9FFF', borderColor: '#FFFFFF', borderSize: 1.5 }
+      });
+
+      figures.push({
+        type: 'circle',
+        attrs: { x: coordinates[2].x, y: coordinates[2].y, r: 5 },
+        styles: { style: 'stroke_fill', color: '#06B6D4', borderColor: '#FFFFFF', borderSize: 1.5 }
+      });
+    } else {
+      const x1 = coordinates[0].x;
+      const y1 = coordinates[0].y;
+      const x2 = coordinates[1].x;
+      const y2 = coordinates[1].y;
+      const cx = (x1 + x2) / 2;
+      const cy = (y1 + y2) / 2;
+      const rx = (x2 - x1) / 2;
+      const ry = (y2 - y1) / 2;
+
+      const ellipsePoints: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = (i / segments) * 2 * Math.PI;
+        ellipsePoints.push({
+          x: cx + rx * Math.cos(t),
+          y: cy + ry * Math.sin(t)
+        });
       }
-    ];
+
+      figures.push({
+        type: 'polygon',
+        attrs: { coordinates: ellipsePoints },
+        styles: {
+          style: 'stroke_fill',
+          color: 'rgba(58, 159, 255, 0.25)',
+          borderColor: '#3A9FFF',
+          borderSize: 2
+        }
+      });
+    }
+
+    return figures;
   }
 };
