@@ -33,7 +33,9 @@ import { rectOverlay } from './overlays/rectOverlay';
 import { circleOverlay } from './overlays/circleOverlay';
 import { ellipseOverlay } from './overlays/ellipseOverlay';
 import { triangleOverlay } from './overlays/triangleOverlay';
+import { textSegmentOverlay } from './overlays/textSegmentOverlay';
 import { RegionSelectionModal } from './RegionSelectionModal';
+import { TextInputModal } from './TextInputModal';
 import type { RegionSelectionData } from '../../store/useChartStore';
 
 const getCSSVar = (varName: string) => {
@@ -80,6 +82,8 @@ export function ChartPanel() {
   const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [dailyData, setDailyData] = useState<KLineData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [showTextInputModal, setShowTextInputModal] = useState(false);
+  const pendingTextOverlayIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
@@ -87,6 +91,7 @@ export function ChartPanel() {
     registerOverlay(circleOverlay);
     registerOverlay(ellipseOverlay);
     registerOverlay(triangleOverlay);
+    registerOverlay(textSegmentOverlay);
   }, []);
 
   useEffect(() => {
@@ -506,6 +511,42 @@ export function ChartPanel() {
     };
   }, [isInSelectionMode, setSelectionData, handleCancelSelection, timeRange]);
 
+  useEffect(() => {
+    const handleTextSegmentDrawEnd = (event: Event) => {
+      const { id } = (event as CustomEvent).detail;
+      if (id) {
+        pendingTextOverlayIdRef.current = id;
+        setShowTextInputModal(true);
+      }
+    };
+
+    window.addEventListener('textSegmentDrawEnd', handleTextSegmentDrawEnd);
+    return () => {
+      window.removeEventListener('textSegmentDrawEnd', handleTextSegmentDrawEnd);
+    };
+  }, []);
+
+  const handleTextInputConfirm = useCallback((text: string) => {
+    const overlayId = pendingTextOverlayIdRef.current;
+    if (chartRef.current && overlayId) {
+      chartRef.current.overrideOverlay({
+        id: overlayId,
+        extendData: { text },
+      });
+    }
+    pendingTextOverlayIdRef.current = null;
+    setShowTextInputModal(false);
+  }, []);
+
+  const handleTextInputCancel = useCallback(() => {
+    const overlayId = pendingTextOverlayIdRef.current;
+    if (chartRef.current && overlayId) {
+      chartRef.current.removeOverlay(overlayId);
+    }
+    pendingTextOverlayIdRef.current = null;
+    setShowTextInputModal(false);
+  }, []);
+
   const clearAllOverlays = () => {
     if (!chartRef.current) return;
     chartRef.current.removeOverlay();
@@ -678,6 +719,13 @@ export function ChartPanel() {
           data={selectionData}
           onConfirm={handleConfirmSelection}
           onCancel={handleCancelSelection}
+        />
+      )}
+
+      {showTextInputModal && (
+        <TextInputModal
+          onConfirm={handleTextInputConfirm}
+          onCancel={handleTextInputCancel}
         />
       )}
     </>

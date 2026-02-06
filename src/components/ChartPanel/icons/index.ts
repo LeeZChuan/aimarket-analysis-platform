@@ -15,6 +15,7 @@ export {
   ParallelLines,
   PriceChannel,
   EllipseIcon,
+  TextSegmentIcon,
   CustomIcons,
 } from './CustomIcons';
 

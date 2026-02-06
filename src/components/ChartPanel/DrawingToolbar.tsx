@@ -42,6 +42,7 @@ import {
   ParallelLines,
   PriceChannel,
   EllipseIcon,
+  TextSegmentIcon,
 } from './icons/CustomIcons';
 import { drawingToolbarStyles } from './DrawingToolbarStyles';
 
@@ -68,6 +69,7 @@ export type DrawingTool =
   | 'arc'
   | 'triangle'
   | 'text'
+  | 'textSegment'
   | 'horizontalRegionSelection';
 
 interface ToolGroup {
@@ -161,6 +163,7 @@ export function DrawingToolbar({ activeTool, onToolChange, onClearAll }: Drawing
     { tool: 'straightLine', icon: DiagonalLine, label: '直线' },
     { tool: 'rayLine', icon: DiagonalRayLine, label: '射线' },
     { tool: 'segment', icon: DiagonalSegment, label: '线段' },
+    { tool: 'textSegment', icon: TextSegmentIcon, label: '文本线段' },
   ];
 
   const priceLineTools: ToolGroup[] = [

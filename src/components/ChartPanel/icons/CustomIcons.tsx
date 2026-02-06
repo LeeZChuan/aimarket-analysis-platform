@@ -252,6 +252,27 @@ export const EllipseIcon: React.FC<IconProps> = ({ className = '', size = 24 }) 
   </svg>
 );
 
+// 文本线段（两端带点 + 中间文字标识）
+export const TextSegmentIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="4" cy="18" r="1.5" fill="currentColor" />
+    <line x1="6" y1="16" x2="18" y2="6" />
+    <circle cx="20" cy="4" r="1.5" fill="currentColor" />
+    <rect x="8" y="8" width="8" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    <text x="12" y="12.5" textAnchor="middle" fill="currentColor" stroke="none" fontSize="6" fontWeight="bold">T</text>
+  </svg>
+);
+
 // 导出所有图标
 export const CustomIcons = {
   HorizontalLine,
@@ -266,5 +287,6 @@ export const CustomIcons = {
   ParallelLines,
   PriceChannel,
   EllipseIcon,
+  TextSegmentIcon,
 };
 
