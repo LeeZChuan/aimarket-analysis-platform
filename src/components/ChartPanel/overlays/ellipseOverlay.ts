@@ -3,7 +3,7 @@ import type { OverlayTemplate } from 'klinecharts';
 export const ellipseOverlay: OverlayTemplate = {
   name: 'ellipse',
   totalStep: 3,
-  needDefaultPointFigure: false,
+  needDefaultPointFigure: true,
   needDefaultXAxisFigure: true,
   needDefaultYAxisFigure: true,
   styles: {
@@ -103,23 +103,6 @@ export const ellipseOverlay: OverlayTemplate = {
         styles: { style: 'dashed', color: 'rgba(6, 182, 212, 0.4)', size: 1, dashedValue: [4, 3] }
       });
 
-      figures.push({
-        type: 'circle',
-        attrs: { x: cx, y: cy, r: 6 },
-        styles: { style: 'stroke_fill', color: '#FFFFFF', borderColor: '#3A9FFF', borderSize: 2 }
-      });
-
-      figures.push({
-        type: 'circle',
-        attrs: { x: coordinates[1].x, y: coordinates[1].y, r: 5 },
-        styles: { style: 'stroke_fill', color: '#3A9FFF', borderColor: '#FFFFFF', borderSize: 1.5 }
-      });
-
-      figures.push({
-        type: 'circle',
-        attrs: { x: coordinates[2].x, y: coordinates[2].y, r: 5 },
-        styles: { style: 'stroke_fill', color: '#06B6D4', borderColor: '#FFFFFF', borderSize: 1.5 }
-      });
     } else {
       const x1 = coordinates[0].x;
       const y1 = coordinates[0].y;
