@@ -44,52 +44,64 @@ export const ellipseOverlay: OverlayTemplate = {
 
     if (performPointIndex === 0) {
       const right = points[1].timestamp!;
-      const top = points[2].value!;
-      const bottom = points[3].value!;
-      const centerY = (top + bottom) / 2;
-      const centerX = (performPoint.timestamp! + right) / 2;
+      const topVal = points[2].value!;
+      const bottomVal = points[3].value!;
+      const verticalRadius = (bottomVal - topVal) / 2;
+      const newCenterY = performPoint.value!;
+      const newCenterX = (performPoint.timestamp! + right) / 2;
 
       points[0].timestamp = performPoint.timestamp;
-      points[0].value = centerY;
-      points[1].value = centerY;
-      points[2].timestamp = centerX;
-      points[3].timestamp = centerX;
+      points[0].value = newCenterY;
+      points[1].value = newCenterY;
+      points[2].timestamp = newCenterX;
+      points[2].value = newCenterY - verticalRadius;
+      points[3].timestamp = newCenterX;
+      points[3].value = newCenterY + verticalRadius;
     } else if (performPointIndex === 1) {
       const left = points[0].timestamp!;
-      const top = points[2].value!;
-      const bottom = points[3].value!;
-      const centerY = (top + bottom) / 2;
-      const centerX = (left + performPoint.timestamp!) / 2;
+      const topVal = points[2].value!;
+      const bottomVal = points[3].value!;
+      const verticalRadius = (bottomVal - topVal) / 2;
+      const newCenterY = performPoint.value!;
+      const newCenterX = (left + performPoint.timestamp!) / 2;
 
+      points[0].value = newCenterY;
       points[1].timestamp = performPoint.timestamp;
-      points[0].value = centerY;
-      points[1].value = centerY;
-      points[2].timestamp = centerX;
-      points[3].timestamp = centerX;
+      points[1].value = newCenterY;
+      points[2].timestamp = newCenterX;
+      points[2].value = newCenterY - verticalRadius;
+      points[3].timestamp = newCenterX;
+      points[3].value = newCenterY + verticalRadius;
     } else if (performPointIndex === 2) {
-      const left = points[0].timestamp!;
-      const right = points[1].timestamp!;
-      const bottom = points[3].value!;
-      const centerX = (left + right) / 2;
-      const centerY = (performPoint.value! + bottom) / 2;
+      const oldLeft = points[0].timestamp!;
+      const oldRight = points[1].timestamp!;
+      const horizontalRadius = (oldRight - oldLeft) / 2;
+      const bottomVal = points[3].value!;
+      const newCenterX = performPoint.timestamp!;
+      const newCenterY = (performPoint.value! + bottomVal) / 2;
 
+      points[0].timestamp = newCenterX - horizontalRadius;
+      points[0].value = newCenterY;
+      points[1].timestamp = newCenterX + horizontalRadius;
+      points[1].value = newCenterY;
+      points[2].timestamp = performPoint.timestamp;
       points[2].value = performPoint.value;
-      points[2].timestamp = centerX;
-      points[0].value = centerY;
-      points[1].value = centerY;
-      points[3].timestamp = centerX;
+      points[3].timestamp = newCenterX;
     } else if (performPointIndex === 3) {
-      const left = points[0].timestamp!;
-      const right = points[1].timestamp!;
-      const top = points[2].value!;
-      const centerX = (left + right) / 2;
-      const centerY = (top + performPoint.value!) / 2;
+      const oldLeft = points[0].timestamp!;
+      const oldRight = points[1].timestamp!;
+      const horizontalRadius = (oldRight - oldLeft) / 2;
+      const topVal = points[2].value!;
+      const newCenterX = performPoint.timestamp!;
+      const newCenterY = (topVal + performPoint.value!) / 2;
 
+      points[0].timestamp = newCenterX - horizontalRadius;
+      points[0].value = newCenterY;
+      points[1].timestamp = newCenterX + horizontalRadius;
+      points[1].value = newCenterY;
+      points[2].timestamp = newCenterX;
+      points[3].timestamp = performPoint.timestamp;
       points[3].value = performPoint.value;
-      points[3].timestamp = centerX;
-      points[0].value = centerY;
-      points[1].value = centerY;
-      points[2].timestamp = centerX;
     }
   },
   createPointFigures: ({ coordinates }) => {
