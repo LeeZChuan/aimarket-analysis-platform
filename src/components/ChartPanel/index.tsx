@@ -18,7 +18,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
-import { useChartStore } from '../../store/useChartStore';
+import { useChartStore, MAX_SELECTION_COUNT } from '../../store/useChartStore';
 import { useThemeStore } from '../../store/useThemeStore';
 import { stockService } from '../../services/stockService';
 import { notifyWarning, notifySuccess, notifyError } from '../../utils/notify';
@@ -36,7 +36,7 @@ import { triangleOverlay } from './overlays/triangleOverlay';
 import { textSegmentOverlay } from './overlays/textSegmentOverlay';
 import { RegionSelectionModal } from './RegionSelectionModal';
 import { TextInputModal } from './TextInputModal';
-import type { RegionSelectionData } from '../../store/useChartStore';
+import type { RegionSelectionData, KLineDataItem } from '../../store/useChartStore';
 
 const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -68,7 +68,8 @@ export function ChartPanel() {
     selectionData,
     setSelectionData,
     currentSelectionRange,
-    setCurrentSelectionRange
+    setCurrentSelectionRange,
+    setConfirmedSelectionData,
   } = useChartStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -380,7 +381,8 @@ export function ChartPanel() {
             minute: '2-digit'
           }),
           startTimestamp: dataList[startIndex].timestamp,
-          endTimestamp: dataList[endIndex].timestamp
+          endTimestamp: dataList[endIndex].timestamp,
+          dataCount: endIndex - startIndex + 1,
         };
         setCurrentSelectionRange(range);
       }
@@ -418,29 +420,43 @@ export function ChartPanel() {
     setActiveTool('none');
   }, [setIsInSelectionMode, setSelectionData]);
 
-  // 处理确认框选
   const handleConfirmSelection = useCallback(() => {
-    if (chartRef.current) {
-      // 恢复十字光标
-      chartRef.current.setStyles({
-        crosshair: {
-          show: true
-        }
-      });
+    if (chartRef.current && selectionData) {
+      const dataList = chartRef.current.getDataList();
+      const { startIndex, endIndex } = selectionData;
+
+      if (dataList && startIndex >= 0 && endIndex >= startIndex) {
+        const sliced = dataList.slice(startIndex, endIndex + 1);
+        const klineData: KLineDataItem[] = sliced.map((d) => ({
+          timestamp: d.timestamp,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+          volume: d.volume ?? 0,
+        }));
+
+        setConfirmedSelectionData({
+          stockSymbol: selectedStock?.symbol || '',
+          stockName: selectedStock?.name || '',
+          timeframe: selectionData.timeframe,
+          startTime: selectionData.startTime,
+          endTime: selectionData.endTime,
+          dataCount: klineData.length,
+          klineData,
+        });
+
+        notifySuccess(`已选择 ${klineData.length} 条K线数据`);
+      }
+
+      chartRef.current.setStyles({ crosshair: { show: true } });
+      chartRef.current.removeOverlay();
     }
-    
+
     setIsInSelectionMode(false);
     setShowSelectionModal(false);
-    
-    // 这里可以触发 AI 分析或其他后续操作
-    console.log('确认框选数据:', selectionData);
-    
-    // 清除 overlay
-    if (chartRef.current) {
-      chartRef.current.removeOverlay();
-      setActiveTool('none');
-    }
-  }, [selectionData, setIsInSelectionMode]);
+    setActiveTool('none');
+  }, [selectionData, selectedStock, setIsInSelectionMode, setConfirmedSelectionData]);
 
   // 监听框选确认事件
   useEffect(() => {
@@ -474,6 +490,13 @@ export function ChartPanel() {
       }
 
       if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
+        const dataCount = endIndex - startIndex + 1;
+
+        if (dataCount > MAX_SELECTION_COUNT) {
+          notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${dataCount} 条`);
+          return;
+        }
+
         const newSelectionData: RegionSelectionData = {
           startTime: new Date(dataList[startIndex].timestamp).toLocaleString('zh-CN', {
             year: 'numeric',
@@ -489,12 +512,12 @@ export function ChartPanel() {
             hour: '2-digit',
             minute: '2-digit'
           }),
-          dataCount: endIndex - startIndex + 1,
+          dataCount,
           startIndex,
           endIndex,
           timeframe: timeRange
         };
-        
+
         setSelectionData(newSelectionData);
         setShowSelectionModal(true);
       }
@@ -657,6 +680,18 @@ export function ChartPanel() {
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>止:</span>
                       <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}>
                         {currentSelectionRange.endTime}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>数量:</span>
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded"
+                        style={{
+                          color: currentSelectionRange.dataCount > MAX_SELECTION_COUNT ? '#FF4976' : 'var(--accent-primary)',
+                          background: currentSelectionRange.dataCount > MAX_SELECTION_COUNT ? 'rgba(255,73,118,0.1)' : 'var(--bg-hover)',
+                        }}
+                      >
+                        {currentSelectionRange.dataCount}{currentSelectionRange.dataCount > MAX_SELECTION_COUNT ? ` / 上限${MAX_SELECTION_COUNT}` : ''}
                       </span>
                     </div>
                   </div>

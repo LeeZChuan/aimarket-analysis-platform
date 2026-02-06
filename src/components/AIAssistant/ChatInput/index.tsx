@@ -14,7 +14,7 @@
  */
 
 import { useState, useRef } from 'react';
-import { Send, Image as ImageIcon, X, ChevronDown, Box } from 'lucide-react';
+import { Send, Image as ImageIcon, X, ChevronDown, Box, BarChart3 } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
 import type { SceneConfig } from '../../../types/scene';
 
@@ -49,7 +49,7 @@ export function ChatInput({
   availableModels,
   onModelChange,
 }: ChatInputProps) {
-  const { setTriggerRegionSelection, isInSelectionMode } = useChartStore();
+  const { setTriggerRegionSelection, isInSelectionMode, confirmedSelectionData, clearConfirmedSelectionData } = useChartStore();
   const [input, setInput] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -181,6 +181,25 @@ export function ChatInput({
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {confirmedSelectionData && (
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+            style={{ background: 'var(--bg-active)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }}
+          >
+            <BarChart3 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="flex-1 truncate">
+              {confirmedSelectionData.stockName || confirmedSelectionData.stockSymbol} | {confirmedSelectionData.timeframe} | {confirmedSelectionData.dataCount} 条K线 ({confirmedSelectionData.startTime} ~ {confirmedSelectionData.endTime})
+            </span>
+            <button
+              onClick={clearConfirmedSelectionData}
+              className="p-0.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
+              title="移除已选数据"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 

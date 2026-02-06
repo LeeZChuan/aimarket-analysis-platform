@@ -5,13 +5,15 @@
 
 import { create } from 'zustand';
 
+export const MAX_SELECTION_COUNT = 200;
+
 export interface RegionSelectionData {
   startTime: string;
   endTime: string;
   dataCount: number;
   startIndex: number;
   endIndex: number;
-  timeframe: string;  // 时间周期，如 '1D', '1W', '1M' 等
+  timeframe: string;
 }
 
 export interface CurrentSelectionRange {
@@ -19,37 +21,61 @@ export interface CurrentSelectionRange {
   endTime: string;
   startTimestamp: number;
   endTimestamp: number;
+  dataCount: number;
+}
+
+export interface KLineDataItem {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface ConfirmedSelectionData {
+  stockSymbol: string;
+  stockName: string;
+  timeframe: string;
+  startTime: string;
+  endTime: string;
+  dataCount: number;
+  klineData: KLineDataItem[];
 }
 
 interface ChartStore {
-  // 触发区域选择工具
   triggerRegionSelection: boolean;
   setTriggerRegionSelection: (trigger: boolean) => void;
-  
-  // 框选模式状态（用于控制十字光标等）
+
   isInSelectionMode: boolean;
   setIsInSelectionMode: (inMode: boolean) => void;
-  
-  // 框选结果数据
+
   selectionData: RegionSelectionData | null;
   setSelectionData: (data: RegionSelectionData | null) => void;
-  
-  // 当前框选范围（实时更新）
+
   currentSelectionRange: CurrentSelectionRange | null;
   setCurrentSelectionRange: (range: CurrentSelectionRange | null) => void;
+
+  confirmedSelectionData: ConfirmedSelectionData | null;
+  setConfirmedSelectionData: (data: ConfirmedSelectionData | null) => void;
+  clearConfirmedSelectionData: () => void;
 }
 
 export const useChartStore = create<ChartStore>((set) => ({
   triggerRegionSelection: false,
   setTriggerRegionSelection: (trigger) => set({ triggerRegionSelection: trigger }),
-  
+
   isInSelectionMode: false,
   setIsInSelectionMode: (inMode) => set({ isInSelectionMode: inMode }),
-  
+
   selectionData: null,
   setSelectionData: (data) => set({ selectionData: data }),
-  
+
   currentSelectionRange: null,
   setCurrentSelectionRange: (range) => set({ currentSelectionRange: range }),
+
+  confirmedSelectionData: null,
+  setConfirmedSelectionData: (data) => set({ confirmedSelectionData: data }),
+  clearConfirmedSelectionData: () => set({ confirmedSelectionData: null }),
 }));
 

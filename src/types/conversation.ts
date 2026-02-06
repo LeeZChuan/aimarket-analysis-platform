@@ -89,27 +89,32 @@ export interface ConversationStorage {
 
 // ==================== Chat API Types ====================
 
-/**
- * 聊天请求参数
- * 对应后端 POST /api/conversations/:id/chat 接口
- */
+export interface KLineContextData {
+  stockSymbol: string;
+  stockName: string;
+  timeframe: string;
+  startTime: string;
+  endTime: string;
+  data: Array<{
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>;
+}
+
 export interface ChatRequest {
-  /** 用户输入内容（必填） */
   content: string;
-  /** 系统提示词（可选；若后端支持，将插入 messages 开头） */
   systemPrompt?: string;
-  /** 模型ID，如 gpt-4 / deepseek-chat */
   modelId?: string;
-  /** 供应商ID，如 openai / deepseek */
   providerId?: string;
-  /** 场景ID，用于 system prompt */
   sceneId?: string;
-  /** 期望响应类型，如 text / markdown */
   expectedType?: string;
-  /** 消息类型，默认 text */
   messageType?: string;
-  /** 是否启用流式返回 */
   stream?: boolean;
+  klineContext?: KLineContextData;
 }
 
 /**

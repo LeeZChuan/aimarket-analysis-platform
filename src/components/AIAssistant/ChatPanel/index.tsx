@@ -16,13 +16,14 @@
 import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useStore } from '../../../store/useStore';
+import { useChartStore } from '../../../store/useChartStore';
 import { useAIConfigStore } from '../../../store/useAIConfigStore';
 import { useConversationStore } from '../../../store/useConversationStore';
 import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
-import { ConversationListItem } from '../../../types/conversation';
+import { ConversationListItem, KLineContextData } from '../../../types/conversation';
 
 export function ChatPanel() {
   const { selectedStock } = useStore();
@@ -69,10 +70,8 @@ export function ChatPanel() {
    * 使用后端 /api/conversations/:id/chat 接口，支持 SSE 流式返回
    */
   const handleSend = async (message: string, images?: string[]) => {
-    // 如果正在加载或流式传输中，不允许发送
     if (isLoading || isStreaming) return;
 
-    // remote 模式下首次发送：如果当前没有会话，则先创建会话，再发送消息
     let conversationId = activeConversationId;
     if (!conversationId) {
       await createNewConversation({
@@ -86,7 +85,21 @@ export function ChatPanel() {
 
     if (!conversationId) return;
 
-    // 使用新的聊天接口发送消息（支持 SSE 流式）
+    const { confirmedSelectionData, clearConfirmedSelectionData } = useChartStore.getState();
+
+    let klineContext: KLineContextData | undefined;
+    if (confirmedSelectionData) {
+      klineContext = {
+        stockSymbol: confirmedSelectionData.stockSymbol,
+        stockName: confirmedSelectionData.stockName,
+        timeframe: confirmedSelectionData.timeframe,
+        startTime: confirmedSelectionData.startTime,
+        endTime: confirmedSelectionData.endTime,
+        data: confirmedSelectionData.klineData,
+      };
+      clearConfirmedSelectionData();
+    }
+
     await sendChatMessage({
       content: message,
       modelId: selectedModelId,
@@ -94,6 +107,7 @@ export function ChatPanel() {
       sceneId: selectedSceneId,
       expectedType: 'markdown',
       stream: true,
+      klineContext,
     });
   };
 
