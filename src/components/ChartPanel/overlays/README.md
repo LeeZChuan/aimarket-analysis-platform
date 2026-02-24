@@ -144,6 +144,9 @@ export const myOverlay: OverlayTemplate = {
     // 根据图形类型配置
   },
 
+  // ⚠️ 必须添加：防止右键删除覆盖物，交由自定义右键菜单处理
+  onRightClick: () => true,
+
   // 创建图形的核心方法
   createPointFigures: ({ coordinates, overlay, bounding }) => {
     // coordinates: 用户点击的坐标点数组
@@ -166,6 +169,13 @@ export const myOverlay: OverlayTemplate = {
   onDrawEnd: (event) => { /* ... */ },
   // ... 更多事件
 };
+```
+
+> **重要**：新增 overlay 后还需要在 `ChartPanel/index.tsx` 中完成以下步骤：
+> 1. 将 overlay 的 `name` 添加到 `SHAPE_OVERLAY_NAMES` 数组
+> 2. 确保 `createOverlay()` 返回的 ID 存入 `activeOverlayIdsRef`
+>
+> 详见 `.cursor/skill.md` 中的「ChartPanel 覆盖物开发规范」章节。
 ```
 
 ### 基础图形类型

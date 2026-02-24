@@ -21,4 +21,40 @@
 ## 文档维护规范
 - `README.md` 保持**短、可执行**：快速启动/环境变量/脚本/关键约定即可。
 
+## ChartPanel 覆盖物（Overlay）开发规范
+
+### 右键菜单机制
+
+图表支持在覆盖物上右键唤起自定义操作菜单（导出 CSV/JSON 等），新增覆盖物时**必须**遵守以下规则：
+
+1. **必须添加 `onRightClick: () => true`**
+   - klinecharts 默认行为：右键覆盖物会被删除。
+   - 添加此回调后，右键不会删除覆盖物，而是由我们的自定义菜单接管。
+   - 所有 `OverlayTemplate` 定义中都要加上这一行。
+
+2. **必须在 `SHAPE_OVERLAY_NAMES` 中注册名称**
+   - 文件：`src/components/ChartPanel/index.tsx`
+   - 常量：`const SHAPE_OVERLAY_NAMES = ['rect', 'circle', 'ellipse', 'triangle'];`
+   - 新增覆盖物的 `name` 必须追加到此数组，否则右键菜单无法识别它。
+
+3. **必须跟踪覆盖物 ID**
+   - `createOverlay()` 返回的 ID 要存入 `activeOverlayIdsRef`。
+   - 右键菜单通过遍历此 Set 里的 ID 调用 `getOverlayById(id)` 获取覆盖物数据。
+   - 调用 `removeOverlay()` 清除覆盖物时，同步调用 `activeOverlayIdsRef.current.clear()`。
+
+### 新增覆盖物 Checklist
+
+- [ ] 覆盖物模板包含 `onRightClick: () => true`
+- [ ] 覆盖物 `name` 已加入 `SHAPE_OVERLAY_NAMES`
+- [ ] `handleDrawingTool` 或创建处已捕获 ID 并存入 `activeOverlayIdsRef`
+- [ ] 已在 `registerOverlay()` 列表中注册
+
+### 相关文件
+
+| 文件 | 职责 |
+|------|------|
+| `src/components/ChartPanel/index.tsx` | 右键事件拦截、覆盖物 ID 跟踪、菜单状态管理 |
+| `src/components/ChartPanel/ChartContextMenu.tsx` | 可扩展右键菜单组件（action 注册表模式） |
+| `src/components/ChartPanel/overlays/*.ts` | 各覆盖物模板定义 |
+| `src/utils/klineExport.ts` | K线数据导出工具（CSV/JSON） |
 
