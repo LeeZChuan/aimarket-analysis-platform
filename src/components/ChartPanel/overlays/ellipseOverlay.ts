@@ -14,6 +14,7 @@ export const ellipseOverlay: OverlayTemplate = {
       borderSize: 2
     }
   },
+  onRightClick: () => true,
   onDrawEnd: ({ overlay }) => {
     if (overlay.points.length === 2) {
       const x1 = overlay.points[0].timestamp!;

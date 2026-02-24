@@ -14,6 +14,7 @@ export const rectOverlay: OverlayTemplate = {
       borderSize: 1
     }
   },
+  onRightClick: () => true,
   createPointFigures: ({ coordinates }) => {
     if (coordinates.length < 2) {
       return [];

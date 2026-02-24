@@ -9,13 +9,14 @@
  * - 图表缩放和拖拽交互
  * - 鼠标悬停显示详细数据
  * - 可折叠的头部和侧边栏
+ * - 右键菜单：绘制覆盖物后右键可唤起可扩展操作菜单（导出CSV/JSON等）
  *
  * 使用位置：
  * - /views/StockDetailView/index.tsx - 股票详情页（中间主图表区域）
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Check, X as XIcon } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Check, X as XIcon, FileDown, FileJson } from 'lucide-react';
 import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
@@ -24,10 +25,13 @@ import { useThemeStore } from '../../store/useThemeStore';
 import { stockService } from '../../services/stockService';
 import { notifyWarning, notifySuccess, notifyError } from '../../utils/notify';
 import { captureScreenshot } from '../../utils/screenshot';
+import { exportKLineCsv, exportKLineJson } from '../../utils/klineExport';
 import { DrawingToolbar, DrawingTool } from './DrawingToolbar';
 import { TimeRange } from './TimeRangeSelector';
 import { StockInfoBar } from './StockInfoBar';
 import { ChartToolbar } from './ChartToolbar';
+import { ChartContextMenu } from './ChartContextMenu';
+import type { ContextMenuAction, ContextMenuActionContext } from './ChartContextMenu';
 import { convertKLineData } from './chartDataUtils';
 import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
 import { rectOverlay } from './overlays/rectOverlay';
@@ -42,6 +46,7 @@ const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 };
 
+const SHAPE_OVERLAY_NAMES = ['rect', 'circle', 'ellipse', 'triangle'];
 
 const toChartKLineData = (
   data: Array<{
@@ -55,6 +60,40 @@ const toChartKLineData = (
 ): KLineData[] => {
   return Array.from(data.values()).sort((a, b) => a.timestamp - b.timestamp);
 };
+
+function sliceKLineByRange(
+  dataList: KLineData[],
+  startTimestamp: number,
+  endTimestamp: number
+): KLineDataItem[] | null {
+  let startIndex = -1;
+  let endIndex = -1;
+  for (let i = 0; i < dataList.length; i++) {
+    const ts = dataList[i].timestamp;
+    if (ts >= startTimestamp && ts <= endTimestamp) {
+      if (startIndex === -1) startIndex = i;
+      endIndex = i;
+    }
+  }
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) return null;
+  return dataList.slice(startIndex, endIndex + 1).map((d) => ({
+    timestamp: d.timestamp,
+    open: d.open,
+    high: d.high,
+    low: d.low,
+    close: d.close,
+    volume: d.volume ?? 0,
+  }));
+}
+
+function formatTs(ts: number): string {
+  return new Date(ts).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 
 export function ChartPanel() {
@@ -71,6 +110,7 @@ export function ChartPanel() {
   } = useChartStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
   const indicatorIdsRef = useRef<Map<string, string>>(new Map());
 
   const [indicators, setIndicators] = useState<string[]>([]);
@@ -84,6 +124,12 @@ export function ChartPanel() {
   const [textInputInitialValue, setTextInputInitialValue] = useState('');
   const pendingTextOverlayIdRef = useRef<string | null>(null);
   const isEditingTextRef = useRef(false);
+
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+  const [contextMenuCtx, setContextMenuCtx] = useState<ContextMenuActionContext | null>(null);
+  const pendingContextRef = useRef<ContextMenuActionContext | null>(null);
+  const activeOverlayIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
@@ -166,13 +212,11 @@ export function ChartPanel() {
     };
   }, []);
 
-  // 后端优先加载日K数据，失败/无数据则回退到 mock（保证图表可用）
   useEffect(() => {
     let cancelled = false;
 
     const loadDailyKLine = async () => {
       if (!selectedStock?.symbol) {
-        // 未选中股票：清空数据，交给 UI 显示“请选择股票”
         if (!cancelled) {
           setDailyData([]);
           setIsLoadingData(false);
@@ -182,11 +226,9 @@ export function ChartPanel() {
 
       try {
         if (!cancelled) {
-          // 切换股票时，先清空旧数据，避免短暂显示上一只股票的K线
           setIsLoadingData(true);
           setDailyData([]);
         }
-        // TODO: 这里起止时间计划走当前后台存的时间2000-01-03至近的数据
         const start = '2000-01-03';
         const end = '2025-12-31';
 
@@ -221,11 +263,9 @@ export function ChartPanel() {
     };
   }, [selectedStock?.symbol]);
 
-  // 根据时间周期把日线转换为目标周期，并喂给图表
   useEffect(() => {
     if (!chartRef.current) return;
     if (!dailyData || dailyData.length === 0) {
-      // 清空旧数据，避免切换到“无数据股票”时还展示上一个股票
       chartRef.current.applyNewData([]);
       return;
     }
@@ -304,7 +344,10 @@ export function ChartPanel() {
       chartRef.current.createOverlay({ name: '' });
       setActiveTool('none');
     } else {
-      chartRef.current.createOverlay({ name: tool });
+      const id = chartRef.current.createOverlay({ name: tool });
+      if (id && typeof id === 'string') {
+        activeOverlayIdsRef.current.add(id);
+      }
       setActiveTool(tool);
     }
   };
@@ -312,17 +355,18 @@ export function ChartPanel() {
   // 监听区域选择触发
   useEffect(() => {
     if (triggerRegionSelection && chartRef.current) {
-      // 进入框选模式
       setIsInSelectionMode(true);
-      
-      // 禁用十字光标
+
       chartRef.current.setStyles({
         crosshair: {
           show: false
         }
       });
-      
-      chartRef.current.createOverlay({ name: 'horizontalRegionSelection' });
+
+      const selId = chartRef.current.createOverlay({ name: 'horizontalRegionSelection' });
+      if (selId && typeof selId === 'string') {
+        activeOverlayIdsRef.current.add(selId);
+      }
       setActiveTool('horizontalRegionSelection' as DrawingTool);
       setTriggerRegionSelection(false);
     }
@@ -334,7 +378,7 @@ export function ChartPanel() {
 
     const updateSelectionRange = () => {
       if (!chartRef.current) return;
-      
+
       const overlays = chartRef.current.getOverlayById();
       if (!overlays || overlays.length === 0) return;
 
@@ -350,10 +394,9 @@ export function ChartPanel() {
       const leftTimestamp = points[0].value;
       const rightTimestamp = points[1].value;
 
-      // 找到对应的数据索引
       let startIndex = -1;
       let endIndex = -1;
-      
+
       for (let i = 0; i < dataList.length; i++) {
         if (dataList[i].timestamp >= leftTimestamp && startIndex === -1) {
           startIndex = i;
@@ -365,18 +408,8 @@ export function ChartPanel() {
 
       if (startIndex !== -1 && endIndex !== -1) {
         const range = {
-          startTime: new Date(dataList[startIndex].timestamp).toLocaleString('zh-CN', {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          endTime: new Date(dataList[endIndex].timestamp).toLocaleString('zh-CN', {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
+          startTime: formatTs(dataList[startIndex].timestamp),
+          endTime: formatTs(dataList[endIndex].timestamp),
           startTimestamp: dataList[startIndex].timestamp,
           endTimestamp: dataList[endIndex].timestamp,
           dataCount: endIndex - startIndex + 1,
@@ -385,10 +418,7 @@ export function ChartPanel() {
       }
     };
 
-    // 初始更新
     updateSelectionRange();
-
-    // 定时更新（监听拖拽变化）
     const intervalId = setInterval(updateSelectionRange, 100);
 
     return () => {
@@ -397,14 +427,15 @@ export function ChartPanel() {
     };
   }, [isInSelectionMode, setCurrentSelectionRange]);
 
-  // 处理取消框选
   const handleCancelSelection = useCallback(() => {
     if (chartRef.current) {
       chartRef.current.setStyles({ crosshair: { show: true } });
       chartRef.current.removeOverlay();
+      activeOverlayIdsRef.current.clear();
     }
     setIsInSelectionMode(false);
     setActiveTool('none');
+    setContextMenuVisible(false);
   }, [setIsInSelectionMode]);
 
   const handleConfirmSelection = useCallback(() => {
@@ -416,33 +447,12 @@ export function ChartPanel() {
     const dataList = chartRef.current.getDataList();
     if (!dataList || dataList.length === 0) return;
 
-    const { startTimestamp, endTimestamp } = range;
-    let startIndex = -1;
-    let endIndex = -1;
-    for (let i = 0; i < dataList.length; i++) {
-      const ts = dataList[i].timestamp;
-      if (ts >= startTimestamp && ts <= endTimestamp) {
-        if (startIndex === -1) startIndex = i;
-        endIndex = i;
-      }
-    }
-
-    if (startIndex !== -1 && endIndex !== -1 && endIndex >= startIndex) {
-      const dataCount = endIndex - startIndex + 1;
-      if (dataCount > MAX_SELECTION_COUNT) {
-        notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${dataCount} 条`);
+    const klineData = sliceKLineByRange(dataList, range.startTimestamp, range.endTimestamp);
+    if (klineData && klineData.length > 0) {
+      if (klineData.length > MAX_SELECTION_COUNT) {
+        notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${klineData.length} 条`);
         return;
       }
-
-      const sliced = dataList.slice(startIndex, endIndex + 1);
-      const klineData: KLineDataItem[] = sliced.map((d) => ({
-        timestamp: d.timestamp,
-        open: d.open,
-        high: d.high,
-        low: d.low,
-        close: d.close,
-        volume: d.volume ?? 0,
-      }));
 
       setConfirmedSelectionData({
         stockSymbol: selectedStock?.symbol || '',
@@ -459,11 +469,11 @@ export function ChartPanel() {
 
     chartRef.current.setStyles({ crosshair: { show: true } });
     chartRef.current.removeOverlay();
+    activeOverlayIdsRef.current.clear();
     setIsInSelectionMode(false);
     setActiveTool('none');
+    setContextMenuVisible(false);
   }, [selectedStock, timeRange, setIsInSelectionMode, setConfirmedSelectionData]);
-
-  // (confirm/cancel buttons are now in the HTML info bar, no CustomEvent listeners needed)
 
   useEffect(() => {
     const handleTextSegmentDrawEnd = (event: Event) => {
@@ -520,31 +530,23 @@ export function ChartPanel() {
   const clearAllOverlays = () => {
     if (!chartRef.current) return;
     chartRef.current.removeOverlay();
+    activeOverlayIdsRef.current.clear();
     setActiveTool('none');
+    setContextMenuVisible(false);
   };
 
-  // 放大图表（显示更少的K线，每根K线更宽）
   const handleZoomIn = () => {
-    
     if (!chartRef.current) return;
     try {
-      // 先确保缩放功能是启用的
-      // chartRef.current.setZoomEnabled(true);
-      console.log('chartRef.current.zoomAtCoordinate');
-      // 在图表中心缩放
       chartRef.current.zoomAtCoordinate(-10);
     } catch (error) {
       console.error('Zoom in error:', error);
     }
   };
 
-  // 缩小图表（显示更多的K线，每根K线更窄）
   const handleZoomOut = () => {
     if (!chartRef.current) return;
     try {
-      // 先确保缩放功能是启用的
-      // chartRef.current.setZoomEnabled(true);
-      // 在图表中心缩放
       chartRef.current.zoomAtCoordinate(10);
     } catch (error) {
       console.error('Zoom out error:', error);
@@ -560,6 +562,160 @@ export function ChartPanel() {
       notifyError('截图失败');
     }
   };
+
+  // 从覆盖物的点位提取时间范围，构建右键菜单上下文
+  const resolveContextFromOverlays = useCallback((): ContextMenuActionContext | null => {
+    console.log('[ContextMenu] resolveContextFromOverlays called');
+    if (!chartRef.current) { console.log('[ContextMenu] chartRef.current is null'); return null; }
+    const dataList = chartRef.current.getDataList();
+    if (!dataList || dataList.length === 0) { console.log('[ContextMenu] dataList empty'); return null; }
+    console.log('[ContextMenu] dataList length:', dataList.length);
+
+    // 如果在框选模式中，优先用框选范围
+    const selRange = useChartStore.getState().currentSelectionRange;
+    console.log('[ContextMenu] selRange:', selRange);
+    if (selRange) {
+      const klineData = sliceKLineByRange(dataList, selRange.startTimestamp, selRange.endTimestamp);
+      if (klineData && klineData.length > 0) {
+        console.log('[ContextMenu] using selRange, klineData count:', klineData.length);
+        return {
+          symbol: selectedStock?.symbol || '',
+          stockName: selectedStock?.name || '',
+          timeframe: timeRange,
+          startTime: selRange.startTime,
+          endTime: selRange.endTime,
+          klineData,
+        };
+      }
+    }
+
+    // 从已跟踪的覆盖物 ID 逐个获取
+    const trackedIds = activeOverlayIdsRef.current;
+    console.log('[ContextMenu] tracked overlay IDs:', [...trackedIds]);
+    const overlayList: Array<{ name: string; points: Array<{ timestamp?: number; value?: number }> }> = [];
+    for (const id of trackedIds) {
+      const ov = chartRef.current.getOverlayById(id);
+      if (ov) overlayList.push(ov as any);
+    }
+    console.log('[ContextMenu] resolved overlays count:', overlayList.length, 'names:', overlayList.map(o => o.name));
+
+    let minTs = Infinity;
+    let maxTs = -Infinity;
+    let hasShapes = false;
+
+    for (const ov of overlayList) {
+      if (!SHAPE_OVERLAY_NAMES.includes(ov.name)) {
+        console.log('[ContextMenu] skipping overlay:', ov.name);
+        continue;
+      }
+      const pts = ov.points;
+      console.log('[ContextMenu] overlay', ov.name, 'points:', JSON.stringify(pts));
+      if (!pts) continue;
+      hasShapes = true;
+      for (const pt of pts) {
+        const ts = pt.timestamp ?? pt.value;
+        if (ts != null && ts > 1e8) {
+          minTs = Math.min(minTs, ts);
+          maxTs = Math.max(maxTs, ts);
+        }
+      }
+    }
+
+    console.log('[ContextMenu] hasShapes:', hasShapes, 'minTs:', minTs, 'maxTs:', maxTs);
+    if (!hasShapes || !isFinite(minTs) || !isFinite(maxTs)) { console.log('[ContextMenu] no valid shape range'); return null; }
+
+    const klineData = sliceKLineByRange(dataList, minTs, maxTs);
+    console.log('[ContextMenu] sliced klineData count:', klineData?.length ?? 0);
+    if (!klineData || klineData.length === 0) return null;
+
+    return {
+      symbol: selectedStock?.symbol || '',
+      stockName: selectedStock?.name || '',
+      timeframe: timeRange,
+      startTime: formatTs(minTs),
+      endTime: formatTs(maxTs),
+      klineData,
+    };
+  }, [selectedStock, timeRange]);
+
+  // 双层拦截：mousedown(button=2) 缓存上下文 + contextmenu 显示菜单
+  useEffect(() => {
+    const wrapper = chartWrapperRef.current;
+    if (!wrapper) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      console.log('[ContextMenu] mousedown fired, button:', e.button);
+      if (e.button !== 2 || !chartRef.current) return;
+      console.log('[ContextMenu] right-click mousedown, resolving context...');
+      const ctx = resolveContextFromOverlays();
+      console.log('[ContextMenu] mousedown resolved ctx:', ctx ? 'HAS CONTEXT' : 'NULL');
+      pendingContextRef.current = ctx;
+      if (ctx) {
+        e.stopPropagation();
+        console.log('[ContextMenu] mousedown stopPropagation (blocked klinecharts)');
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      console.log('[ContextMenu] contextmenu fired, pendingCtx:', pendingContextRef.current ? 'HAS' : 'NULL');
+      const ctx = pendingContextRef.current ?? resolveContextFromOverlays();
+      pendingContextRef.current = null;
+      if (!ctx) { console.log('[ContextMenu] contextmenu: no context, skipping'); return; }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      console.log('[ContextMenu] SHOWING MENU at', e.clientX, e.clientY, 'klines:', ctx.klineData.length);
+      setContextMenuCtx(ctx);
+      setContextMenuPos({ x: e.clientX, y: e.clientY });
+      setContextMenuVisible(true);
+    };
+
+    wrapper.addEventListener('mousedown', handleMouseDown, true);
+    wrapper.addEventListener('contextmenu', handleContextMenu, true);
+    return () => {
+      wrapper.removeEventListener('mousedown', handleMouseDown, true);
+      wrapper.removeEventListener('contextmenu', handleContextMenu, true);
+    };
+  }, [resolveContextFromOverlays]);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenuVisible(false);
+  }, []);
+
+  const contextMenuActions: ContextMenuAction[] = useMemo(
+    () => [
+      {
+        id: 'export-csv',
+        label: '导出 CSV',
+        icon: <FileDown className="w-3.5 h-3.5" />,
+        run: (ctx) => {
+          exportKLineCsv(ctx.klineData, {
+            symbol: ctx.symbol,
+            timeframe: ctx.timeframe,
+            startTime: ctx.startTime,
+            endTime: ctx.endTime,
+          });
+          notifySuccess(`已导出 ${ctx.klineData.length} 条数据 (CSV)`);
+        },
+      },
+      {
+        id: 'export-json',
+        label: '导出 JSON',
+        icon: <FileJson className="w-3.5 h-3.5" />,
+        run: (ctx) => {
+          exportKLineJson(ctx.klineData, {
+            symbol: ctx.symbol,
+            timeframe: ctx.timeframe,
+            startTime: ctx.startTime,
+            endTime: ctx.endTime,
+          });
+          notifySuccess(`已导出 ${ctx.klineData.length} 条数据 (JSON)`);
+        },
+      },
+    ],
+    []
+  );
 
   return (
     <>
@@ -588,7 +744,6 @@ export function ChartPanel() {
                   </span>
                 </div>
 
-                {/* 时间周期 */}
                 <div className="flex items-center gap-1.5 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>周期:</span>
                   <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ color: 'var(--accent-primary)', background: 'var(--bg-hover)' }}>
@@ -649,8 +804,9 @@ export function ChartPanel() {
             </div>
           )}
 
-          <div className="flex-1 min-h-0 relative">
+          <div ref={chartWrapperRef} className="flex-1 min-h-0 relative">
             <div ref={chartContainerRef} className="absolute inset-0" />
+            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }} />
 
             {isLoadingData && (
               <div
@@ -718,6 +874,14 @@ export function ChartPanel() {
           onCancel={handleTextInputCancel}
         />
       )}
+
+      <ChartContextMenu
+        visible={contextMenuVisible}
+        position={contextMenuPos}
+        context={contextMenuCtx}
+        actions={contextMenuActions}
+        onClose={closeContextMenu}
+      />
     </>
   );
 }

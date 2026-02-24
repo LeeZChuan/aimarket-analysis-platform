@@ -34,6 +34,7 @@ export const horizontalRegionSelection: OverlayTemplate = {
       color: 'rgba(58, 159, 255, 0.1)'
     }
   },
+  onRightClick: () => true,
   createPointFigures: (params) => {
     const { coordinates, bounding } = params;
 
