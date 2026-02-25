@@ -1,40 +1,33 @@
 import type { OverlayTemplate } from 'klinecharts';
 
-interface Coordinate {
-  x: number;
-  y: number;
-}
-
-interface LineAttrs {
-  coordinates: Coordinate[];
-}
-
-interface RectAttrs {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-let lastPosition = [0, 0];
-const minDistance = 30;
+const MIN_DISTANCE_PX = 30;
 
 export const horizontalRegionSelection: OverlayTemplate = {
   name: 'horizontalRegionSelection',
-  totalStep: 2,
-  needDefaultPointFigure: false,
-  needDefaultXAxisFigure: false,
+  totalStep: 3,
+  needDefaultPointFigure: true,
+  needDefaultXAxisFigure: true,
   needDefaultYAxisFigure: false,
   styles: {
-    line: {
-      size: 1,
-      color: '#3A9FFF'
-    },
-    rect: {
-      color: 'rgba(58, 159, 255, 0.1)'
-    }
+    line: { size: 1, color: '#3A9FFF' },
+    rect: { color: 'rgba(58, 159, 255, 0.1)' },
   },
   onRightClick: () => true,
+
+  performEventPressedMove: ({ points, performPointIndex, performPoint }) => {
+    if (points.length < 2) return;
+    const fixedValue = points[0].value;
+    performPoint.value = fixedValue;
+
+    if (performPointIndex === 0) {
+      points[0].timestamp = performPoint.timestamp;
+      points[0].value = fixedValue;
+    } else if (performPointIndex === 1) {
+      points[1].timestamp = performPoint.timestamp;
+      points[1].value = fixedValue;
+    }
+  },
+
   createPointFigures: (params) => {
     const { coordinates, bounding } = params;
 
@@ -42,181 +35,60 @@ export const horizontalRegionSelection: OverlayTemplate = {
       return [];
     }
 
-    const defaultWidth = 120;
     const canvasHeight = bounding.height || 400;
 
     coordinates[0].y = canvasHeight / 2;
-
     if (coordinates.length > 1 && coordinates[1]) {
       coordinates[1].y = canvasHeight / 2;
     }
 
-    if (coordinates.length > 1 && coordinates[1]) {
-      if (lastPosition[0] < coordinates[0].x || lastPosition[1] < coordinates[1].x) {
-        const distance = coordinates[1].x - coordinates[0].x;
-        if (distance <= minDistance) {
-          coordinates[0].x = coordinates[1].x - minDistance;
-        }
-      }
+    let leftX = coordinates[0].x;
+    let rightX = coordinates.length > 1 && coordinates[1]
+      ? coordinates[1].x
+      : leftX + 120;
 
-      if (lastPosition[0] > coordinates[0].x || lastPosition[1] > coordinates[1].x) {
-        const distance = coordinates[1].x - coordinates[0].x;
-        if (distance <= minDistance) {
-          coordinates[1].x = coordinates[0].x + minDistance;
-        }
-      }
-
-      lastPosition = [coordinates[0].x, coordinates[1].x];
+    if (leftX > rightX) {
+      [leftX, rightX] = [rightX, leftX];
+    }
+    if (rightX - leftX < MIN_DISTANCE_PX) {
+      rightX = leftX + MIN_DISTANCE_PX;
     }
 
-    if (coordinates[0].x < bounding.left + minDistance) {
-      coordinates[0].x = bounding.left + minDistance;
-    }
-    if (coordinates.length > 1 && coordinates[1] && coordinates[1].x > bounding.width - bounding.left - minDistance) {
-      coordinates[1].x = bounding.width - bounding.left - minDistance;
-    }
+    const minX = bounding.left;
+    const maxX = bounding.width - bounding.left;
+    if (leftX < minX) leftX = minX;
+    if (rightX > maxX) rightX = maxX;
 
-    const leftX = coordinates[0].x;
-    let rightX = 0;
-
-    if (coordinates.length < 2 || !coordinates[1]) {
-      rightX = leftX + defaultWidth;
-    } else {
-      rightX = coordinates[1].x;
-    }
-
-    const startCoordinates: Coordinate[] = [
-      { x: leftX, y: 0 },
-      { x: leftX, y: canvasHeight }
-    ];
-
-    const endCoordinates: Coordinate[] = [
-      { x: rightX, y: 0 },
-      { x: rightX, y: canvasHeight }
-    ];
-
-    const startLines: LineAttrs[] = [{
-      coordinates: [...startCoordinates]
-    }];
-
-    const endLines: LineAttrs[] = [{
-      coordinates: [...endCoordinates]
-    }];
-
-    const selectionRect: RectAttrs = {
-      x: leftX,
-      y: 0,
-      width: rightX - leftX,
-      height: canvasHeight
-    };
-
-    const leftHandleY = canvasHeight / 2;
-    const handleSize = 12;
-    const rightHandleY = canvasHeight / 2;
+    const handleY = canvasHeight / 2;
+    const handleRadius = 6;
 
     return [
       {
         type: 'rect',
-        attrs: selectionRect,
-        ignoreEvent: true
+        attrs: { x: leftX, y: 0, width: rightX - leftX, height: canvasHeight },
+        ignoreEvent: true,
       },
       {
         type: 'line',
-        attrs: startLines,
-        ignoreEvent: true
+        attrs: [{ coordinates: [{ x: leftX, y: 0 }, { x: leftX, y: canvasHeight }] }],
+        ignoreEvent: true,
       },
       {
         type: 'line',
-        attrs: endLines,
-        ignoreEvent: true
+        attrs: [{ coordinates: [{ x: rightX, y: 0 }, { x: rightX, y: canvasHeight }] }],
+        ignoreEvent: true,
       },
-
       {
         type: 'circle',
-        attrs: {
-          x: leftX,
-          y: leftHandleY,
-          r: handleSize
-        },
-        styles: {
-          style: 'fill',
-          color: '#3A9FFF'
-        },
-        ignoreEvent: true
+        attrs: { x: leftX, y: handleY, r: handleRadius },
+        styles: { style: 'fill', color: '#3A9FFF' },
+        ignoreEvent: true,
       },
-      {
-        type: 'polygon',
-        attrs: {
-          coordinates: [
-            { x: leftX - 3, y: leftHandleY },
-            { x: leftX - 7, y: leftHandleY - 4 },
-            { x: leftX - 7, y: leftHandleY + 4 }
-          ]
-        },
-        styles: {
-          style: 'fill',
-          color: '#FFFFFF'
-        },
-        ignoreEvent: true
-      },
-      {
-        type: 'polygon',
-        attrs: {
-          coordinates: [
-            { x: leftX + 3, y: leftHandleY },
-            { x: leftX + 7, y: leftHandleY - 4 },
-            { x: leftX + 7, y: leftHandleY + 4 }
-          ]
-        },
-        styles: {
-          style: 'fill',
-          color: '#FFFFFF'
-        },
-        ignoreEvent: true
-      },
-
       {
         type: 'circle',
-        attrs: {
-          x: rightX,
-          y: rightHandleY,
-          r: handleSize
-        },
-        styles: {
-          style: 'fill',
-          color: '#3A9FFF'
-        },
-        ignoreEvent: true
-      },
-      {
-        type: 'polygon',
-        attrs: {
-          coordinates: [
-            { x: rightX - 3, y: rightHandleY },
-            { x: rightX - 7, y: rightHandleY - 4 },
-            { x: rightX - 7, y: rightHandleY + 4 }
-          ]
-        },
-        styles: {
-          style: 'fill',
-          color: '#FFFFFF'
-        },
-        ignoreEvent: true
-      },
-      {
-        type: 'polygon',
-        attrs: {
-          coordinates: [
-            { x: rightX + 3, y: rightHandleY },
-            { x: rightX + 7, y: rightHandleY - 4 },
-            { x: rightX + 7, y: rightHandleY + 4 }
-          ]
-        },
-        styles: {
-          style: 'fill',
-          color: '#FFFFFF'
-        },
-        ignoreEvent: true
+        attrs: { x: rightX, y: handleY, r: handleRadius },
+        styles: { style: 'fill', color: '#3A9FFF' },
+        ignoreEvent: true,
       },
     ];
   },

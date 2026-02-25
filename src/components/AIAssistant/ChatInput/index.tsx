@@ -14,7 +14,7 @@
  */
 
 import { useState, useRef } from 'react';
-import { Send, Image as ImageIcon, X, ChevronDown, Box, BarChart3 } from 'lucide-react';
+import { Send, Image as ImageIcon, X, ChevronDown, BarChart3 } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
 import type { SceneConfig } from '../../../types/scene';
 
@@ -49,13 +49,13 @@ export function ChatInput({
   availableModels,
   onModelChange,
 }: ChatInputProps) {
-  const { setTriggerRegionSelection, isInSelectionMode, confirmedSelectionData, clearConfirmedSelectionData } = useChartStore();
+  const { setTriggerRegionSelection, confirmedSelectionData, clearConfirmedSelectionData } = useChartStore();
   const [input, setInput] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showScenePicker, setShowScenePicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
-  const [showToast, setShowToast] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
@@ -120,11 +120,6 @@ export function ChatInput({
   };
 
   const handleRegionSelection = () => {
-    if (isInSelectionMode) {
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2000);
-      return;
-    }
     setTriggerRegionSelection(true);
   };
 
@@ -244,26 +239,29 @@ export function ChatInput({
               <button
                 onClick={handleRegionSelection}
                 className="p-1 rounded transition-colors"
-                style={
-                  isInSelectionMode
-                    ? { background: 'var(--bg-active)', cursor: 'default', color: 'var(--accent-primary)' }
-                    : { color: 'var(--text-muted)' }
-                }
+                style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => {
-                  if (!isInSelectionMode) {
-                    e.currentTarget.style.background = 'var(--bg-tertiary)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!isInSelectionMode) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-muted)';
-                  }
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-muted)';
                 }}
-                title={isInSelectionMode ? "已在框选模式中" : "框选图表区域"}
+                title="框选图表区域"
               >
-                <Box className="w-4 h-4" />
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <line x1="4" y1="2.5" x2="4" y2="13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="12" y1="2.5" x2="12" y2="13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="4" cy="8" r="1.6" fill="currentColor" />
+                  <circle cx="12" cy="8" r="1.6" fill="currentColor" />
+                </svg>
               </button>
 
               <div className="h-3 w-px mx-0.5" style={{ background: 'var(--border-primary)' }} />
@@ -434,23 +432,7 @@ export function ChatInput({
         </div>
       )}
 
-      {showToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] animate-fade-in">
-          <div className="px-4 py-2 rounded-lg shadow-lg text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }}>
-            已在框选模式中，请先完成或取消当前框选
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translate(-50%, -10px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-      `}</style>
+    
     </>
   );
 }

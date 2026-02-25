@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Check, X as XIcon, FileDown, FileJson } from 'lucide-react';
+import { X as XIcon, FileDown, FileJson, BarChart3 } from 'lucide-react';
 import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart, KLineData } from 'klinecharts';
 import { useStore } from '../../store/useStore';
@@ -46,7 +46,7 @@ const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 };
 
-const SHAPE_OVERLAY_NAMES = ['rect', 'circle', 'ellipse', 'triangle'];
+const SHAPE_OVERLAY_NAMES = ['rect', 'circle', 'ellipse', 'triangle', 'horizontalRegionSelection'];
 
 const toChartKLineData = (
   data: Array<{
@@ -102,10 +102,6 @@ export function ChartPanel() {
   const {
     triggerRegionSelection,
     setTriggerRegionSelection,
-    isInSelectionMode,
-    setIsInSelectionMode,
-    currentSelectionRange,
-    setCurrentSelectionRange,
     setConfirmedSelectionData,
   } = useChartStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -352,17 +348,8 @@ export function ChartPanel() {
     }
   };
 
-  // 监听区域选择触发
   useEffect(() => {
     if (triggerRegionSelection && chartRef.current) {
-      setIsInSelectionMode(true);
-
-      chartRef.current.setStyles({
-        crosshair: {
-          show: false
-        }
-      });
-
       const selId = chartRef.current.createOverlay({ name: 'horizontalRegionSelection' });
       if (selId && typeof selId === 'string') {
         activeOverlayIdsRef.current.add(selId);
@@ -370,110 +357,16 @@ export function ChartPanel() {
       setActiveTool('horizontalRegionSelection' as DrawingTool);
       setTriggerRegionSelection(false);
     }
-  }, [triggerRegionSelection, setTriggerRegionSelection, setIsInSelectionMode]);
+  }, [triggerRegionSelection, setTriggerRegionSelection]);
 
-  // 实时追踪框选范围
-  useEffect(() => {
-    if (!isInSelectionMode || !chartRef.current) return;
-
-    const updateSelectionRange = () => {
-      if (!chartRef.current) return;
-
-      const overlays = chartRef.current.getOverlayById();
-      if (!overlays || overlays.length === 0) return;
-
-      const regionOverlay = overlays.find((o: any) => o.name === 'horizontalRegionSelection');
-      if (!regionOverlay) return;
-
-      const points = (regionOverlay as any).points;
-      if (!points || points.length < 2) return;
-
-      const dataList = chartRef.current.getDataList();
-      if (!dataList || dataList.length === 0) return;
-
-      const leftTimestamp = points[0].value;
-      const rightTimestamp = points[1].value;
-
-      let startIndex = -1;
-      let endIndex = -1;
-
-      for (let i = 0; i < dataList.length; i++) {
-        if (dataList[i].timestamp >= leftTimestamp && startIndex === -1) {
-          startIndex = i;
-        }
-        if (dataList[i].timestamp <= rightTimestamp) {
-          endIndex = i;
-        }
-      }
-
-      if (startIndex !== -1 && endIndex !== -1) {
-        const range = {
-          startTime: formatTs(dataList[startIndex].timestamp),
-          endTime: formatTs(dataList[endIndex].timestamp),
-          startTimestamp: dataList[startIndex].timestamp,
-          endTimestamp: dataList[endIndex].timestamp,
-          dataCount: endIndex - startIndex + 1,
-        };
-        setCurrentSelectionRange(range);
-      }
-    };
-
-    updateSelectionRange();
-    const intervalId = setInterval(updateSelectionRange, 100);
-
-    return () => {
-      clearInterval(intervalId);
-      setCurrentSelectionRange(null);
-    };
-  }, [isInSelectionMode, setCurrentSelectionRange]);
-
-  const handleCancelSelection = useCallback(() => {
+  const handleClearOverlaysAndClose = useCallback(() => {
     if (chartRef.current) {
-      chartRef.current.setStyles({ crosshair: { show: true } });
       chartRef.current.removeOverlay();
       activeOverlayIdsRef.current.clear();
     }
-    setIsInSelectionMode(false);
     setActiveTool('none');
     setContextMenuVisible(false);
-  }, [setIsInSelectionMode]);
-
-  const handleConfirmSelection = useCallback(() => {
-    if (!chartRef.current) return;
-
-    const range = useChartStore.getState().currentSelectionRange;
-    if (!range) return;
-
-    const dataList = chartRef.current.getDataList();
-    if (!dataList || dataList.length === 0) return;
-
-    const klineData = sliceKLineByRange(dataList, range.startTimestamp, range.endTimestamp);
-    if (klineData && klineData.length > 0) {
-      if (klineData.length > MAX_SELECTION_COUNT) {
-        notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${klineData.length} 条`);
-        return;
-      }
-
-      setConfirmedSelectionData({
-        stockSymbol: selectedStock?.symbol || '',
-        stockName: selectedStock?.name || '',
-        timeframe: timeRange,
-        startTime: range.startTime,
-        endTime: range.endTime,
-        dataCount: klineData.length,
-        klineData,
-      });
-
-      notifySuccess(`已选择 ${klineData.length} 条K线数据`);
-    }
-
-    chartRef.current.setStyles({ crosshair: { show: true } });
-    chartRef.current.removeOverlay();
-    activeOverlayIdsRef.current.clear();
-    setIsInSelectionMode(false);
-    setActiveTool('none');
-    setContextMenuVisible(false);
-  }, [selectedStock, timeRange, setIsInSelectionMode, setConfirmedSelectionData]);
+  }, []);
 
   useEffect(() => {
     const handleTextSegmentDrawEnd = (event: Event) => {
@@ -527,13 +420,7 @@ export function ChartPanel() {
     setShowTextInputModal(false);
   }, []);
 
-  const clearAllOverlays = () => {
-    if (!chartRef.current) return;
-    chartRef.current.removeOverlay();
-    activeOverlayIdsRef.current.clear();
-    setActiveTool('none');
-    setContextMenuVisible(false);
-  };
+  const clearAllOverlays = handleClearOverlaysAndClose;
 
   const handleZoomIn = () => {
     if (!chartRef.current) return;
@@ -563,53 +450,25 @@ export function ChartPanel() {
     }
   };
 
-  // 从覆盖物的点位提取时间范围，构建右键菜单上下文
   const resolveContextFromOverlays = useCallback((): ContextMenuActionContext | null => {
-    console.log('[ContextMenu] resolveContextFromOverlays called');
-    if (!chartRef.current) { console.log('[ContextMenu] chartRef.current is null'); return null; }
+    if (!chartRef.current) return null;
     const dataList = chartRef.current.getDataList();
-    if (!dataList || dataList.length === 0) { console.log('[ContextMenu] dataList empty'); return null; }
-    console.log('[ContextMenu] dataList length:', dataList.length);
+    if (!dataList || dataList.length === 0) return null;
 
-    // 如果在框选模式中，优先用框选范围
-    const selRange = useChartStore.getState().currentSelectionRange;
-    console.log('[ContextMenu] selRange:', selRange);
-    if (selRange) {
-      const klineData = sliceKLineByRange(dataList, selRange.startTimestamp, selRange.endTimestamp);
-      if (klineData && klineData.length > 0) {
-        console.log('[ContextMenu] using selRange, klineData count:', klineData.length);
-        return {
-          symbol: selectedStock?.symbol || '',
-          stockName: selectedStock?.name || '',
-          timeframe: timeRange,
-          startTime: selRange.startTime,
-          endTime: selRange.endTime,
-          klineData,
-        };
-      }
-    }
-
-    // 从已跟踪的覆盖物 ID 逐个获取
     const trackedIds = activeOverlayIdsRef.current;
-    console.log('[ContextMenu] tracked overlay IDs:', [...trackedIds]);
     const overlayList: Array<{ name: string; points: Array<{ timestamp?: number; value?: number }> }> = [];
     for (const id of trackedIds) {
       const ov = chartRef.current.getOverlayById(id);
       if (ov) overlayList.push(ov as any);
     }
-    console.log('[ContextMenu] resolved overlays count:', overlayList.length, 'names:', overlayList.map(o => o.name));
 
     let minTs = Infinity;
     let maxTs = -Infinity;
     let hasShapes = false;
 
     for (const ov of overlayList) {
-      if (!SHAPE_OVERLAY_NAMES.includes(ov.name)) {
-        console.log('[ContextMenu] skipping overlay:', ov.name);
-        continue;
-      }
+      if (!SHAPE_OVERLAY_NAMES.includes(ov.name)) continue;
       const pts = ov.points;
-      console.log('[ContextMenu] overlay', ov.name, 'points:', JSON.stringify(pts));
       if (!pts) continue;
       hasShapes = true;
       for (const pt of pts) {
@@ -621,11 +480,9 @@ export function ChartPanel() {
       }
     }
 
-    console.log('[ContextMenu] hasShapes:', hasShapes, 'minTs:', minTs, 'maxTs:', maxTs);
-    if (!hasShapes || !isFinite(minTs) || !isFinite(maxTs)) { console.log('[ContextMenu] no valid shape range'); return null; }
+    if (!hasShapes || !isFinite(minTs) || !isFinite(maxTs)) return null;
 
     const klineData = sliceKLineByRange(dataList, minTs, maxTs);
-    console.log('[ContextMenu] sliced klineData count:', klineData?.length ?? 0);
     if (!klineData || klineData.length === 0) return null;
 
     return {
@@ -644,28 +501,22 @@ export function ChartPanel() {
     if (!wrapper) return;
 
     const handleMouseDown = (e: MouseEvent) => {
-      console.log('[ContextMenu] mousedown fired, button:', e.button);
       if (e.button !== 2 || !chartRef.current) return;
-      console.log('[ContextMenu] right-click mousedown, resolving context...');
       const ctx = resolveContextFromOverlays();
-      console.log('[ContextMenu] mousedown resolved ctx:', ctx ? 'HAS CONTEXT' : 'NULL');
       pendingContextRef.current = ctx;
       if (ctx) {
         e.stopPropagation();
-        console.log('[ContextMenu] mousedown stopPropagation (blocked klinecharts)');
       }
     };
 
     const handleContextMenu = (e: MouseEvent) => {
-      console.log('[ContextMenu] contextmenu fired, pendingCtx:', pendingContextRef.current ? 'HAS' : 'NULL');
       const ctx = pendingContextRef.current ?? resolveContextFromOverlays();
       pendingContextRef.current = null;
-      if (!ctx) { console.log('[ContextMenu] contextmenu: no context, skipping'); return; }
+      if (!ctx) return;
 
       e.preventDefault();
       e.stopPropagation();
 
-      console.log('[ContextMenu] SHOWING MENU at', e.clientX, e.clientY, 'klines:', ctx.klineData.length);
       setContextMenuCtx(ctx);
       setContextMenuPos({ x: e.clientX, y: e.clientY });
       setContextMenuVisible(true);
@@ -703,6 +554,7 @@ export function ChartPanel() {
         id: 'export-json',
         label: '导出 JSON',
         icon: <FileJson className="w-3.5 h-3.5" />,
+        dividerAfter: true,
         run: (ctx) => {
           exportKLineJson(ctx.klineData, {
             symbol: ctx.symbol,
@@ -713,8 +565,38 @@ export function ChartPanel() {
           notifySuccess(`已导出 ${ctx.klineData.length} 条数据 (JSON)`);
         },
       },
+      {
+        id: 'send-to-ai',
+        label: '发送至 AI 分析',
+        icon: <BarChart3 className="w-3.5 h-3.5" />,
+        run: (ctx) => {
+          if (ctx.klineData.length > MAX_SELECTION_COUNT) {
+            notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${ctx.klineData.length} 条`);
+            return;
+          }
+          setConfirmedSelectionData({
+            stockSymbol: ctx.symbol,
+            stockName: ctx.stockName,
+            timeframe: ctx.timeframe,
+            startTime: ctx.startTime,
+            endTime: ctx.endTime,
+            dataCount: ctx.klineData.length,
+            klineData: ctx.klineData,
+          });
+          notifySuccess(`已选择 ${ctx.klineData.length} 条K线数据，可在 AI 对话中使用`);
+          handleClearOverlaysAndClose();
+        },
+      },
+      {
+        id: 'cancel-overlay',
+        label: '取消选区',
+        icon: <XIcon className="w-3.5 h-3.5" />,
+        run: () => {
+          handleClearOverlaysAndClose();
+        },
+      },
     ],
-    []
+    [setConfirmedSelectionData, handleClearOverlaysAndClose]
   );
 
   return (
@@ -732,77 +614,6 @@ export function ChartPanel() {
             timeRange={timeRange}
             hoveredData={hoveredData}
           />
-
-          {/* 框选模式提示条 */}
-          {isInSelectionMode && (
-            <div className="px-4 py-2 flex items-center justify-between" style={{ background: 'var(--bg-active)', borderBottom: '1px solid var(--accent-primary)' }}>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-primary)' }} />
-                  <span className="text-sm font-semibold" style={{ color: 'var(--accent-primary)' }}>
-                    框选模式
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>周期:</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ color: 'var(--accent-primary)', background: 'var(--bg-hover)' }}>
-                    {timeRange}
-                  </span>
-                </div>
-
-                {currentSelectionRange && (
-                  <div className="flex items-center gap-3 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>起:</span>
-                      <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}>
-                        {currentSelectionRange.startTime}
-                      </span>
-                    </div>
-                    <div style={{ color: 'var(--text-disabled)' }}>→</div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>止:</span>
-                      <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}>
-                        {currentSelectionRange.endTime}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 pl-3" style={{ borderLeft: '1px solid var(--border-hover)' }}>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>数量:</span>
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded"
-                        style={{
-                          color: currentSelectionRange.dataCount > MAX_SELECTION_COUNT ? '#FF4976' : 'var(--accent-primary)',
-                          background: currentSelectionRange.dataCount > MAX_SELECTION_COUNT ? 'rgba(255,73,118,0.1)' : 'var(--bg-hover)',
-                        }}
-                      >
-                        {currentSelectionRange.dataCount}{currentSelectionRange.dataCount > MAX_SELECTION_COUNT ? ` / 上限${MAX_SELECTION_COUNT}` : ''}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs mr-1" style={{ color: 'var(--text-muted)' }}>拖动手柄调整范围</span>
-                <button
-                  onClick={handleConfirmSelection}
-                  className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-white transition-all hover:brightness-110 active:scale-95"
-                  style={{ background: '#00D09C' }}
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  确认
-                </button>
-                <button
-                  onClick={handleCancelSelection}
-                  className="flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-white transition-all hover:brightness-110 active:scale-95"
-                  style={{ background: '#FF4976' }}
-                >
-                  <XIcon className="w-3.5 h-3.5" />
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
 
           <div ref={chartWrapperRef} className="flex-1 min-h-0 relative">
             <div ref={chartContainerRef} className="absolute inset-0" />
