@@ -13,7 +13,7 @@
  * - /components/AIAssistant/ChatPanel/index.tsx - AI聊天面板（底部输入区域）
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Send, Image as ImageIcon, X, ChevronDown, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
 import type { SceneConfig } from '../../../types/scene';
@@ -63,7 +63,31 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
+  const scenePickerRef = useRef<HTMLDivElement>(null);
   const sceneButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!showModelPicker && !showScenePicker) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        showModelPicker &&
+        modelPickerRef.current && !modelPickerRef.current.contains(target) &&
+        modelButtonRef.current && !modelButtonRef.current.contains(target)
+      ) {
+        setShowModelPicker(false);
+      }
+      if (
+        showScenePicker &&
+        scenePickerRef.current && !scenePickerRef.current.contains(target) &&
+        sceneButtonRef.current && !sceneButtonRef.current.contains(target)
+      ) {
+        setShowScenePicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showModelPicker, showScenePicker]);
 
   const handleDataBarMouseEnter = useCallback(() => {
     if (tooltipHideTimer.current) clearTimeout(tooltipHideTimer.current);
@@ -365,6 +389,7 @@ export function ChatInput({
       {/* 场景选择弹窗 */}
       {showScenePicker && (
         <div
+          ref={scenePickerRef}
           className="fixed rounded-lg shadow-xl overflow-hidden min-w-[200px] z-[10000]"
           style={{
             background: 'var(--bg-secondary)',
