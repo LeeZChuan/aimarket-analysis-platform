@@ -31,6 +31,7 @@ import { TimeRange } from './TimeRangeSelector';
 import { StockInfoBar } from './StockInfoBar';
 import { ChartToolbar } from './ChartToolbar';
 import { ChartContextMenu } from './ChartContextMenu';
+import { ChartSettings, DEFAULT_CHART_SETTINGS } from './ChartSettingsPanel';
 import type { ContextMenuAction, ContextMenuActionContext } from './ChartContextMenu';
 import { convertKLineData } from './chartDataUtils';
 import { horizontalRegionSelection } from './overlays/horizontalRegionSelection';
@@ -112,6 +113,8 @@ export function ChartPanel() {
   const [indicators, setIndicators] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('1D');
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [chartSettings, setChartSettings] = useState<ChartSettings>(DEFAULT_CHART_SETTINGS);
   const [hoveredData, setHoveredData] = useState<KLineData | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('none');
   const [dailyData, setDailyData] = useState<KLineData[]>([]);
@@ -293,6 +296,44 @@ export function ChartPanel() {
       });
     }
   }, [theme]);
+
+  const COLOR_SCHEME_MAP = {
+    red_up: { up: '#EF5350', down: '#26A69A' },
+    green_up: { up: '#26A69A', down: '#EF5350' },
+  };
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const colors = COLOR_SCHEME_MAP[chartSettings.colorScheme];
+    chartRef.current.setStyles({
+      candle: {
+        type: chartSettings.candleType as any,
+        bar: {
+          upColor: colors.up,
+          downColor: colors.down,
+          upBorderColor: colors.up,
+          downBorderColor: colors.down,
+          upWickColor: colors.up,
+          downWickColor: colors.down,
+        },
+      },
+      grid: {
+        horizontal: {
+          show: chartSettings.showGrid,
+          color: getCSSVar('--chart-grid'),
+        },
+        vertical: {
+          show: chartSettings.showGrid,
+          color: getCSSVar('--chart-grid'),
+        },
+      },
+      crosshair: {
+        show: chartSettings.showCrosshair,
+        horizontal: { show: chartSettings.showCrosshair },
+        vertical: { show: chartSettings.showCrosshair },
+      },
+    });
+  }, [chartSettings]);
 
   const handleTimeRangeChange = (range: TimeRange) => {
     if (timeRange === range) return;
@@ -674,6 +715,10 @@ export function ChartPanel() {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onScreenshot={handleScreenshot}
+            showSettings={showSettings}
+            onToggleSettings={() => setShowSettings((v) => !v)}
+            chartSettings={chartSettings}
+            onChartSettingsChange={setChartSettings}
           />
         </div>
       </div>

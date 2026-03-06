@@ -11,10 +11,12 @@
  * - /components/ChartPanel/index.tsx - 图表底部工具栏
  */
 
+import { useRef } from 'react';
 import { TimeRangeSelector, TimeRange } from './TimeRangeSelector';
 import { IndicatorMenu } from './IndicatorMenu';
 import { Settings, Camera, ZoomIn, ZoomOut } from 'lucide-react';
 import { chartToolbarStyles } from './ChartToolbarStyles';
+import { ChartSettingsPanel, ChartSettings } from './ChartSettingsPanel';
 
 interface ChartToolbarProps {
   timeRange: TimeRange;
@@ -26,6 +28,10 @@ interface ChartToolbarProps {
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onScreenshot?: () => void;
+  showSettings: boolean;
+  onToggleSettings: () => void;
+  chartSettings: ChartSettings;
+  onChartSettingsChange: (settings: ChartSettings) => void;
 }
 
 export function ChartToolbar({
@@ -38,9 +44,15 @@ export function ChartToolbar({
   onZoomIn,
   onZoomOut,
   onScreenshot,
+  showSettings,
+  onToggleSettings,
+  chartSettings,
+  onChartSettingsChange,
 }: ChartToolbarProps) {
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+
   return (
-    <div className="flex items-center justify-between px-4 py-2" style={chartToolbarStyles.container}>
+    <div className="flex items-center justify-between px-4 py-2 relative" style={chartToolbarStyles.container}>
       <div className="flex items-center gap-3">
         <TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />
 
@@ -55,7 +67,7 @@ export function ChartToolbar({
         />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 relative">
         <button
           onClick={onZoomIn}
           className="w-7 h-7 flex items-center justify-center rounded transition-colors"
@@ -106,15 +118,30 @@ export function ChartToolbar({
           <Camera className="w-3.5 h-3.5" />
         </button>
 
-        <button
-          className="w-7 h-7 flex items-center justify-center rounded transition-colors"
-          style={chartToolbarStyles.button}
-          onMouseEnter={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.buttonHover)}
-          onMouseLeave={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.button)}
-          title="设置"
-        >
-          <Settings className="w-3.5 h-3.5" />
-        </button>
+        <div className="relative">
+          <button
+            ref={settingsBtnRef}
+            onClick={onToggleSettings}
+            className="w-7 h-7 flex items-center justify-center rounded transition-colors"
+            style={showSettings ? chartToolbarStyles.buttonHover : chartToolbarStyles.button}
+            onMouseEnter={(e) => Object.assign(e.currentTarget.style, chartToolbarStyles.buttonHover)}
+            onMouseLeave={(e) => {
+              if (!showSettings) Object.assign(e.currentTarget.style, chartToolbarStyles.button);
+            }}
+            title="设置"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+
+          {showSettings && (
+            <ChartSettingsPanel
+              settings={chartSettings}
+              onChange={onChartSettingsChange}
+              onClose={onToggleSettings}
+              anchorRef={settingsBtnRef}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
