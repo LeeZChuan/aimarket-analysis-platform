@@ -13,8 +13,8 @@
  * - /components/AIAssistant/ChatPanel/index.tsx - AI聊天面板（底部输入区域）
  */
 
-import { useState, useRef } from 'react';
-import { Send, Image as ImageIcon, X, ChevronDown, BarChart3 } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Send, Image as ImageIcon, X, ChevronDown, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
 import type { SceneConfig } from '../../../types/scene';
 
@@ -55,11 +55,36 @@ export function ChatInput({
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showScenePicker, setShowScenePicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
-  
+  const [showDataTooltip, setShowDataTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0, width: 0 });
+  const dataBarRef = useRef<HTMLDivElement>(null);
+  const tooltipHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const sceneButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleDataBarMouseEnter = useCallback(() => {
+    if (tooltipHideTimer.current) clearTimeout(tooltipHideTimer.current);
+    if (dataBarRef.current) {
+      const rect = dataBarRef.current.getBoundingClientRect();
+      setTooltipPosition({ top: rect.top - 8, left: rect.left, width: rect.width });
+    }
+    setShowDataTooltip(true);
+  }, []);
+
+  const handleDataBarMouseLeave = useCallback(() => {
+    tooltipHideTimer.current = setTimeout(() => setShowDataTooltip(false), 150);
+  }, []);
+
+  const handleTooltipMouseEnter = useCallback(() => {
+    if (tooltipHideTimer.current) clearTimeout(tooltipHideTimer.current);
+  }, []);
+
+  const handleTooltipMouseLeave = useCallback(() => {
+    tooltipHideTimer.current = setTimeout(() => setShowDataTooltip(false), 150);
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -181,13 +206,17 @@ export function ChatInput({
 
         {confirmedSelectionData && (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+            ref={dataBarRef}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs cursor-default"
             style={{ background: 'var(--bg-active)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }}
+            onMouseEnter={handleDataBarMouseEnter}
+            onMouseLeave={handleDataBarMouseLeave}
           >
             <BarChart3 className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="flex-1 truncate">
-              {confirmedSelectionData.stockName || confirmedSelectionData.stockSymbol} | {confirmedSelectionData.timeframe} | {confirmedSelectionData.dataCount} 条K线 ({confirmedSelectionData.startTime} ~ {confirmedSelectionData.endTime})
+              {confirmedSelectionData.stockName || confirmedSelectionData.stockSymbol} · {confirmedSelectionData.timeframe} · {confirmedSelectionData.dataCount} 条K线
             </span>
+            <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-disabled)' }}>悬停预览</span>
             <button
               onClick={clearConfirmedSelectionData}
               className="p-0.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
@@ -379,6 +408,133 @@ export function ChatInput({
           ))}
         </div>
       )}
+
+      {/* 选区数据悬浮预览 */}
+      {showDataTooltip && confirmedSelectionData && (() => {
+        const d = confirmedSelectionData;
+        const kd = d.klineData;
+        const overallHigh = Math.max(...kd.map(k => k.high));
+        const overallLow = Math.min(...kd.map(k => k.low));
+        const firstOpen = kd[0]?.open ?? 0;
+        const lastClose = kd[kd.length - 1]?.close ?? 0;
+        const pctChange = firstOpen > 0 ? ((lastClose - firstOpen) / firstOpen) * 100 : 0;
+        const totalVolume = kd.reduce((s, k) => s + k.volume, 0);
+        const avgVolume = kd.length > 0 ? totalVolume / kd.length : 0;
+        const isPositive = pctChange >= 0;
+        const previewRows = kd.slice(0, 5);
+
+        const fmt = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const fmtVol = (n: number) => {
+          if (n >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
+          if (n >= 1e4) return `${(n / 1e4).toFixed(2)}万`;
+          return n.toFixed(0);
+        };
+        const fmtDate = (ts: number) => {
+          const dt = new Date(ts);
+          return `${dt.getMonth() + 1}/${dt.getDate()}`;
+        };
+
+        return (
+          <div
+            className="fixed z-[10001] rounded-xl shadow-2xl overflow-hidden"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+              top: `${tooltipPosition.top}px`,
+              left: `${tooltipPosition.left}px`,
+              width: `${Math.max(tooltipPosition.width, 280)}px`,
+              transform: 'translateY(-100%)',
+            }}
+            onMouseEnter={handleTooltipMouseEnter}
+            onMouseLeave={handleTooltipMouseLeave}
+          >
+            {/* 标题 */}
+            <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)' }}>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {d.stockName || d.stockSymbol}
+                </span>
+                <span className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'var(--bg-hover)', color: 'var(--accent-primary)' }}>
+                  {d.timeframe}
+                </span>
+              </div>
+              <div
+                className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded"
+                style={{
+                  background: isPositive ? 'rgba(0,208,156,0.12)' : 'rgba(255,73,118,0.12)',
+                  color: isPositive ? '#00D09C' : '#FF4976',
+                }}
+              >
+                {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                {isPositive ? '+' : ''}{pctChange.toFixed(2)}%
+              </div>
+            </div>
+
+            {/* 统计指标 */}
+            <div className="grid grid-cols-3 gap-px" style={{ background: 'var(--border-primary)' }}>
+              {[
+                { label: '开盘', value: fmt(firstOpen) },
+                { label: '收盘', value: fmt(lastClose), accent: true },
+                { label: 'K线数', value: `${d.dataCount}` },
+                { label: '区间高', value: fmt(overallHigh) },
+                { label: '区间低', value: fmt(overallLow) },
+                { label: '均量', value: fmtVol(avgVolume) },
+              ].map(item => (
+                <div key={item.label} className="px-3 py-2.5 flex flex-col gap-0.5" style={{ background: 'var(--bg-secondary)' }}>
+                  <span className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>{item.label}</span>
+                  <span className="text-xs font-mono font-medium" style={{ color: item.accent ? (isPositive ? '#00D09C' : '#FF4976') : 'var(--text-primary)' }}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* 时间范围 */}
+            <div className="px-4 py-2 flex items-center gap-2 text-[11px]" style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-muted)' }}>
+              <span style={{ color: 'var(--text-disabled)' }}>范围</span>
+              <span className="font-mono">{d.startTime}</span>
+              <span style={{ color: 'var(--text-disabled)' }}>→</span>
+              <span className="font-mono">{d.endTime}</span>
+            </div>
+
+            {/* 前5条数据预览 */}
+            {previewRows.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border-primary)' }}>
+                <div className="px-4 py-2 text-[10px] font-medium" style={{ color: 'var(--text-disabled)' }}>
+                  前 {previewRows.length} 条数据预览{kd.length > 5 ? ` (共 ${kd.length} 条)` : ''}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px]">
+                    <thead>
+                      <tr style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-disabled)' }}>
+                        {['日期', '开', '高', '低', '收', '量'].map(h => (
+                          <td key={h} className="px-3 py-1.5 text-right first:text-left font-medium">{h}</td>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, i) => {
+                        const up = row.close >= row.open;
+                        return (
+                          <tr key={i} style={{ borderTop: '1px solid var(--border-primary)' }}>
+                            <td className="px-3 py-1.5 font-mono" style={{ color: 'var(--text-muted)' }}>{fmtDate(row.timestamp)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{fmt(row.open)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono" style={{ color: '#00D09C' }}>{fmt(row.high)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono" style={{ color: '#FF4976' }}>{fmt(row.low)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono font-medium" style={{ color: up ? '#00D09C' : '#FF4976' }}>{fmt(row.close)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-muted)' }}>{fmtVol(row.volume)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 模型选择弹窗 */}
       {showModelPicker && (
