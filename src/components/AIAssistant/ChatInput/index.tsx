@@ -447,7 +447,7 @@ export function ChatInput({
         const totalVolume = kd.reduce((s, k) => s + k.volume, 0);
         const avgVolume = kd.length > 0 ? totalVolume / kd.length : 0;
         const isPositive = pctChange >= 0;
-        const previewRows = kd.slice(0, 5);
+        const previewRows = kd;
 
         const fmt = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const fmtVol = (n: number) => {
@@ -524,15 +524,15 @@ export function ChatInput({
               <span className="font-mono">{d.endTime}</span>
             </div>
 
-            {/* 前5条数据预览 */}
+            {/* 数据预览（全量，固定高度可滚动）*/}
             {previewRows.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border-primary)' }}>
                 <div className="px-4 py-2 text-[10px] font-medium" style={{ color: 'var(--text-disabled)' }}>
-                  前 {previewRows.length} 条数据预览{kd.length > 5 ? ` (共 ${kd.length} 条)` : ''}
+                  数据预览（共 {kd.length} 条）
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '160px' }}>
                   <table className="w-full text-[10px]">
-                    <thead>
+                    <thead className="sticky top-0" style={{ background: 'var(--bg-secondary)' }}>
                       <tr style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-disabled)' }}>
                         {['日期', '开', '高', '低', '收', '量'].map(h => (
                           <td key={h} className="px-3 py-1.5 text-right first:text-left font-medium">{h}</td>
