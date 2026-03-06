@@ -1,3 +1,17 @@
+/**
+ * 图表设置面板组件
+ *
+ * 功能：
+ * - K线类型切换（蜡烛实心/空心、OHLC柱、面积图）
+ * - 涨跌颜色方案切换（红涨绿跌 / 绿涨红跌）
+ * - 网格线显示/隐藏开关
+ * - 十字准线显示/隐藏开关
+ * - 点击外部自动关闭（通过 anchorRef 排除触发按钮）
+ *
+ * 使用位置：
+ * - /components/ChartPanel/ChartToolbar.tsx - 工具栏右侧设置按钮触发
+ */
+
 import { useRef, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 
