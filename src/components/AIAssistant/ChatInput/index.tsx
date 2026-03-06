@@ -93,7 +93,8 @@ export function ChatInput({
     if (tooltipHideTimer.current) clearTimeout(tooltipHideTimer.current);
     if (dataBarRef.current) {
       const rect = dataBarRef.current.getBoundingClientRect();
-      setTooltipPosition({ top: rect.top - 8, left: rect.left, width: rect.width });
+      const rightEdge = window.innerWidth - rect.right;
+      setTooltipPosition({ top: rect.top - 8, left: rightEdge, width: rect.width });
     }
     setShowDataTooltip(true);
   }, []);
@@ -466,8 +467,8 @@ export function ChatInput({
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-primary)',
               top: `${tooltipPosition.top}px`,
-              left: `${tooltipPosition.left}px`,
-              width: `${Math.max(tooltipPosition.width, 280)}px`,
+              right: `${tooltipPosition.left}px`,
+              minWidth: '280px',
               transform: 'translateY(-100%)',
             }}
             onMouseEnter={handleTooltipMouseEnter}
