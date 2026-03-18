@@ -1,90 +1,60 @@
-/**
- * K线图主题配置工具
- *
- * 根据当前主题（dark/light）返回对应的klinecharts样式配置
- */
-
 import type { Styles } from 'klinecharts';
 import { Theme } from '../store/useThemeStore';
 
+const getCSSVar = (name: string): string =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 export function getChartThemeStyles(theme: Theme): Partial<Styles> {
-  const isDark = theme === 'dark';
+  const grid = getCSSVar('--chart-grid');
+  const candleUp = getCSSVar('--chart-candle-up');
+  const candleDown = getCSSVar('--chart-candle-down');
+  const textSecondary = getCSSVar('--text-secondary');
+  const textTertiary = getCSSVar('--text-tertiary');
+  const bgTertiary = getCSSVar('--bg-tertiary');
 
   return {
     grid: {
-      horizontal: {
-        color: isDark ? '#2A2A2A' : '#E5E5E5',
-      },
-      vertical: {
-        color: isDark ? '#2A2A2A' : '#E5E5E5',
-      },
+      horizontal: { color: grid },
+      vertical:   { color: grid },
     },
     candle: {
       type: 'candle_solid',
       bar: {
-        upColor: '#00D09C',
-        downColor: '#FF4976',
-        upBorderColor: '#00D09C',
-        downBorderColor: '#FF4976',
-        upWickColor: '#00D09C',
-        downWickColor: '#FF4976',
+        upColor:        candleUp,
+        downColor:      candleDown,
+        upBorderColor:  candleUp,
+        downBorderColor:candleDown,
+        upWickColor:    candleUp,
+        downWickColor:  candleDown,
       },
       tooltip: {
-        text: {
-          color: isDark ? '#D9D9D9' : '#333333',
-        },
+        text: { color: textSecondary },
       },
     },
     indicator: {
       tooltip: {
-        text: {
-          color: isDark ? '#D9D9D9' : '#333333',
-        },
+        text: { color: textSecondary },
       },
     },
     xAxis: {
-      axisLine: {
-        color: isDark ? '#2A2A2A' : '#E5E5E5',
-      },
-      tickText: {
-        color: isDark ? '#888888' : '#666666',
-      },
-      tickLine: {
-        color: isDark ? '#2A2A2A' : '#E5E5E5',
-      },
+      axisLine: { color: grid },
+      tickText: { color: textTertiary },
+      tickLine: { color: grid },
     },
     yAxis: {
-      axisLine: {
-        color: isDark ? '#2A2A2A' : '#E5E5E5',
-      },
-      tickText: {
-        color: isDark ? '#888888' : '#666666',
-      },
-      tickLine: {
-        color: isDark ? '#2A2A2A' : '#E5E5E5',
-      },
+      axisLine: { color: grid },
+      tickText: { color: textTertiary },
+      tickLine: { color: grid },
     },
-    separator: {
-      color: isDark ? '#2A2A2A' : '#E5E5E5',
-    },
+    separator: { color: grid },
     crosshair: {
       horizontal: {
-        line: {
-          color: isDark ? '#888888' : '#999999',
-        },
-        text: {
-          backgroundColor: isDark ? '#333333' : '#666666',
-          borderColor: isDark ? '#333333' : '#666666',
-        },
+        line: { color: textTertiary },
+        text: { backgroundColor: bgTertiary, borderColor: bgTertiary },
       },
       vertical: {
-        line: {
-          color: isDark ? '#888888' : '#999999',
-        },
-        text: {
-          backgroundColor: isDark ? '#333333' : '#666666',
-          borderColor: isDark ? '#333333' : '#666666',
-        },
+        line: { color: textTertiary },
+        text: { backgroundColor: bgTertiary, borderColor: bgTertiary },
       },
     },
   };

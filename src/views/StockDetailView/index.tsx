@@ -181,7 +181,7 @@ export function StockDetailView() {
           render: (value: number) => (
             <span
               className="font-medium"
-              style={{ color: value >= 0 ? '#f04134' : '#00c853' }}
+              style={{ color: value >= 0 ? 'var(--error)' : 'var(--success)' }}
             >
               {value >= 0 ? '+' : ''}{value.toFixed(2)}
             </span>
@@ -198,7 +198,7 @@ export function StockDetailView() {
           render: (value: number) => (
             <span
               className="font-semibold"
-              style={{ color: value >= 0 ? '#f04134' : '#00c853' }}
+              style={{ color: value >= 0 ? 'var(--error)' : 'var(--success)' }}
             >
               {value >= 0 ? '+' : ''}{value.toFixed(2)}%
             </span>
@@ -239,7 +239,7 @@ export function StockDetailView() {
           width: 100,
           align: 'right',
           render: (value: number) => (
-            <span className="text-sm" style={{ color: '#f04134' }}>{value.toFixed(2)}</span>
+            <span className="text-sm" style={{ color: 'var(--error)' }}>{value.toFixed(2)}</span>
           ),
         },
         {
@@ -249,7 +249,7 @@ export function StockDetailView() {
           width: 100,
           align: 'right',
           render: (value: number) => (
-            <span className="text-sm" style={{ color: '#00c853' }}>{value.toFixed(2)}</span>
+            <span className="text-sm" style={{ color: 'var(--success)' }}>{value.toFixed(2)}</span>
           ),
         },
         {
@@ -437,13 +437,13 @@ export function StockDetailView() {
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedStock.change >= 0 ? (
-                    <TrendingUp className="w-5 h-5" style={{ color: '#f04134' }} />
+                    <TrendingUp className="w-5 h-5" style={{ color: 'var(--error)' }} />
                   ) : (
-                    <TrendingDown className="w-5 h-5" style={{ color: '#00c853' }} />
+                    <TrendingDown className="w-5 h-5" style={{ color: 'var(--success)' }} />
                   )}
                   <span
                     className="text-lg font-semibold"
-                    style={{ color: selectedStock.change >= 0 ? '#f04134' : '#00c853' }}
+                    style={{ color: selectedStock.change >= 0 ? 'var(--error)' : 'var(--success)' }}
                   >
                     {selectedStock.change >= 0 ? '+' : ''}
                     {selectedStock.change.toFixed(2)} ({selectedStock.changePercent.toFixed(2)}%)

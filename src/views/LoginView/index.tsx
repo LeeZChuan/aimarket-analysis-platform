@@ -38,16 +38,29 @@ export function LoginView() {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-8">
+    <div className="h-full flex flex-col items-center justify-center p-8" style={{ background: 'var(--bg-primary)' }}>
       <div className="w-full max-w-md">
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-8">
+        <div
+          className="rounded-xl p-8"
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-primary)',
+          }}
+        >
           <div className="flex items-center justify-center mb-8">
-            <Lock className="w-12 h-12 text-[#3A9FFF]" />
+            <Lock className="w-12 h-12" style={{ color: 'var(--accent-primary)' }} />
           </div>
-          <h1 className="text-2xl font-bold text-white text-center mb-8">登录</h1>
+          <h1 className="text-2xl font-semibold text-center mb-8" style={{ color: 'var(--text-primary)' }}>登录</h1>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm mb-4">
+            <div
+              className="flex items-center gap-2 p-3 rounded-lg text-sm mb-4"
+              style={{
+                background: 'rgba(var(--error-rgb), 0.10)',
+                border: '1px solid rgba(var(--error-rgb), 0.30)',
+                color: 'var(--error)',
+              }}
+            >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -55,20 +68,27 @@ export function LoginView() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 邮箱
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#3A9FFF] transition-colors"
+                className="w-full px-4 py-2 rounded-lg transition-colors focus:outline-none"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-primary)',
+                  color: 'var(--text-primary)',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; }}
                 placeholder="your@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 密码
               </label>
               <div className="relative">
@@ -76,13 +96,23 @@ export function LoginView() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-4 pr-12 py-2 bg-[#0D0D0D] border border-[#2A2A2A] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#3A9FFF] transition-colors"
+                  className="w-full pl-4 pr-12 py-2 rounded-lg transition-colors focus:outline-none"
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-primary)',
+                    color: 'var(--text-primary)',
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; }}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                   aria-label={showPassword ? '隐藏密码' : '显示密码'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -93,7 +123,10 @@ export function LoginView() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#3A9FFF] hover:bg-[#2B8FEF] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--accent-primary)', color: 'var(--text-primary)' }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = 'var(--accent-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--accent-primary)'; }}
             >
               {loading ? '登录中...' : '登录'}
             </button>
@@ -101,11 +134,11 @@ export function LoginView() {
         </div>
 
         <div className="mt-6 text-center space-y-2">
-          <p className="text-sm text-gray-400 leading-relaxed">
-            测试账号: <span className="text-[#3A9FFF]">demo@example.com</span>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            测试账号: <span style={{ color: 'var(--accent-primary)' }}>demo@example.com</span>
           </p>
-          <p className="text-sm text-gray-400 leading-relaxed">
-            测试密码: <span className="text-[#3A9FFF]">test123</span>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            测试密码: <span style={{ color: 'var(--accent-primary)' }}>test123</span>
           </p>
         </div>
       </div>
