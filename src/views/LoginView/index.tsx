@@ -30,27 +30,39 @@ export function LoginView() {
       } else {
         setError(response.message || '登录失败，请检查邮箱和密码');
       }
-    } catch (err: any) {
-      setError(err.message || '登录失败，请稍后重试');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : '登录失败，请稍后重试';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-8" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--bg-primary)' }}>
       <div className="w-full max-w-md">
         <div
-          className="rounded-xl p-8"
+          className="rounded-xl p-6 sm:p-8"
           style={{
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-primary)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
-          <div className="flex items-center justify-center mb-8">
-            <Lock className="w-12 h-12" style={{ color: 'var(--accent-primary)' }} />
+          <div className="flex items-center justify-center mb-6">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-xl"
+              style={{
+                background: 'color-mix(in oklab, var(--bg-tertiary) 72%, var(--accent-primary) 28%)',
+              }}
+            >
+              <Lock className="h-7 w-7" style={{ color: 'var(--text-primary)' }} />
+            </div>
           </div>
-          <h1 className="text-2xl font-semibold text-center mb-8" style={{ color: 'var(--text-primary)' }}>登录</h1>
+          <h1 className="mb-1 text-center text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>登录</h1>
+          <p className="mb-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+            进入你的交易工作台
+          </p>
 
           {error && (
             <div
@@ -75,15 +87,14 @@ export function LoginView() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg transition-colors focus:outline-none"
+                className="w-full rounded-lg px-4 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 style={{
                   background: 'var(--bg-primary)',
                   border: '1px solid var(--border-primary)',
                   color: 'var(--text-primary)',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; }}
                 placeholder="your@email.com"
+                required
               />
             </div>
 
@@ -96,20 +107,19 @@ export function LoginView() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-4 pr-12 py-2 rounded-lg transition-colors focus:outline-none"
+                  className="w-full rounded-lg py-2.5 pl-4 pr-12 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                   style={{
                     background: 'var(--bg-primary)',
                     border: '1px solid var(--border-primary)',
                     color: 'var(--text-primary)',
                   }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; }}
                   placeholder="••••••••"
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                   style={{ color: 'var(--text-muted)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
@@ -123,7 +133,7 @@ export function LoginView() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg py-3 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
               style={{ background: 'var(--accent-primary)', color: 'var(--text-primary)' }}
               onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = 'var(--accent-hover)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--accent-primary)'; }}
@@ -133,7 +143,7 @@ export function LoginView() {
           </form>
         </div>
 
-        <div className="mt-6 text-center space-y-2">
+        <div className="mt-5 text-center space-y-1.5">
           <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
             测试账号: <span style={{ color: 'var(--accent-primary)' }}>demo@example.com</span>
           </p>

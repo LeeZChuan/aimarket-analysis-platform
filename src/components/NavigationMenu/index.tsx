@@ -55,29 +55,29 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/50 transition-opacity duration-300 z-40 ${
+        className={`fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px] transition-opacity duration-200 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
       />
 
       <div
-        className={`fixed left-0 top-0 h-full w-64 transform transition-transform duration-300 z-50 flex flex-col ${
+        className={`fixed left-0 top-0 z-50 flex h-full w-[84vw] max-w-xs transform flex-col transition-transform duration-200 sm:max-w-sm ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-primary)' }}
       >
-        <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>导航</h2>
+        <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '1px solid var(--border-primary)' }}>
+          <h2 className="text-base font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>导航</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded transition-colors hover:bg-[var(--bg-tertiary)]"
+            className="rounded-lg p-2 transition-colors hover:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
           >
-            <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+            <X className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
 
-        <nav className="p-2 flex-1">
+        <nav className="flex-1 p-2.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -86,13 +86,13 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
               <button
                 key={item.path}
                 onClick={() => handleNavigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`mb-1.5 flex w-full items-center gap-3 rounded-lg px-3.5 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
                   isActive
                     ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                     : 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="h-4 w-4" />
                 <span className="font-medium">{item.label}</span>
               </button>
             );
@@ -100,7 +100,7 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
         </nav>
 
         <div className="p-4" style={{ borderTop: '1px solid var(--border-primary)' }}>
-          <div className="flex items-center gap-3 mb-3 px-2">
+          <div className="mb-3 flex items-center gap-3 px-1.5">
             <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--bg-tertiary)' }}>
               <User className="w-4 h-4" style={{ color: 'var(--text-primary)' }} />
             </div>
@@ -111,7 +111,7 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+            className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
           >
             <LogOut className="w-4 h-4" />
             <span className="text-sm font-medium">退出登录</span>

@@ -12,7 +12,7 @@ export function Layout() {
   const shouldShowNavigation = isAuthenticated && location.pathname !== '/login';
 
   return (
-    <div className="h-screen bg-[#0D0D0D] overflow-hidden">
+    <div className="h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       {shouldShowNavigation && (
         <>
           <NavigationButton onClick={() => setIsNavOpen(true)} />

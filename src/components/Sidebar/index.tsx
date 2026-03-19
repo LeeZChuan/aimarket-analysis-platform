@@ -36,7 +36,6 @@ export function Sidebar() {
     removeFromWatchlist,
     addToWatchlist,
   } = useStore();
-  const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('watchlist');
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -132,13 +131,6 @@ export function Sidebar() {
   };
 
   const currentList = getCurrentList();
-  const filteredList = searchTerm
-    ? currentList.filter(
-        (item) =>
-          item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : currentList;
 
   const handleSelectStock = (stock: Stock) => {
     setSelectedStock(stock);
@@ -190,6 +182,9 @@ export function Sidebar() {
             ))}
           </TabsList>
         </Tabs>
+        <p className="mt-2 text-xs" style={sidebarStyles.emptyText}>
+          {activeTab === 'watchlist' ? `自选 ${watchlist.length} 只` : `全部 ${stocks.length} 只`}
+        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -198,15 +193,15 @@ export function Sidebar() {
             <div className="flex items-center justify-center py-8">
               <div className="text-sm" style={sidebarStyles.loadingText}>加载中...</div>
             </div>
-          ) : filteredList.length === 0 ? (
+          ) : currentList.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-sm" style={sidebarStyles.emptyText}>
-                {searchTerm ? '未找到匹配结果' : '暂无数据'}
+                暂无数据
               </div>
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredList.map((stock) => (
+              {currentList.map((stock) => (
               <div
                 key={stock.symbol}
                 className="group relative p-3 rounded-lg cursor-pointer transition-all"
@@ -251,7 +246,7 @@ export function Sidebar() {
                         e.stopPropagation();
                         removeFromWatchlist(stock.symbol);
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                      className="p-1 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       style={sidebarStyles.iconButton}
                       onMouseEnter={(e) => {
                         Object.assign(e.currentTarget.style, sidebarStyles.iconButtonHover);
@@ -267,7 +262,7 @@ export function Sidebar() {
                     <button
                       onClick={(e) => handleAddToWatchlist(stock, e)}
                       disabled={isInWatchlist(stock.symbol)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                      className="p-1 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       style={isInWatchlist(stock.symbol) ? { color: 'var(--accent-primary)', cursor: 'not-allowed' } : sidebarStyles.iconButton}
                       onMouseEnter={(e) => {
                         if (!isInWatchlist(stock.symbol)) {

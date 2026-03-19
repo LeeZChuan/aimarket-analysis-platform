@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, TrendingUp, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
 import { Table } from '../../components/Table';
 import { LineVolumeChart } from '../../components/LineVolumeChart';
@@ -35,6 +35,8 @@ export function StockDetailView() {
   const [lineChartData, setLineChartData] = useState<LineChartData[]>([]);
   const [volumeData, setVolumeData] = useState<VolumeChartData[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -42,6 +44,8 @@ export function StockDetailView() {
   const loadingRef = useRef(false);
 
   const pageSize = 50;
+  const isCompact = viewportWidth < 1400;
+  const isMobile = viewportWidth < 1024;
 
   const loadStockList = useCallback(async (page: number, append: boolean = false) => {
     if (loadingRef.current) return;
@@ -118,6 +122,16 @@ export function StockDetailView() {
   useEffect(() => {
     loadStockList(1, false);
   }, [loadStockList]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportHeight(window.innerHeight);
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (selectedStock?.code) {
@@ -315,9 +329,10 @@ export function StockDetailView() {
     setSelectedRowKey(record.id);
   };
 
-  const chartHeight = window.innerHeight - 180;
-  const lineVolumeHeight = Math.floor(chartHeight * 0.4);
-  const klineHeight = Math.floor(chartHeight * 0.55);
+  const chartHeight = Math.max(480, viewportHeight - 220);
+  const lineVolumeHeight = Math.floor(chartHeight * (isMobile ? 0.36 : 0.4));
+  const klineHeight = Math.floor(chartHeight * (isMobile ? 0.52 : 0.55));
+  const tableHeight = Math.max(360, viewportHeight - (isMobile ? 230 : 210));
 
   if (loading) {
     return (
@@ -331,18 +346,18 @@ export function StockDetailView() {
   }
 
   return (
-    <div className="h-full w-full flex gap-4 p-4" style={{ background: 'var(--bg-primary)' }}>
+    <div className="h-full w-full flex flex-col xl:flex-row gap-3 p-3 sm:gap-4 sm:p-4" style={{ background: 'var(--bg-primary)' }}>
       <div className="flex-1 min-w-0">
-        <div className="mb-4 pb-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+        <div className="mb-3 border-b pb-3 sm:mb-4 sm:pb-4" style={{ borderColor: 'var(--border-primary)' }}>
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <BarChart3 className="w-6 h-6" style={{ color: 'var(--text-secondary)' }} />
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'var(--text-secondary)' }} />
+                <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                   市场行情
                 </h2>
               </div>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="mt-2 flex items-center gap-3 sm:gap-4">
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   已加载 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{stockData.length}</span> / {total} 只股票
                 </p>
@@ -359,7 +374,7 @@ export function StockDetailView() {
                 setCurrentPage(1);
                 loadStockList(1, false);
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:opacity-80"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-lg transition-all hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
               style={{
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
@@ -367,7 +382,7 @@ export function StockDetailView() {
               }}
             >
               <RefreshCw className="w-4 h-4" />
-              <span className="text-sm font-medium">刷新</span>
+              <span className="text-sm font-medium hidden sm:inline">刷新</span>
             </button>
           </div>
         </div>
@@ -377,7 +392,7 @@ export function StockDetailView() {
             dataSource={stockData}
             rowKey="id"
             selectedRowKey={selectedRowKey}
-            height={window.innerHeight - 170}
+            height={tableHeight}
             rowHeight={48}
             headerHeight={48}
             onRowClick={handleRowClick}
@@ -399,18 +414,19 @@ export function StockDetailView() {
           )}
         </div>
       </div>
-      <div className="w-[600px] flex flex-col gap-4">
+      <div className={`flex flex-col gap-3 sm:gap-4 ${isCompact ? 'w-full' : 'w-[560px]'}`}>
         <div
-          className="border rounded-lg overflow-hidden shadow-sm"
+          className="border rounded-lg overflow-hidden"
           style={{
             borderColor: 'var(--border-primary)',
-            background: 'var(--bg-secondary)'
+            background: 'var(--bg-secondary)',
+            boxShadow: 'var(--shadow-sm)'
           }}
         >
           <div
-            className="px-5 py-4"
+            className="px-4 py-3.5 sm:px-5 sm:py-4"
             style={{
-              background: 'linear-gradient(to right, var(--bg-secondary), var(--bg-tertiary))',
+              background: 'var(--bg-secondary)',
               borderBottom: '1px solid var(--border-primary)'
             }}
           >
@@ -430,7 +446,7 @@ export function StockDetailView() {
             {selectedStock && (
               <div className="flex items-baseline gap-4 mt-3">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <span className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
                     {selectedStock.price.toFixed(2)}
                   </span>
                   <span className="text-sm" style={{ color: 'var(--text-muted)' }}>CNY</span>
@@ -442,7 +458,7 @@ export function StockDetailView() {
                     <TrendingDown className="w-5 h-5" style={{ color: 'var(--success)' }} />
                   )}
                   <span
-                    className="text-lg font-semibold"
+                    className="text-base sm:text-lg font-semibold"
                     style={{ color: selectedStock.change >= 0 ? 'var(--error)' : 'var(--success)' }}
                   >
                     {selectedStock.change >= 0 ? '+' : ''}
@@ -481,10 +497,11 @@ export function StockDetailView() {
         </div>
 
         <div
-          className="flex-1 border rounded-lg overflow-hidden shadow-sm"
+          className="flex-1 border rounded-lg overflow-hidden"
           style={{
             borderColor: 'var(--border-primary)',
-            background: 'var(--bg-secondary)'
+            background: 'var(--bg-secondary)',
+            boxShadow: 'var(--shadow-sm)'
           }}
         >
           <ChartTabs
