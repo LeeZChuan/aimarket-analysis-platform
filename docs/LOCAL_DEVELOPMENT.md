@@ -86,10 +86,6 @@ server: {
 ```env
 # 本地开发不需要配置 VITE_API_BASE_URL
 # Vite 代理会自动处理
-
-# 只需要配置 Supabase（如果使用）
-VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co
-VITE_SUPABASE_ANON_KEY=（你的 key）
 ```
 
 **生产环境**（`.env.production`）：

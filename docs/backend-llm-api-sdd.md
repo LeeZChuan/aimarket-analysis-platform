@@ -6,7 +6,7 @@
 
 ## 1. 概述
 
-本文档定义了 AI Market Analysis Platform 后端 LLM 代理服务的 API 规范。该服务作为前端与各 LLM 供应商之间的代理层，负责：
+本文档定义了 AstraTrade 后端 LLM 代理服务的 API 规范。该服务作为前端与各 LLM 供应商之间的代理层，负责：
 
 - 统一的 API 接口抽象
 - API Key 安全管理

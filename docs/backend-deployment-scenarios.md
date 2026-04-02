@@ -369,15 +369,11 @@ VITE_API_BASE_URL=https://abc123.ngrok-free.app/api
 ### 公网服务器 (`.env.production`)
 ```env
 VITE_API_BASE_URL=http://120.55.168.184/api
-VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co
-VITE_SUPABASE_ANON_KEY=（你的 key）
 ```
 
 ### ngrok 穿透 (`.env.production`)
 ```env
 VITE_API_BASE_URL=https://YOUR_NGROK_URL.ngrok-free.app/api
-VITE_SUPABASE_URL=https://zntydktkcvusgjaphpja.supabase.co
-VITE_SUPABASE_ANON_KEY=（你的 key）
 ```
 
 ---
