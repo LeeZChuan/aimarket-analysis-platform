@@ -185,12 +185,21 @@ export function ChatInput({
     const modelName = model.modelId;
     // 常见模型简称映射
     const shortNames: Record<string, string> = {
+      // GPT-4.1 系列（2025 新增）
+      'gpt-4.1': '4.1',
+      'gpt-4.1-mini': '4.1-mini',
+      'gpt-4.1-nano': '4.1-nano',
+      // GPT-4o 系列
       'gpt-4o': '4o',
       'gpt-4o-mini': '4o-mini',
+      // 旧版（向下兼容）
+      'gpt-4': 'GPT-4',
       'gpt-4-turbo': '4-turbo',
       'gpt-3.5-turbo': '3.5',
-      'deepseek-chat': 'DS-Chat',
+      // DeepSeek
+      'deepseek-chat': 'DS-V3',
       'deepseek-reasoner': 'DS-R1',
+      // Mock
       'mock-instant': 'Mock',
       'mock-delay': 'Mock-D',
     };

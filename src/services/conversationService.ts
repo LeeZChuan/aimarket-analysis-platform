@@ -387,6 +387,8 @@ class ConversationService implements ConversationStorage {
           }
         }
       }
+    } catch (error) {
+      throw error;
     } finally {
       reader.releaseLock();
     }

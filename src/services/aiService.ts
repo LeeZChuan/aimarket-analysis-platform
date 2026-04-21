@@ -88,7 +88,7 @@ class AIService {
   private config: AIServiceConfig = {
     defaultSceneId: 'general',
     defaultProviderId: 'openai',
-    defaultModelId: 'gpt-4',
+    defaultModelId: 'gpt-4o-mini',
   };
 
   /**

@@ -76,7 +76,7 @@ export const useAIConfigStore = create<AIConfigState>()(
       initialized: false,
       selectedSceneId: 'general',
       selectedProviderId: 'openai',
-      selectedModelId: 'gpt-4',
+      selectedModelId: 'gpt-4o-mini',
       useMock: false,
       scenes: [],
       providers: [],
