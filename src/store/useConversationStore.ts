@@ -8,6 +8,8 @@ import {
   ConversationStatus,
   ChatRequest,
   ChatSSEEvent,
+  ToolCallUIState,
+  AgentMessageContent,
 } from '../types/conversation';
 import type { AIMessage } from '../types/ai';
 import { conversationService } from '../services/conversationService';
@@ -42,6 +44,16 @@ interface ConversationState {
   streamingContent: string;
   isStreaming: boolean;
 
+  // Agent 模式状态
+  /** 正在进行中的工具调用列表（按顺序） */
+  activeToolCalls: ToolCallUIState[];
+  /** 当前 thinking 内容 */
+  activeThinking: string;
+  /** 当前工具调用轮次 */
+  currentTurn: number;
+  /** SSE 中断控制器（用于用户主动停止） */
+  _abortController: AbortController | null;
+
   setActiveConversation: (conversationId: string) => Promise<void>;
   createNewConversation: (params?: CreateConversationParams) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
@@ -67,8 +79,10 @@ interface ConversationState {
   appendToStreamingMessage: (content: string) => void;
   /** 完成流式消息 */
   finalizeStreamingMessage: (messageId: string, fullContent: string) => void;
-  /** 发送聊天消息（集成流式处理） */
+  /** 发送聊天消息（集成 Agent 流式处理） */
   sendChatMessage: (request: ChatRequest) => Promise<void>;
+  /** 停止正在进行的 Agent 运行 */
+  stopAgentRun: () => void;
 }
 
 export const useConversationStore = create<ConversationState>((set, get) => ({
@@ -85,6 +99,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   streamingMessageId: null,
   streamingContent: '',
   isStreaming: false,
+
+  // Agent 模式状态初始值
+  activeToolCalls: [],
+  activeThinking: '',
+  currentTurn: 0,
+  _abortController: null,
 
   setActiveConversation: async (conversationId: string) => {
     const { useLocalMode, localConversations } = get();
@@ -748,30 +768,37 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       return;
     }
 
-    // 1) UI 显示：始终展示用户原始输入（不展示加工后的 prompt）
-    const rawUserInput = request.content;
-    addLocalUserMessage(rawUserInput);
+    // 显示用户原始输入
+    addLocalUserMessage(request.content);
 
-    // 2) 请求发送：直接发送给后端，后端负责提示词渲染
-    // 后端会根据 sceneId 使用对应的模板渲染提示词
-    const outboundRequest: ChatRequest = { ...request };
+    // 创建中断控制器（支持用户手动停止）
+    const abortController = new AbortController();
+    set({ isLoading: true, error: null, _abortController: abortController, activeToolCalls: [], activeThinking: '', currentTurn: 0 });
 
-    // 2. 开始流式请求
-    set({ isLoading: true, error: null });
-
-    // 临时消息ID，等待后端返回真实ID
     const tempMessageId = `temp_${Date.now()}`;
-    let realAssistantMessageId = tempMessageId;
     let hasStartedStreaming = false;
+
+    // 心跳超时检测：30s 未收到任何事件则判定断线
+    let lastEventTime = Date.now();
+    const heartbeatCheck = setInterval(() => {
+      if (Date.now() - lastEventTime > 30_000 && get().isStreaming) {
+        clearInterval(heartbeatCheck);
+        // 超时：标记错误但不重连（避免重复请求）
+        const partialContent = get().streamingContent;
+        finalizeStreamingMessage(tempMessageId, partialContent + '\n\n⚠️ 连接超时，响应可能不完整。');
+        set({ isLoading: false, isStreaming: false, streamingMessageId: null, _abortController: null });
+      }
+    }, 5_000);
 
     try {
       await conversationService.chatWithStream(
         activeConversationId,
-        outboundRequest,
+        request,
         (event: ChatSSEEvent) => {
+          lastEventTime = Date.now(); // 重置心跳计时
+
           switch (event.type) {
             case 'meta':
-              // 收到 meta 事件，开始流式消息
               if (!hasStartedStreaming) {
                 startStreamingMessage(tempMessageId, request.modelId);
                 hasStartedStreaming = true;
@@ -779,21 +806,64 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               break;
 
             case 'delta':
-              // 追加增量内容
               if (event.data.content) {
                 appendToStreamingMessage(event.data.content);
               }
               break;
 
-            case 'done':
-              // 完成流式消息，使用真实的消息ID
-              realAssistantMessageId = event.data.assistantMessageId;
-              finalizeStreamingMessage(realAssistantMessageId, event.data.content);
-              set({ isLoading: false });
+            case 'thinking':
+              set({ activeThinking: get().activeThinking + event.data.content });
               break;
 
+            case 'tool_start': {
+              const newToolCall: ToolCallUIState = {
+                toolUseId: event.data.toolUseId,
+                toolName: event.data.toolName,
+                input: event.data.input,
+                status: 'loading',
+              };
+              set(state => ({ activeToolCalls: [...state.activeToolCalls, newToolCall] }));
+              break;
+            }
+
+            case 'tool_result':
+              set(state => ({
+                activeToolCalls: state.activeToolCalls.map(tc =>
+                  tc.toolUseId === event.data.toolUseId
+                    ? { ...tc, status: event.data.isError ? 'error' : 'done', result: event.data.result, isError: event.data.isError }
+                    : tc
+                ),
+              }));
+              break;
+
+            case 'turn_end':
+              set({ currentTurn: event.data.turnCount });
+              break;
+
+            case 'ping':
+              // 心跳，仅用于重置超时计时，无需其他操作
+              break;
+
+            case 'done': {
+              const finalContent = event.data.content;
+              const toolCalls = get().activeToolCalls;
+              // 将工具调用信息附加到最终内容（序列化为 AgentMessageContent 供渲染层使用）
+              const agentContent: AgentMessageContent = {
+                text: finalContent,
+                toolCalls,
+                thinking: get().activeThinking || undefined,
+                isStreaming: false,
+                totalTurns: event.data.totalTurns,
+              };
+              finalizeStreamingMessage(
+                event.data.assistantMessageId,
+                JSON.stringify(agentContent),
+              );
+              set({ isLoading: false, activeToolCalls: [], activeThinking: '', currentTurn: 0, _abortController: null });
+              break;
+            }
+
             case 'error':
-              // 处理错误 - 弹出 toast 提示用户
               notifyError('AI 响应失败', event.data.message);
               set({
                 error: event.data.message,
@@ -801,30 +871,53 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 isStreaming: false,
                 streamingMessageId: null,
                 streamingContent: '',
+                activeToolCalls: [],
+                activeThinking: '',
+                _abortController: null,
               });
-              // 如果已经开始流式，需要在消息中显示错误
               if (hasStartedStreaming) {
                 finalizeStreamingMessage(tempMessageId, `⚠️ 错误: ${event.data.message}`);
               }
               break;
           }
-        }
+        },
+        abortController.signal,
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '发送消息失败';
-      // 弹出 toast 提示用户
-      notifyError('发送消息失败', errorMessage);
+      // AbortError 是用户主动停止，不显示错误 toast
+      if (error instanceof Error && error.name === 'AbortError') {
+        const partialContent = get().streamingContent;
+        if (hasStartedStreaming && partialContent) {
+          finalizeStreamingMessage(tempMessageId, partialContent + '\n\n*(已停止)*');
+        } else if (hasStartedStreaming) {
+          finalizeStreamingMessage(tempMessageId, '*(已停止)*');
+        }
+      } else {
+        const errorMessage = error instanceof Error ? error.message : '发送消息失败';
+        notifyError('发送消息失败', errorMessage);
+        if (hasStartedStreaming) {
+          finalizeStreamingMessage(tempMessageId, `⚠️ 错误: ${errorMessage}`);
+        }
+      }
       set({
-        error: errorMessage,
+        error: null,
         isLoading: false,
         isStreaming: false,
         streamingMessageId: null,
         streamingContent: '',
+        activeToolCalls: [],
+        activeThinking: '',
+        _abortController: null,
       });
-      // 如果已经开始流式，显示错误
-      if (hasStartedStreaming) {
-        finalizeStreamingMessage(tempMessageId, `⚠️ 错误: ${errorMessage}`);
-      }
+    } finally {
+      clearInterval(heartbeatCheck);
+    }
+  },
+
+  stopAgentRun: () => {
+    const { _abortController } = get();
+    if (_abortController) {
+      _abortController.abort();
     }
   },
 }));

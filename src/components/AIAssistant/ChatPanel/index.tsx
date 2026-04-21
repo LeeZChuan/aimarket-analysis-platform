@@ -51,6 +51,7 @@ export function ChatPanel() {
     openTab,
     initializeDefaultConversation,
     sendChatMessage,
+    stopAgentRun,
   } = useConversationStore();
 
 
@@ -168,6 +169,7 @@ export function ChatPanel() {
 
         <ChatInput
           onSend={handleSend}
+          onStop={isLoading || isStreaming ? stopAgentRun : undefined}
           isLoading={isLoading || isStreaming}
           // 场景选择
           selectedSceneId={selectedSceneId}

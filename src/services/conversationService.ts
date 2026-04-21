@@ -277,7 +277,8 @@ class ConversationService implements ConversationStorage {
   async chatWithStream(
     conversationId: string,
     request: ChatRequest,
-    onEvent: (event: ChatSSEEvent) => void
+    onEvent: (event: ChatSSEEvent) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     const token = localStorage.getItem('token');
     const url = `${API_BASE_URL}/conversations/${conversationId}/chat?stream=1`;
@@ -293,6 +294,7 @@ class ConversationService implements ConversationStorage {
         ...request,
         stream: true,
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -353,7 +355,7 @@ class ConversationService implements ConversationStorage {
             data = dataStr;
           }
 
-          // 根据事件类型触发回调
+          // 根据事件类型触发回调（兼容 Agent 模式新增的事件类型）
           switch (currentEvent) {
             case 'meta':
               onEvent({ type: 'meta', data });
@@ -361,11 +363,26 @@ class ConversationService implements ConversationStorage {
             case 'delta':
               onEvent({ type: 'delta', data });
               break;
+            case 'thinking':
+              onEvent({ type: 'thinking', data });
+              break;
+            case 'tool_start':
+              onEvent({ type: 'tool_start', data });
+              break;
+            case 'tool_result':
+              onEvent({ type: 'tool_result', data });
+              break;
+            case 'turn_end':
+              onEvent({ type: 'turn_end', data });
+              break;
             case 'done':
               onEvent({ type: 'done', data });
               break;
             case 'error':
               onEvent({ type: 'error', data: { message: data.message || 'Unknown error' } });
+              break;
+            case 'ping':
+              onEvent({ type: 'ping', data });
               break;
           }
         }
@@ -469,9 +486,10 @@ export const getMessages = (
 export const chatWithStream = (
   conversationId: string,
   request: ChatRequest,
-  onEvent: (event: ChatSSEEvent) => void
+  onEvent: (event: ChatSSEEvent) => void,
+  signal?: AbortSignal
 ): Promise<void> =>
-  conversationService.chatWithStream(conversationId, request, onEvent);
+  conversationService.chatWithStream(conversationId, request, onEvent, signal);
 
 /**
  * 便捷方法：发送聊天消息（非流式）

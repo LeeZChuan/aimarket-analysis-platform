@@ -28,6 +28,8 @@ interface ModelOption {
 
 interface ChatInputProps {
   onSend: (message: string, images?: string[]) => void;
+  /** 当 isLoading 时显示停止按钮，点击后调用此回调 */
+  onStop?: () => void;
   isLoading: boolean;
   // 场景选择
   selectedSceneId: string;
@@ -41,6 +43,7 @@ interface ChatInputProps {
 
 export function ChatInput({
   onSend,
+  onStop,
   isLoading,
   selectedSceneId,
   availableScenes,
@@ -361,6 +364,18 @@ export function ChatInput({
               </button>
             </div>
 
+            {isLoading && onStop ? (
+              <button
+                onClick={onStop}
+                className="p-1 rounded transition-colors"
+                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)' }}
+                title="停止生成"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                  <rect x="4" y="4" width="8" height="8" rx="1" />
+                </svg>
+              </button>
+            ) : (
             <button
               onClick={handleSend}
               disabled={(!input.trim() && uploadedImages.length === 0) || isLoading}
@@ -383,6 +398,7 @@ export function ChatInput({
             >
               <Send className="w-4 h-4" />
             </button>
+            )}
           </div>
         </div>
       </div>
