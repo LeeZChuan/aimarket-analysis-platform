@@ -19,6 +19,7 @@ import { useStore } from '../../../store/useStore';
 import { useChartStore } from '../../../store/useChartStore';
 import { useAIConfigStore } from '../../../store/useAIConfigStore';
 import { useConversationStore } from '../../../store/useConversationStore';
+import { stockService } from '../../../services/stockService';
 import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
@@ -27,6 +28,7 @@ import { ConversationListItem, KLineContextData } from '../../../types/conversat
 
 export function ChatPanel() {
   const { selectedStock } = useStore();
+  const { setConfirmedSelectionData, clearConfirmedSelectionData } = useChartStore();
   const {
     initialize,
     selectedSceneId,
@@ -66,12 +68,71 @@ export function ChatPanel() {
     initializeDefaultConversation();
   }, [initializeDefaultConversation]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreSelectionData = async () => {
+      const klineContext = activeConversation?.klineContext;
+      if (!klineContext) {
+        clearConfirmedSelectionData();
+        return;
+      }
+
+      const startDate = Date.parse(klineContext.startTime);
+      const endDate = Date.parse(klineContext.endTime);
+      if (Number.isNaN(startDate) || Number.isNaN(endDate)) {
+        setConfirmedSelectionData({
+          stockSymbol: klineContext.stockSymbol,
+          stockName: klineContext.stockName,
+          timeframe: klineContext.timeframe,
+          startTime: klineContext.startTime,
+          endTime: klineContext.endTime,
+          dataCount: 0,
+          klineData: [],
+        });
+        return;
+      }
+
+      const start = new Date(startDate).toISOString().slice(0, 10);
+      const end = new Date(endDate).toISOString().slice(0, 10);
+      const klineData = await stockService.getKLineData(
+        klineContext.stockSymbol,
+        'day',
+        start,
+        end,
+      );
+
+      if (cancelled) return;
+      setConfirmedSelectionData({
+        stockSymbol: klineContext.stockSymbol,
+        stockName: klineContext.stockName,
+        timeframe: klineContext.timeframe,
+        startTime: klineContext.startTime,
+        endTime: klineContext.endTime,
+        dataCount: klineData.length,
+        klineData,
+      });
+    };
+
+    restoreSelectionData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeConversation?.id, activeConversation?.klineContext, clearConfirmedSelectionData, setConfirmedSelectionData]);
+
   /**
    * 处理消息发送
    * 使用后端 /api/conversations/:id/chat 接口，支持 SSE 流式返回
    */
   const handleSend = async (message: string, images?: string[]) => {
+    void images;
     if (isLoading || isStreaming) return;
+
+    const {
+      confirmedSelectionData: selectionSnapshot,
+      clearConfirmedSelectionData,
+    } = useChartStore.getState();
 
     let conversationId = activeConversationId;
     if (!conversationId) {
@@ -86,17 +147,15 @@ export function ChatPanel() {
 
     if (!conversationId) return;
 
-    const { confirmedSelectionData, clearConfirmedSelectionData } = useChartStore.getState();
-
     let klineContext: KLineContextData | undefined;
-    if (confirmedSelectionData) {
+    if (selectionSnapshot) {
       klineContext = {
-        stockSymbol: confirmedSelectionData.stockSymbol,
-        stockName: confirmedSelectionData.stockName,
-        timeframe: confirmedSelectionData.timeframe,
-        startTime: confirmedSelectionData.startTime,
-        endTime: confirmedSelectionData.endTime,
-        data: confirmedSelectionData.klineData,
+        stockSymbol: selectionSnapshot.stockSymbol,
+        stockName: selectionSnapshot.stockName,
+        timeframe: selectionSnapshot.timeframe,
+        startTime: selectionSnapshot.startTime,
+        endTime: selectionSnapshot.endTime,
+        data: selectionSnapshot.klineData,
       };
       clearConfirmedSelectionData();
     }

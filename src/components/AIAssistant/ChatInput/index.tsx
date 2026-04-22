@@ -179,6 +179,17 @@ export function ChatInput({
   const currentModel = availableModels.find((m) => m.id === selectedModel);
   const currentScene = availableScenes.find((s) => s.id === selectedSceneId);
 
+  const formatSelectionTime = (value: string): string => {
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) return value;
+    return new Date(parsed).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   // 获取模型简称
   const getModelShortName = (model: ModelOption | undefined): string => {
     if (!model) return 'Model';
@@ -464,10 +475,11 @@ export function ChatInput({
       {showDataTooltip && confirmedSelectionData && (() => {
         const d = confirmedSelectionData;
         const kd = d.klineData;
-        const overallHigh = Math.max(...kd.map(k => k.high));
-        const overallLow = Math.min(...kd.map(k => k.low));
-        const firstOpen = kd[0]?.open ?? 0;
-        const lastClose = kd[kd.length - 1]?.close ?? 0;
+        const hasKlineData = kd.length > 0;
+        const overallHigh = hasKlineData ? Math.max(...kd.map(k => k.high)) : 0;
+        const overallLow = hasKlineData ? Math.min(...kd.map(k => k.low)) : 0;
+        const firstOpen = hasKlineData ? kd[0].open : 0;
+        const lastClose = hasKlineData ? kd[kd.length - 1].close : 0;
         const pctChange = firstOpen > 0 ? ((lastClose - firstOpen) / firstOpen) * 100 : 0;
         const totalVolume = kd.reduce((s, k) => s + k.volume, 0);
         const avgVolume = kd.length > 0 ? totalVolume / kd.length : 0;
@@ -544,9 +556,9 @@ export function ChatInput({
             {/* 时间范围 */}
             <div className="px-4 py-2 flex items-center gap-2 text-[11px]" style={{ borderTop: '1px solid var(--border-primary)', color: 'var(--text-muted)' }}>
               <span style={{ color: 'var(--text-disabled)' }}>范围</span>
-              <span className="font-mono">{d.startTime}</span>
+              <span className="font-mono">{formatSelectionTime(d.startTime)}</span>
               <span style={{ color: 'var(--text-disabled)' }}>→</span>
-              <span className="font-mono">{d.endTime}</span>
+              <span className="font-mono">{formatSelectionTime(d.endTime)}</span>
             </div>
 
             {/* 数据预览（全量，固定高度可滚动）*/}

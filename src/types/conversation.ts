@@ -15,11 +15,28 @@ export interface ConversationMetadata {
   messageCount: number;
 }
 
+export interface ConversationKLineContext {
+  stockSymbol: string;
+  stockName: string;
+  timeframe: string;
+  startTime: string;
+  endTime: string;
+  data?: Array<{
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>;
+}
+
 export interface Conversation {
   id: string;
   userId: string;
   title: string;
   status: ConversationStatus;
+  klineContext?: ConversationKLineContext | null;
   metadata: ConversationMetadata;
   createdAt: Date;
   updatedAt: Date;
@@ -95,7 +112,7 @@ export interface KLineContextData {
   timeframe: string;
   startTime: string;
   endTime: string;
-  data: Array<{
+  data?: Array<{
     timestamp: number;
     open: number;
     high: number;

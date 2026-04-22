@@ -615,12 +615,14 @@ export function ChartPanel() {
             notifyWarning(`最多选择 ${MAX_SELECTION_COUNT} 条数据，当前已选 ${ctx.klineData.length} 条`);
             return;
           }
+          const selectedStartTime = new Date(ctx.klineData[0].timestamp).toISOString();
+          const selectedEndTime = new Date(ctx.klineData[ctx.klineData.length - 1].timestamp).toISOString();
           setConfirmedSelectionData({
             stockSymbol: ctx.symbol,
             stockName: ctx.stockName,
             timeframe: ctx.timeframe,
-            startTime: ctx.startTime,
-            endTime: ctx.endTime,
+            startTime: selectedStartTime,
+            endTime: selectedEndTime,
             dataCount: ctx.klineData.length,
             klineData: ctx.klineData,
           });
