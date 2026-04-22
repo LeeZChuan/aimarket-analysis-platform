@@ -17,19 +17,68 @@ interface ChatMessageListProps {
   isLoading: boolean;
 }
 
-/** 尝试将消息内容解析为 AgentMessageContent */
-function tryParseAgentContent(content: string | AIMessage): AgentMessageContent | null {
-  if (typeof content !== 'string') return null;
-  if (!content.startsWith('{')) return null;
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed && typeof parsed === 'object' && 'text' in parsed && 'toolCalls' in parsed) {
-      return parsed as AgentMessageContent;
+type LegacyTextBlock = {
+  type: 'text';
+  text: string;
+};
+
+/** 尝试将消息内容解析为 AgentMessageContent（兼容 string/object） */
+function tryParseAgentContent(content: unknown): AgentMessageContent | null {
+  let parsed: unknown = content;
+
+  if (typeof content === 'string') {
+    if (!content.startsWith('{')) return null;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      return null;
     }
-  } catch {
-    // 不是 JSON
   }
-  return null;
+
+  if (!parsed || typeof parsed !== 'object') return null;
+  if (!('text' in parsed) || !('toolCalls' in parsed)) return null;
+
+  const candidate = parsed as Record<string, unknown>;
+  return {
+    text: typeof candidate.text === 'string' ? candidate.text : '',
+    toolCalls: Array.isArray(candidate.toolCalls) ? candidate.toolCalls as AgentMessageContent['toolCalls'] : [],
+    thinking: typeof candidate.thinking === 'string' ? candidate.thinking : undefined,
+    isStreaming: Boolean(candidate.isStreaming),
+    totalTurns: typeof candidate.totalTurns === 'number' ? candidate.totalTurns : undefined,
+  };
+}
+
+function isLegacyTextBlock(block: unknown): block is LegacyTextBlock {
+  return Boolean(
+    block
+    && typeof block === 'object'
+    && 'type' in block
+    && 'text' in block
+    && (block as LegacyTextBlock).type === 'text'
+    && typeof (block as LegacyTextBlock).text === 'string'
+  );
+}
+
+/** 兼容历史格式：[{ type: "text", text: "..." }] */
+function tryParseLegacyTextBlocks(content: unknown): string | null {
+  if (!Array.isArray(content)) return null;
+  if (content.length === 0) return '';
+
+  const text = content
+    .map((block) => {
+      if (typeof block === 'string') return block;
+      if (isLegacyTextBlock(block)) return block.text;
+      if (block && typeof block === 'object' && 'content' in block) {
+        const candidate = block as Record<string, unknown>;
+        if (typeof candidate.content === 'string') {
+          return candidate.content;
+        }
+      }
+      return '';
+    })
+    .join('');
+
+  return text.trim() ? text : null;
 }
 
 /** 渲染单条 assistant 消息内容 */
@@ -78,6 +127,11 @@ function AssistantContent({ message }: { message: ConversationMessage }) {
         )}
       </div>
     );
+  }
+
+  const legacyTextContent = tryParseLegacyTextBlocks(message.content);
+  if (legacyTextContent !== null) {
+    return <MarkdownRenderer content={legacyTextContent} />;
   }
 
   // 旧格式 AIMessage 对象
