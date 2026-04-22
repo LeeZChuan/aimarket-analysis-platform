@@ -22,6 +22,7 @@ interface ModelOption {
   id: string;
   name: string;
   description: string;
+  disabled?: boolean;
   providerId: string;
   modelId: string;
 }
@@ -210,9 +211,6 @@ export function ChatInput({
       // DeepSeek
       'deepseek-chat': 'DS-V3',
       'deepseek-reasoner': 'DS-R1',
-      // Mock
-      'mock-instant': 'Mock',
-      'mock-delay': 'Mock-D',
     };
     return shortNames[modelName] || modelName;
   };
@@ -621,28 +619,40 @@ export function ChatInput({
                 <button
                   key={model.id}
                   onClick={() => {
+                    if (model.disabled) return;
                     onModelChange(model.id);
                     setShowModelPicker(false);
                   }}
+                  disabled={model.disabled}
                   className="w-full px-3 py-2 text-left text-xs transition-colors"
                   style={
                     selectedModel === model.id
-                      ? { background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
-                      : { color: 'var(--text-muted)' }
+                      ? {
+                          background: 'var(--bg-tertiary)',
+                          color: model.disabled ? 'var(--text-disabled)' : 'var(--text-primary)',
+                          cursor: model.disabled ? 'not-allowed' : 'pointer',
+                        }
+                      : {
+                          color: model.disabled ? 'var(--text-disabled)' : 'var(--text-muted)',
+                          cursor: model.disabled ? 'not-allowed' : 'pointer',
+                        }
                   }
                   onMouseEnter={(e) => {
-                    if (selectedModel !== model.id) {
+                    if (!model.disabled && selectedModel !== model.id) {
                       e.currentTarget.style.background = 'var(--bg-tertiary)';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (selectedModel !== model.id) {
+                    if (!model.disabled && selectedModel !== model.id) {
                       e.currentTarget.style.background = 'transparent';
                     }
                   }}
-                  title={model.description}
+                  title={model.disabled ? `${model.description}（当前已禁用）` : model.description}
                 >
-                  <div className="font-medium">{model.name.split(' - ')[1]}</div>
+                  <div className="font-medium">
+                    {model.name.split(' - ')[1]}
+                    {model.disabled ? '（禁用）' : ''}
+                  </div>
                   <div className="text-[10px]" style={{ color: 'var(--text-disabled)' }}>{model.description}</div>
                 </button>
               ))}

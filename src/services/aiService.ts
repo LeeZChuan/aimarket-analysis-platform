@@ -48,6 +48,7 @@ export interface AIModel {
   id: string;
   name: string;
   description: string;
+  disabled?: boolean;
 }
 
 /**
@@ -87,8 +88,8 @@ export interface SelectedModel {
 class AIService {
   private config: AIServiceConfig = {
     defaultSceneId: 'general',
-    defaultProviderId: 'openai',
-    defaultModelId: 'gpt-4o-mini',
+    defaultProviderId: 'deepseek',
+    defaultModelId: 'deepseek-chat',
   };
 
   /**
@@ -249,7 +250,7 @@ export const sendAnalysisRequest = async (
     message,
     stockSymbol: options.stockSymbol,
     stockPrice: options.stockPrice,
-    modelId: options.modelId || 'auto',
+    modelId: options.modelId || aiService.getConfig().defaultModelId,
     images: options.images,
     sceneId: options.sceneId,
     providerId: options.providerId,

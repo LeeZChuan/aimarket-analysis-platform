@@ -22,6 +22,7 @@ interface ProviderOption {
     id: string;
     name: string;
     description: string;
+    disabled?: boolean;
   }>;
 }
 
@@ -41,9 +42,6 @@ interface AIConfigState {
   /** 当前选中的模型 ID */
   selectedModelId: string;
   
-  /** 是否使用 Mock 模式 */
-  useMock: boolean;
-  
   /** 可用场景列表 */
   scenes: SceneConfig[];
   
@@ -55,7 +53,6 @@ interface AIConfigState {
   setSelectedScene: (sceneId: string) => void;
   setSelectedProvider: (providerId: string) => void;
   setSelectedModel: (modelId: string) => void;
-  setUseMock: (useMock: boolean) => void;
   
   /** 同时设置供应商和模型 */
   setProviderAndModel: (providerId: string, modelId: string) => void;
@@ -75,9 +72,8 @@ export const useAIConfigStore = create<AIConfigState>()(
     (set, get) => ({
       initialized: false,
       selectedSceneId: 'general',
-      selectedProviderId: 'openai',
-      selectedModelId: 'gpt-4o-mini',
-      useMock: false,
+      selectedProviderId: 'deepseek',
+      selectedModelId: 'deepseek-chat',
       scenes: [],
       providers: [],
 
@@ -95,15 +91,20 @@ export const useAIConfigStore = create<AIConfigState>()(
         const nextSceneId =
           scenes.find((s) => s.id === state.selectedSceneId)?.id || scenes[0]?.id || 'general';
 
-        const providerExists = providers.find((p) => p.provider.id === state.selectedProviderId);
-        const nextProviderId = providerExists?.provider.id || providers[0]?.provider.id || 'openai';
+        const firstProviderWithEnabledModel = providers.find((p) =>
+          p.models.some((m) => !m.disabled)
+        );
+        const fallbackProvider = firstProviderWithEnabledModel || providers[0];
+        const selectedProvider = providers.find((p) => p.provider.id === state.selectedProviderId);
+        const selectedProviderHasEnabledModel = !!selectedProvider?.models.some((m) => !m.disabled);
+        const resolvedProvider = selectedProviderHasEnabledModel ? selectedProvider : fallbackProvider;
+        const nextProviderId = resolvedProvider?.provider.id || 'deepseek';
+        const enabledModels = resolvedProvider?.models.filter((m) => !m.disabled) || [];
         const nextModelId =
-          providers
-            .find((p) => p.provider.id === nextProviderId)
-            ?.models.find((m) => m.id === state.selectedModelId)?.id ||
-          providers.find((p) => p.provider.id === nextProviderId)?.models[0]?.id ||
-          state.selectedModelId ||
-          'gpt-4';
+          enabledModels.find((m) => m.id === state.selectedModelId)?.id ||
+          enabledModels[0]?.id ||
+          resolvedProvider?.models[0]?.id ||
+          'deepseek-chat';
 
         set({
           initialized: true,
@@ -112,7 +113,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           selectedSceneId: nextSceneId,
           selectedProviderId: nextProviderId,
           selectedModelId: nextModelId,
-          useMock: false,
         });
 
         // 同步到 aiService
@@ -132,8 +132,8 @@ export const useAIConfigStore = create<AIConfigState>()(
         const state = get();
         const providerOption = state.providers.find(p => p.provider.id === providerId);
         
-        // 自动选择该供应商的第一个模型
-        const firstModel = providerOption?.models[0];
+        // 自动选择该供应商的第一个可用模型（若无可用模型再回退到第一个）
+        const firstModel = providerOption?.models.find((m) => !m.disabled) || providerOption?.models[0];
         const modelId = firstModel?.id || state.selectedModelId;
 
         set({
@@ -149,11 +149,12 @@ export const useAIConfigStore = create<AIConfigState>()(
         aiService.setDefaultSelection({ modelId });
       },
 
-      setUseMock: (useMock) => {
-        set({ useMock });
-      },
-
       setProviderAndModel: (providerId, modelId) => {
+        const state = get();
+        const provider = state.providers.find((p) => p.provider.id === providerId);
+        const model = provider?.models.find((m) => m.id === modelId);
+        if (model?.disabled) return;
+
         set({
           selectedProviderId: providerId,
           selectedModelId: modelId,
@@ -177,10 +178,6 @@ export const useAIConfigStore = create<AIConfigState>()(
         const provider = state.providers.find(p => p.provider.id === state.selectedProviderId);
         const model = provider?.models.find(m => m.id === state.selectedModelId);
         
-        if (state.useMock) {
-          return 'Mock';
-        }
-        
         return model?.name || `${provider?.provider.name || state.selectedProviderId}`;
       },
     }),
@@ -190,7 +187,6 @@ export const useAIConfigStore = create<AIConfigState>()(
         selectedSceneId: state.selectedSceneId,
         selectedProviderId: state.selectedProviderId,
         selectedModelId: state.selectedModelId,
-        useMock: state.useMock,
       }),
     }
   )

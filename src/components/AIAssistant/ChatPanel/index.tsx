@@ -190,6 +190,7 @@ export function ChatPanel() {
       id: `${p.provider.id}/${m.id}`,
       name: `${p.provider.name} - ${m.name}`,
       description: m.description,
+      disabled: !!m.disabled,
       providerId: p.provider.id,
       modelId: m.id,
     }))
