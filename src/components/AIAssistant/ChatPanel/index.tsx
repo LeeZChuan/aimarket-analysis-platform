@@ -26,6 +26,7 @@ import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
 import { GuidanceWizardModal } from '../GuidanceWizard';
 import { ConversationListItem, KLineContextData, GuidanceAttachment } from '../../../types/conversation';
+import { notifyError, notifyWarning } from '../../../utils/notify';
 
 export function ChatPanel() {
   const { selectedStock } = useStore();
@@ -176,13 +177,26 @@ export function ChatPanel() {
   const ensureConversationIdForGuidance = async () => {
     let conversationId = activeConversationId;
     if (!conversationId) {
-      await createNewConversation({
-        title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
-        stockSymbol: selectedStock?.symbol,
-        stockName: selectedStock?.name,
-        stockPrice: selectedStock?.price,
-      });
-      conversationId = useConversationStore.getState().activeConversationId;
+      try {
+        await createNewConversation({
+          title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
+          stockSymbol: selectedStock?.symbol,
+          stockName: selectedStock?.name,
+          stockPrice: selectedStock?.price,
+        });
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : '未知错误';
+        notifyError('创建会话失败', detail);
+        return null;
+      }
+
+      const state = useConversationStore.getState();
+      conversationId = state.activeConversationId;
+
+      if (!conversationId) {
+        notifyError('创建会话失败', state.error || '请检查网络或稍后重试');
+        return null;
+      }
     }
     return conversationId;
   };
@@ -192,7 +206,10 @@ export function ChatPanel() {
     if (isLoading || isStreaming) return;
 
     const conversationId = activeConversationId ?? (await ensureConversationIdForGuidance());
-    if (!conversationId) return;
+    if (!conversationId) {
+      notifyWarning('需求澄清未能发送', '会话创建失败或未完成，请稍后重试');
+      return;
+    }
 
     const {
       confirmedSelectionData: selectionSnapshot,
