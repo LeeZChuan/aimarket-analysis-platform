@@ -55,7 +55,11 @@
 | 状态 | 当前 `flowId`、`answers`、`currentStep`（可放 store 或会话元数据） | 可选持久化会话内引导进度 |
 | 与主对话衔接 | 引导结束生成「需求摘要」字符串，由用户确认后 `onSend` 或合并进 `sendChatMessage` 的 payload | 在 chat 接口将摘要写入 system 或首条 user，**不改变**现有 SSE 消费方式 |
 
-当前仓库若尚未实现引导 API/组件，以上可作为实现清单；**不必**为完成文档而新增运行时代码。
+## 需求澄清（已实现）
+
+- 分步说明与树状扩展设计见同目录 [GUIDANCE-IMPLEMENTATION-STEPS.md](./GUIDANCE-IMPLEMENTATION-STEPS.md)。  
+- 入口：`ChatPanel` 标题栏「需求澄清」→ 先选策略 → 顺序题 → 编辑摘要 →「插入摘要并请求 AI」。  
+- API：`GET /api/guidance/strategies`、`GET /api/guidance/flows/:flowId`、`POST /api/conversations/:id/guidance/advance`；主对话 `POST .../chat` 可选带 `guidanceAttachment`。
 
 ## 相关全局类型与 Store
 

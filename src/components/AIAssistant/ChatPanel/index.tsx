@@ -24,7 +24,8 @@ import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
-import { ConversationListItem, KLineContextData } from '../../../types/conversation';
+import { GuidanceWizardModal } from '../GuidanceWizard';
+import { ConversationListItem, KLineContextData, GuidanceAttachment } from '../../../types/conversation';
 
 export function ChatPanel() {
   const { selectedStock } = useStore();
@@ -58,6 +59,7 @@ export function ChatPanel() {
 
 
   const [showHistory, setShowHistory] = useState(false);
+  const [showGuidance, setShowGuidance] = useState(false);
 
   // 初始化 AI 配置
   useEffect(() => {
@@ -171,6 +173,57 @@ export function ChatPanel() {
     });
   };
 
+  const ensureConversationIdForGuidance = async () => {
+    let conversationId = activeConversationId;
+    if (!conversationId) {
+      await createNewConversation({
+        title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
+        stockSymbol: selectedStock?.symbol,
+        stockName: selectedStock?.name,
+        stockPrice: selectedStock?.price,
+      });
+      conversationId = useConversationStore.getState().activeConversationId;
+    }
+    return conversationId;
+  };
+
+  /** 需求澄清完成：用户可见摘要一条 + guidanceAttachment 注入后端 system */
+  const handleGuidanceComplete = async (summary: string, attachment: GuidanceAttachment) => {
+    if (isLoading || isStreaming) return;
+
+    const conversationId = activeConversationId ?? (await ensureConversationIdForGuidance());
+    if (!conversationId) return;
+
+    const {
+      confirmedSelectionData: selectionSnapshot,
+      clearConfirmedSelectionData,
+    } = useChartStore.getState();
+
+    let klineContext: KLineContextData | undefined;
+    if (selectionSnapshot) {
+      klineContext = {
+        stockSymbol: selectionSnapshot.stockSymbol,
+        stockName: selectionSnapshot.stockName,
+        timeframe: selectionSnapshot.timeframe,
+        startTime: selectionSnapshot.startTime,
+        endTime: selectionSnapshot.endTime,
+        data: selectionSnapshot.klineData,
+      };
+      clearConfirmedSelectionData();
+    }
+
+    await sendChatMessage({
+      content: summary,
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+      sceneId: selectedSceneId,
+      expectedType: 'markdown',
+      stream: true,
+      klineContext,
+      guidanceAttachment: attachment,
+    });
+  };
+
   const handleNewConversation = () => {
     createNewConversation({
       title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
@@ -204,9 +257,25 @@ export function ChatPanel() {
     <>
       <div className="flex flex-col h-full w-full" style={{ background: 'var(--bg-secondary)' }}>
         <div className="p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>AI 分析助手</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
+              <h2 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>AI 分析助手</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGuidance(true)}
+              disabled={isLoading || isStreaming}
+              className="shrink-0 text-xs px-2.5 py-1.5 rounded-md border transition-colors"
+              style={{
+                borderColor: 'var(--border-primary)',
+                color: 'var(--text-secondary)',
+                background: 'var(--bg-primary)',
+              }}
+              title="先选择答题策略，再进入需求澄清"
+            >
+              需求澄清
+            </button>
           </div>
         </div>
 
@@ -251,6 +320,17 @@ export function ChatPanel() {
         <ConversationHistory
           onClose={() => setShowHistory(false)}
           onSelectConversation={handleSelectConversation}
+        />
+      )}
+
+      {showGuidance && (
+        <GuidanceWizardModal
+          open={showGuidance}
+          onClose={() => setShowGuidance(false)}
+          conversationId={activeConversationId}
+          onEnsureConversationId={ensureConversationIdForGuidance}
+          onComplete={handleGuidanceComplete}
+          busy={isLoading || isStreaming}
         />
       )}
     </>

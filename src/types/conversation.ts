@@ -106,6 +106,23 @@ export interface ConversationStorage {
 
 // ==================== Chat API Types ====================
 
+/** 需求澄清单步答案（与后端 guidance 模块一致） */
+export interface GuidanceStepAnswer {
+  stepId: string;
+  choiceId?: string;
+  skipped?: boolean;
+  freeText?: string;
+}
+
+/** 随 chat 提交，由服务端注入 system */
+export interface GuidanceAttachment {
+  flowId: string;
+  version?: string;
+  strategyTitle?: string;
+  answers: GuidanceStepAnswer[];
+  summary: string;
+}
+
 export interface KLineContextData {
   stockSymbol: string;
   stockName: string;
@@ -132,6 +149,7 @@ export interface ChatRequest {
   messageType?: string;
   stream?: boolean;
   klineContext?: KLineContextData;
+  guidanceAttachment?: GuidanceAttachment;
 }
 
 // ==================== ContentBlock 消息块类型 ====================
