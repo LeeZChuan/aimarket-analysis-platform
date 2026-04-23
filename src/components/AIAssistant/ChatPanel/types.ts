@@ -1,3 +1,9 @@
+/**
+ * ChatPanel 子模块的本地类型定义（演示/历史结构中的 Message、AIModel、ChatPanelProps）
+ *
+ * 说明：线上会话与消息实体以 `src/types/conversation.ts`、`src/types/ai.ts` 为准；此处类型可能与运行时略有差异，以 ChatPanel 实际使用为准。
+ */
+
 import { AIMessage } from '../../../types/ai';
 
 /**

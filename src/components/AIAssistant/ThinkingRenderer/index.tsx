@@ -1,3 +1,14 @@
+/**
+ * Agent 思考过程展示组件
+ *
+ * 功能：
+ * - 展示模型/Agent 返回的 `thinking` 文本（与最终回答分离）
+ * - 默认折叠，点击展开，避免干扰主回答阅读
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatMessageList/index.tsx - 解析到 AgentMessageContent 且含 thinking 时渲染
+ */
+
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Brain } from 'lucide-react';
 

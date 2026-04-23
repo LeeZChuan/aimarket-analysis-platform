@@ -1,3 +1,15 @@
+/**
+ * Agent 工具调用可视化组件
+ *
+ * 功能：
+ * - 列表展示工具调用状态（进行中/成功/失败）
+ * - 单行摘要 + 展开查看入参与返回/错误信息
+ * - 工具名到中文标签的映射（未知工具名回退为原名）
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatMessageList/index.tsx - 流式进行中与已完成 Agent 消息中的 toolCalls
+ */
+
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Loader2, CheckCircle2, XCircle, Wrench } from 'lucide-react';
 import type { ToolCallUIState } from '../../../types/conversation';

@@ -1,6 +1,14 @@
 /**
- * AI聊天消息列表组件
- * 支持：纯文本消息、AIMessage 结构化消息、Agent 模式消息（含工具调用）
+ * AI 聊天消息列表组件
+ *
+ * 功能：
+ * - 渲染用户气泡与助手气泡，助手侧支持 Markdown
+ * - 兼容纯文本、旧版 AIMessage、历史「文本块数组」格式
+ * - Agent 模式：流式时展示 ToolCallRenderer + 文本流；完成后展示 ThinkingRenderer、工具卡片、正文与轮次提示
+ * - 空状态与全局 loading（非流式）占位
+ *
+ * 使用位置：
+ * - /components/AIAssistant/ChatPanel/index.tsx - 面板中部消息区域
  */
 import { useRef, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';

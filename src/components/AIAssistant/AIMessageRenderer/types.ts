@@ -1,3 +1,7 @@
+/**
+ * AIMessageRenderer 子模块的类型定义（组件 Props 等）
+ */
+
 import { AIMessage, AIMessageRenderer as AIMessageRendererType } from '../../../types/ai';
 
 /**
