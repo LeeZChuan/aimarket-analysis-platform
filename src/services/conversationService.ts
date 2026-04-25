@@ -8,16 +8,17 @@ import {
   Conversation,
   ConversationWithMessages,
   ConversationMessage,
-  ConversationListItem,
   ConversationFilter,
   PaginatedConversations,
   CreateConversationParams,
   UpdateConversationParams,
-  ConversationStatus,
   ConversationStorage,
   ChatRequest,
   ChatSSEEvent,
   ChatResponse,
+  PlannerEnterRequest,
+  PlannerResponsePayload,
+  PlannerState,
 } from '../types/conversation';
 import { AIMessage } from '../types/ai';
 
@@ -360,6 +361,9 @@ class ConversationService implements ConversationStorage {
             case 'meta':
               onEvent({ type: 'meta', data });
               break;
+            case 'plan_suggestion':
+              onEvent({ type: 'plan_suggestion', data });
+              break;
             case 'delta':
               onEvent({ type: 'delta', data });
               break;
@@ -415,13 +419,28 @@ class ConversationService implements ConversationStorage {
     );
 
     // 转换消息中的日期和内容
-    const messages = (response.data.messages || []).map(msg => ({
-      ...msg,
-      createdAt: new Date(msg.createdAt),
-      content: this.parseMessageContent(msg.content),
+      const messages = (response.data.messages || []).map((msg: ConversationMessage) => ({
+        ...msg,
+        createdAt: new Date(msg.createdAt),
+        content: this.parseMessageContent(msg.content),
     }));
 
     return { messages };
+  }
+
+  async getPlannerState(conversationId: string): Promise<PlannerState | null> {
+    const response = await http.get<{ plannerState: PlannerState | null }>(`/conversations/${conversationId}/planner-state`);
+    return response.data?.plannerState ?? null;
+  }
+
+  async enterPlanner(conversationId: string, payload: PlannerEnterRequest): Promise<PlannerState> {
+    const response = await http.post<{ plannerState: PlannerState }>(`/conversations/${conversationId}/planner/enter`, payload);
+    return response.data.plannerState;
+  }
+
+  async respondPlanner(conversationId: string, payload: PlannerResponsePayload): Promise<PlannerState> {
+    const response = await http.post<{ plannerState: PlannerState }>(`/conversations/${conversationId}/planner/respond`, payload);
+    return response.data.plannerState;
   }
 }
 
@@ -501,3 +520,16 @@ export const chat = (
   request: Omit<ChatRequest, 'stream'>
 ): Promise<ChatResponse> =>
   conversationService.chat(conversationId, request);
+
+export const getPlannerState = (conversationId: string): Promise<PlannerState | null> =>
+  conversationService.getPlannerState(conversationId);
+
+export const enterPlanner = (
+  conversationId: string,
+  payload: PlannerEnterRequest,
+): Promise<PlannerState> => conversationService.enterPlanner(conversationId, payload);
+
+export const respondPlanner = (
+  conversationId: string,
+  payload: PlannerResponsePayload,
+): Promise<PlannerState> => conversationService.respondPlanner(conversationId, payload);

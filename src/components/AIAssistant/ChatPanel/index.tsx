@@ -7,6 +7,7 @@
  * - 处理消息发送、模型选择、会话管理等核心逻辑
  * - 支持多会话标签切换和历史记录查看
  * - 支持 SSE 流式消息返回（打字机效果）
+ * - 动态 Plan Mode：自动建议进入规划 → 多轮澄清 → draft 确认 → execute → auto verify
  *
  * 使用位置：
  * - /views/TradingView/index.tsx - 股票交易主视图（右侧AI助手面板）
@@ -14,7 +15,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../../../store/useStore';
 import { useChartStore } from '../../../store/useChartStore';
 import { useAIConfigStore } from '../../../store/useAIConfigStore';
@@ -24,9 +25,23 @@ import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
-import { GuidanceWizardModal } from '../GuidanceWizard';
-import { ConversationListItem, KLineContextData, GuidanceAttachment } from '../../../types/conversation';
-import { notifyError, notifyWarning } from '../../../utils/notify';
+import { PlannerPanel } from '../PlannerPanel';
+import {
+  ConversationListItem,
+  KLineContextData,
+  PlannerDraft,
+} from '../../../types/conversation';
+import { notifyError } from '../../../utils/notify';
+
+// ── 工作流状态 ──────────────────────────────────────────────────────────────
+
+type WorkflowPhase =
+  | 'idle'
+  | 'executing'          // execute 阶段 streaming 中
+  | 'verifying'          // verify 阶段 streaming 中
+  | 'complete';          // 三阶段全部完成
+
+// ── 组件 ────────────────────────────────────────────────────────────────────
 
 export function ChatPanel() {
   const { selectedStock } = useStore();
@@ -56,11 +71,17 @@ export function ChatPanel() {
     initializeDefaultConversation,
     sendChatMessage,
     stopAgentRun,
+    plannerState,
+    planSuggestion,
+    enterPlannerMode,
+    respondPlanner,
+    setPlanSuggestion,
   } = useConversationStore();
 
-
   const [showHistory, setShowHistory] = useState(false);
-  const [showGuidance, setShowGuidance] = useState(false);
+
+  // ── 三阶段工作流状态 ────────────────────────────────────────────────────
+  const [workflowPhase, setWorkflowPhase] = useState<WorkflowPhase>('idle');
 
   // 初始化 AI 配置
   useEffect(() => {
@@ -124,10 +145,8 @@ export function ChatPanel() {
     };
   }, [activeConversation?.id, activeConversation?.klineContext, clearConfirmedSelectionData, setConfirmedSelectionData]);
 
-  /**
-   * 处理消息发送
-   * 使用后端 /api/conversations/:id/chat 接口，支持 SSE 流式返回
-   */
+  // ── 普通消息发送 ─────────────────────────────────────────────────────────
+
   const handleSend = async (message: string, images?: string[]) => {
     void images;
     if (isLoading || isStreaming) return;
@@ -174,7 +193,9 @@ export function ChatPanel() {
     });
   };
 
-  const ensureConversationIdForGuidance = async () => {
+  // ── 确保会话 ID ──────────────────────────────────────────────────────────
+
+  const ensureConversationId = async () => {
     let conversationId = activeConversationId;
     if (!conversationId) {
       try {
@@ -201,16 +222,7 @@ export function ChatPanel() {
     return conversationId;
   };
 
-  /** 需求澄清完成：用户可见摘要一条 + guidanceAttachment 注入后端 system */
-  const handleGuidanceComplete = async (summary: string, attachment: GuidanceAttachment) => {
-    if (isLoading || isStreaming) return;
-
-    const conversationId = activeConversationId ?? (await ensureConversationIdForGuidance());
-    if (!conversationId) {
-      notifyWarning('需求澄清未能发送', '会话创建失败或未完成，请稍后重试');
-      return;
-    }
-
+  const takeKLineContextSnapshot = () => {
     const {
       confirmedSelectionData: selectionSnapshot,
       clearConfirmedSelectionData,
@@ -229,17 +241,102 @@ export function ChatPanel() {
       clearConfirmedSelectionData();
     }
 
+    return klineContext;
+  };
+
+  const buildPlanSystemPrompt = (draft: PlannerDraft, intentSummary?: string) => {
+    const stepText = draft.steps.map((step, index) => `${index + 1}. ${step.title}：${step.focus}`).join('\n');
+    const summaryBlock = intentSummary ? `\n[用户意图摘要]\n${intentSummary}\n` : '';
+    return `[已确认分析计划]${summaryBlock}
+目标：${draft.goal}
+
+执行步骤：
+${stepText}
+
+最终输出：
+${draft.finalOutput}
+
+请严格基于以上已确认计划展开执行，并明确标注结论依据与风险提示。`;
+  };
+
+  const handleApprovePlan = async () => {
+    if (isLoading || isStreaming) return;
+    const approvedState = await respondPlanner({
+      action: 'approve',
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+    });
+
+    const confirmedPlan = approvedState?.confirmedPlan;
+    if (!confirmedPlan) return;
+
+    const klineContext = takeKLineContextSnapshot();
+    setWorkflowPhase('executing');
+
     await sendChatMessage({
-      content: summary,
+      content: '请基于已确认的分析计划，开始执行完整的股票分析。',
       modelId: selectedModelId,
       providerId: selectedProviderId,
       sceneId: selectedSceneId,
       expectedType: 'markdown',
       stream: true,
       klineContext,
-      guidanceAttachment: attachment,
+      systemPrompt: buildPlanSystemPrompt(confirmedPlan, approvedState?.lastIntentSummary),
+      workflowStage: 'execute',
     });
+
+    setWorkflowPhase('verifying');
+    await sendChatMessage({
+      content: '请对以上分析结果进行质量审查与风险校验。',
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+      sceneId: selectedSceneId,
+      expectedType: 'markdown',
+      stream: true,
+      workflowStage: 'verify',
+    });
+
+    setWorkflowPhase('complete');
+    // 3 秒后恢复 idle，避免遮挡
+    setTimeout(() => {
+      setWorkflowPhase('idle');
+    }, 3000);
   };
+
+  const handleEnterPlan = async () => {
+    if (isBusy) return;
+    const conversationId = activeConversationId ?? (await ensureConversationId());
+    if (!conversationId) return;
+
+    await enterPlannerMode({
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+      seedMessage: plannerState?.lastIntentSummary || undefined,
+    });
+    setPlanSuggestion(null);
+  };
+
+  const handleDeclineSuggestion = async () => {
+    if (!activeConversationId || isBusy) return;
+    await respondPlanner({
+      action: 'cancel',
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+    });
+    setPlanSuggestion(null);
+  };
+
+  const handleCancelPlan = async () => {
+    if (!activeConversationId || isBusy) return;
+    await respondPlanner({
+      action: 'cancel',
+      modelId: selectedModelId,
+      providerId: selectedProviderId,
+    });
+    setPlanSuggestion(null);
+  };
+
+  // ── 会话管理 ─────────────────────────────────────────────────────────────
 
   const handleNewConversation = () => {
     createNewConversation({
@@ -270,9 +367,13 @@ export function ChatPanel() {
     m => m.providerId === selectedProviderId && m.modelId === selectedModelId
   );
 
+  const isBusy = isLoading || isStreaming;
+  const isExecutionWorkflowActive = workflowPhase !== 'idle';
+
   return (
     <>
       <div className="flex flex-col h-full w-full" style={{ background: 'var(--bg-secondary)' }}>
+        {/* Header */}
         <div className="p-4" style={{ borderBottom: '1px solid var(--border-primary)' }}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -281,17 +382,18 @@ export function ChatPanel() {
             </div>
             <button
               type="button"
-              onClick={() => setShowGuidance(true)}
-              disabled={isLoading || isStreaming}
+              onClick={() => void handleEnterPlan()}
+              disabled={isBusy}
               className="shrink-0 text-xs px-2.5 py-1.5 rounded-md border transition-colors"
               style={{
                 borderColor: 'var(--border-primary)',
-                color: 'var(--text-secondary)',
+                color: isBusy ? 'var(--text-disabled)' : 'var(--text-secondary)',
                 background: 'var(--bg-primary)',
+                cursor: isBusy ? 'not-allowed' : 'pointer',
               }}
-              title="先选择答题策略，再进入需求澄清"
+              title="手动进入规划模式"
             >
-              需求澄清
+              进入规划
             </button>
           </div>
         </div>
@@ -313,10 +415,83 @@ export function ChatPanel() {
           />
         </div>
 
+        <PlannerPanel
+          suggestion={planSuggestion}
+          plannerState={plannerState}
+          busy={isBusy}
+          onEnterPlan={() => void handleEnterPlan()}
+          onDeclineSuggestion={() => void handleDeclineSuggestion()}
+          onAnswer={(payload) => {
+            void respondPlanner({
+              ...payload,
+              action: 'answer',
+              modelId: selectedModelId,
+              providerId: selectedProviderId,
+            });
+            setPlanSuggestion(null);
+          }}
+          onSkip={(payload) => {
+            void respondPlanner({
+              ...payload,
+              action: 'skip',
+              modelId: selectedModelId,
+              providerId: selectedProviderId,
+            });
+            setPlanSuggestion(null);
+          }}
+          onRewrite={(payload) => {
+            void respondPlanner({
+              ...payload,
+              action: 'rewrite',
+              modelId: selectedModelId,
+              providerId: selectedProviderId,
+            });
+            setPlanSuggestion(null);
+          }}
+          onContinueRefine={() => {
+            void respondPlanner({
+              action: 'continue_refine',
+              modelId: selectedModelId,
+              providerId: selectedProviderId,
+            });
+          }}
+          onApprove={() => void handleApprovePlan()}
+          onCancel={() => void handleCancelPlan()}
+        />
+
+        {/* 工作流状态栏 */}
+        {isExecutionWorkflowActive && (
+          <div
+            className="px-4 py-2.5"
+            style={{ borderTop: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)' }}
+          >
+            {workflowPhase === 'executing' && (
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                <span>正在执行完整股票分析…</span>
+              </div>
+            )}
+
+            {workflowPhase === 'verifying' && (
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                <span>正在校验分析结果与风险评估…</span>
+              </div>
+            )}
+
+            {workflowPhase === 'complete' && (
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--accent-primary)' }}>
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>三阶段分析已完成</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <ChatInput
           onSend={handleSend}
-          onStop={isLoading || isStreaming ? stopAgentRun : undefined}
-          isLoading={isLoading || isStreaming}
+          onStop={isBusy ? stopAgentRun : undefined}
+          isLoading={isBusy}
           // 场景选择
           selectedSceneId={selectedSceneId}
           availableScenes={scenes}
@@ -337,17 +512,6 @@ export function ChatPanel() {
         <ConversationHistory
           onClose={() => setShowHistory(false)}
           onSelectConversation={handleSelectConversation}
-        />
-      )}
-
-      {showGuidance && (
-        <GuidanceWizardModal
-          open={showGuidance}
-          onClose={() => setShowGuidance(false)}
-          conversationId={activeConversationId}
-          onEnsureConversationId={ensureConversationIdForGuidance}
-          onComplete={handleGuidanceComplete}
-          busy={isLoading || isStreaming}
         />
       )}
     </>

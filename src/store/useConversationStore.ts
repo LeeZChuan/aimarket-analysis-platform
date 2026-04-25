@@ -10,6 +10,10 @@ import {
   ChatSSEEvent,
   ToolCallUIState,
   AgentMessageContent,
+  PlannerEnterRequest,
+  PlannerResponsePayload,
+  PlannerState,
+  PlanSuggestionEvent,
 } from '../types/conversation';
 import type { AIMessage } from '../types/ai';
 import { conversationService } from '../services/conversationService';
@@ -53,6 +57,8 @@ interface ConversationState {
   currentTurn: number;
   /** SSE 中断控制器（用于用户主动停止） */
   _abortController: AbortController | null;
+  plannerState: PlannerState | null;
+  planSuggestion: PlanSuggestionEvent | null;
 
   setActiveConversation: (conversationId: string) => Promise<void>;
   createNewConversation: (params?: CreateConversationParams) => Promise<void>;
@@ -83,6 +89,11 @@ interface ConversationState {
   sendChatMessage: (request: ChatRequest) => Promise<void>;
   /** 停止正在进行的 Agent 运行 */
   stopAgentRun: () => void;
+  loadPlannerState: (conversationId: string) => Promise<void>;
+  enterPlannerMode: (payload?: PlannerEnterRequest) => Promise<PlannerState | null>;
+  respondPlanner: (payload: PlannerResponsePayload) => Promise<PlannerState | null>;
+  setPlanSuggestion: (payload: PlanSuggestionEvent | null) => void;
+  clearPlannerState: () => void;
 }
 
 export const useConversationStore = create<ConversationState>((set, get) => ({
@@ -105,6 +116,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   activeThinking: '',
   currentTurn: 0,
   _abortController: null,
+  plannerState: null,
+  planSuggestion: null,
 
   setActiveConversation: async (conversationId: string) => {
     const { useLocalMode, localConversations } = get();
@@ -145,6 +158,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set({ isLoading: true, error: null });
       try {
         const conversation = await conversationService.getConversation(conversationId);
+        const plannerState = await conversationService.getPlannerState(conversationId);
         if (conversation) {
           const tabItem: ConversationListItem = {
             id: conversation.id,
@@ -157,6 +171,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             openTabs: [...state.openTabs, tabItem],
             activeConversationId: conversationId,
             activeConversation: conversation,
+            plannerState,
+            planSuggestion: plannerState?.lastSuggestion ?? null,
             isLoading: false,
           }));
         }
@@ -170,9 +186,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set({ isLoading: true, error: null });
       try {
         const conversation = await conversationService.getConversation(conversationId);
+        const plannerState = await conversationService.getPlannerState(conversationId);
         set({
           activeConversationId: conversationId,
           activeConversation: conversation,
+          plannerState,
+          planSuggestion: plannerState?.lastSuggestion ?? null,
           isLoading: false,
         });
       } catch (error) {
@@ -236,6 +255,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         activeConversationId: newId,
         activeConversation: fullConversation,
         conversationList: [tabItem, ...state.conversationList],
+        plannerState: null,
+        planSuggestion: null,
       }));
       return;
     }
@@ -258,6 +279,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           openTabs: [...state.openTabs, tabItem],
           activeConversationId: conversation.id,
           activeConversation: fullConversation,
+          plannerState: null,
+          planSuggestion: null,
           conversationList: [tabItem, ...state.conversationList],
           isLoading: false,
         }));
@@ -274,10 +297,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const conversation = await conversationService.getConversation(conversationId);
+      const plannerState = await conversationService.getPlannerState(conversationId);
       if (conversation) {
         set({
           activeConversationId: conversationId,
           activeConversation: conversation,
+          plannerState,
+          planSuggestion: plannerState?.lastSuggestion ?? null,
           isLoading: false,
         });
       }
@@ -545,10 +571,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             };
           }
         } else {
-          conversationService.getConversation(newActiveId).then((conversation) => {
+          Promise.all([
+            conversationService.getConversation(newActiveId),
+            conversationService.getPlannerState(newActiveId),
+          ]).then(([conversation, plannerState]) => {
             set({
               activeConversationId: newActiveId,
               activeConversation: conversation,
+              plannerState,
+              planSuggestion: plannerState?.lastSuggestion ?? null,
             });
           });
         }
@@ -563,6 +594,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         openTabs: newTabs,
         activeConversationId: isClosingActive ? null : state.activeConversationId,
         activeConversation: isClosingActive ? null : state.activeConversation,
+        plannerState: isClosingActive ? null : state.plannerState,
+        planSuggestion: isClosingActive ? null : state.planSuggestion,
       };
     });
   },
@@ -592,6 +625,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           state.activeConversationId === conversationId ? null : state.activeConversationId,
         activeConversation:
           state.activeConversationId === conversationId ? null : state.activeConversation,
+        plannerState:
+          state.activeConversationId === conversationId ? null : state.plannerState,
+        planSuggestion:
+          state.activeConversationId === conversationId ? null : state.planSuggestion,
       }));
       return;
     }
@@ -606,6 +643,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           state.activeConversationId === conversationId ? null : state.activeConversationId,
         activeConversation:
           state.activeConversationId === conversationId ? null : state.activeConversation,
+        plannerState:
+          state.activeConversationId === conversationId ? null : state.plannerState,
+        planSuggestion:
+          state.activeConversationId === conversationId ? null : state.planSuggestion,
       }));
     } catch (error) {
       set({
@@ -773,7 +814,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // 创建中断控制器（支持用户手动停止）
     const abortController = new AbortController();
-    set({ isLoading: true, error: null, _abortController: abortController, activeToolCalls: [], activeThinking: '', currentTurn: 0 });
+    set({
+      isLoading: true,
+      error: null,
+      _abortController: abortController,
+      activeToolCalls: [],
+      activeThinking: '',
+      currentTurn: 0,
+      planSuggestion: null,
+    });
 
     const tempMessageId = `temp_${Date.now()}`;
     let hasStartedStreaming = false;
@@ -798,6 +847,30 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           lastEventTime = Date.now(); // 重置心跳计时
 
           switch (event.type) {
+            case 'plan_suggestion':
+              set({
+                planSuggestion: event.data,
+                plannerState: event.data.plannerState ?? {
+                  mode: 'plan_suggested',
+                  autoSuggestDismissed: false,
+                  answers: [],
+                  currentQuestion: null,
+                  draftPlan: null,
+                  confirmedPlan: null,
+                  lastIntentSummary: request.content,
+                  lastSuggestion: event.data,
+                  updatedAt: new Date().toISOString(),
+                },
+                isLoading: false,
+                isStreaming: false,
+                streamingMessageId: null,
+                streamingContent: '',
+                activeToolCalls: [],
+                activeThinking: '',
+                currentTurn: 0,
+                _abortController: null,
+              });
+              break;
             case 'meta':
               if (!hasStartedStreaming) {
                 startStreamingMessage(tempMessageId, request.modelId);
@@ -920,4 +993,38 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       _abortController.abort();
     }
   },
+
+  loadPlannerState: async (conversationId: string) => {
+    const plannerState = await conversationService.getPlannerState(conversationId);
+    set({
+      plannerState,
+      planSuggestion: plannerState?.lastSuggestion ?? null,
+    });
+  },
+
+  enterPlannerMode: async (payload) => {
+    const { activeConversationId } = get();
+    if (!activeConversationId) return null;
+    const plannerState = await conversationService.enterPlanner(activeConversationId, payload || {});
+    set({
+      plannerState,
+      planSuggestion: plannerState.lastSuggestion ?? null,
+    });
+    return plannerState;
+  },
+
+  respondPlanner: async (payload) => {
+    const { activeConversationId } = get();
+    if (!activeConversationId) return null;
+    const plannerState = await conversationService.respondPlanner(activeConversationId, payload);
+    set({
+      plannerState,
+      planSuggestion: plannerState.lastSuggestion ?? null,
+    });
+    return plannerState;
+  },
+
+  setPlanSuggestion: (payload) => set({ planSuggestion: payload }),
+
+  clearPlannerState: () => set({ plannerState: null, planSuggestion: null }),
 }));

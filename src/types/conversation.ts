@@ -139,6 +139,100 @@ export interface KLineContextData {
   }>;
 }
 
+export type WorkflowStage = 'plan' | 'execute' | 'verify';
+export type ConversationMode =
+  | 'chat'
+  | 'plan_suggested'
+  | 'plan_clarifying'
+  | 'plan_ready'
+  | 'executing'
+  | 'verifying';
+
+/** 用户分析意图（随三阶段工作流传递） */
+export interface AnalysisIntent {
+  primarySceneId: string;
+  preferenceTags: string[];
+  summary: string;
+}
+
+export interface PlannerChoice {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export interface PlannerQuestionCard {
+  questionId: string;
+  title: string;
+  prompt: string;
+  choices: PlannerChoice[];
+  allowSkip: true;
+  allowFreeText: true;
+  allowRewrite: true;
+}
+
+export interface PlannerAnswer {
+  questionId?: string;
+  title?: string;
+  choiceId?: string;
+  choiceLabel?: string;
+  freeText?: string;
+  action: 'answer' | 'skip' | 'rewrite';
+  rewriteText?: string;
+}
+
+export interface PlannerDraftStep {
+  title: string;
+  focus: string;
+}
+
+export interface PlannerDraft {
+  goal: string;
+  steps: PlannerDraftStep[];
+  finalOutput: string;
+}
+
+export interface PlanSuggestionEvent {
+  shouldSuggestPlan: boolean;
+  reason: string;
+  missingDimensions: string[];
+  suggestionTitle: string;
+  suggestionBody: string;
+  conversationId?: string;
+  userMessageId?: string;
+  plannerState?: PlannerState | null;
+}
+
+export interface PlannerState {
+  mode: ConversationMode;
+  autoSuggestDismissed: boolean;
+  answers: PlannerAnswer[];
+  currentQuestion: PlannerQuestionCard | null;
+  draftPlan: PlannerDraft | null;
+  confirmedPlan: PlannerDraft | null;
+  lastIntentSummary: string;
+  lastSuggestion: PlanSuggestionEvent | null;
+  modelId?: string;
+  providerId?: string;
+  updatedAt: string;
+}
+
+export interface PlannerEnterRequest {
+  modelId?: string;
+  providerId?: string;
+  seedMessage?: string;
+}
+
+export interface PlannerResponsePayload {
+  questionId?: string;
+  choiceId?: string;
+  freeText?: string;
+  rewriteText?: string;
+  modelId?: string;
+  providerId?: string;
+  action: 'answer' | 'skip' | 'rewrite' | 'continue_refine' | 'approve' | 'cancel';
+}
+
 export interface ChatRequest {
   content: string;
   systemPrompt?: string;
@@ -150,6 +244,10 @@ export interface ChatRequest {
   stream?: boolean;
   klineContext?: KLineContextData;
   guidanceAttachment?: GuidanceAttachment;
+  /** 三阶段工作流阶段标识 */
+  workflowStage?: WorkflowStage;
+  /** 用户分析意图（偏好标签、主场景）*/
+  analysisIntent?: AnalysisIntent;
 }
 
 // ==================== ContentBlock 消息块类型 ====================
@@ -188,6 +286,7 @@ export type ContentBlock =
 
 export type ChatSSEEventType =
   | 'meta'
+  | 'plan_suggestion'
   | 'delta'
   | 'thinking'
   | 'tool_start'
@@ -206,6 +305,8 @@ export interface ChatSSEMetaData {
   /** 断点续传用：本次 agentRunId */
   agentRunId?: string;
 }
+
+export interface ChatSSEPlanSuggestionData extends PlanSuggestionEvent {}
 
 export interface ChatSSEDeltaData {
   content: string;
@@ -253,6 +354,7 @@ export interface ChatSSEErrorData {
 
 export type ChatSSEEvent =
   | { type: 'meta'; data: ChatSSEMetaData }
+  | { type: 'plan_suggestion'; data: ChatSSEPlanSuggestionData }
   | { type: 'delta'; data: ChatSSEDeltaData }
   | { type: 'thinking'; data: ChatSSEThinkingData }
   | { type: 'tool_start'; data: ChatSSEToolStartData }
