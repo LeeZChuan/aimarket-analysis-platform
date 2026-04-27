@@ -33,7 +33,8 @@ export interface KLineDataItem {
   volume: number;
 }
 
-export interface ConfirmedSelectionData {
+export interface ChartContextData {
+  source: 'selection' | 'chart';
   stockSymbol: string;
   stockName: string;
   timeframe: string;
@@ -41,6 +42,14 @@ export interface ConfirmedSelectionData {
   endTime: string;
   dataCount: number;
   klineData: KLineDataItem[];
+}
+
+export interface ConfirmedSelectionData extends ChartContextData {
+  source: 'selection';
+}
+
+export interface CurrentChartContextData extends ChartContextData {
+  source: 'chart';
 }
 
 interface ChartStore {
@@ -55,6 +64,10 @@ interface ChartStore {
 
   currentSelectionRange: CurrentSelectionRange | null;
   setCurrentSelectionRange: (range: CurrentSelectionRange | null) => void;
+
+  currentChartContext: CurrentChartContextData | null;
+  setCurrentChartContext: (data: CurrentChartContextData | null) => void;
+  clearCurrentChartContext: () => void;
 
   confirmedSelectionData: ConfirmedSelectionData | null;
   setConfirmedSelectionData: (data: ConfirmedSelectionData | null) => void;
@@ -74,8 +87,11 @@ export const useChartStore = create<ChartStore>((set) => ({
   currentSelectionRange: null,
   setCurrentSelectionRange: (range) => set({ currentSelectionRange: range }),
 
+  currentChartContext: null,
+  setCurrentChartContext: (data) => set({ currentChartContext: data }),
+  clearCurrentChartContext: () => set({ currentChartContext: null }),
+
   confirmedSelectionData: null,
   setConfirmedSelectionData: (data) => set({ confirmedSelectionData: data }),
   clearConfirmedSelectionData: () => set({ confirmedSelectionData: null }),
 }));
-

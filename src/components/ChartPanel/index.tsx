@@ -43,6 +43,8 @@ import { textSegmentOverlay } from './overlays/textSegmentOverlay';
 import { TextInputModal } from './TextInputModal';
 import type { KLineDataItem } from '../../store/useChartStore';
 
+const MAX_CHART_CONTEXT_COUNT = 200;
+
 const getCSSVar = (varName: string) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 };
@@ -104,6 +106,8 @@ export function ChartPanel() {
     triggerRegionSelection,
     setTriggerRegionSelection,
     setConfirmedSelectionData,
+    setCurrentChartContext,
+    clearCurrentChartContext,
   } = useChartStore();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -129,6 +133,11 @@ export function ChartPanel() {
   const [contextMenuCtx, setContextMenuCtx] = useState<ContextMenuActionContext | null>(null);
   const pendingContextRef = useRef<ContextMenuActionContext | null>(null);
   const activeOverlayIdsRef = useRef<Set<string>>(new Set());
+
+  const chartData = useMemo(
+    () => (dailyData.length > 0 ? convertKLineData(dailyData, timeRange) : []),
+    [dailyData, timeRange],
+  );
 
   useEffect(() => {
     registerOverlay(horizontalRegionSelection);
@@ -264,12 +273,48 @@ export function ChartPanel() {
 
   useEffect(() => {
     if (!chartRef.current) return;
-    if (!dailyData || dailyData.length === 0) {
+    if (chartData.length === 0) {
       chartRef.current.applyNewData([]);
       return;
     }
-    chartRef.current.applyNewData(convertKLineData(dailyData, timeRange));
-  }, [dailyData, timeRange]);
+    chartRef.current.applyNewData(chartData);
+  }, [chartData]);
+
+  useEffect(() => {
+    if (!selectedStock?.symbol || chartData.length === 0) {
+      clearCurrentChartContext();
+      return;
+    }
+
+    const recentData = chartData.slice(-MAX_CHART_CONTEXT_COUNT).map((item) => ({
+      timestamp: item.timestamp,
+      open: item.open,
+      high: item.high,
+      low: item.low,
+      close: item.close,
+      volume: item.volume ?? 0,
+    }));
+
+    if (recentData.length === 0) {
+      clearCurrentChartContext();
+      return;
+    }
+
+    setCurrentChartContext({
+      source: 'chart',
+      stockSymbol: selectedStock.symbol,
+      stockName: selectedStock.name,
+      timeframe: timeRange,
+      startTime: new Date(recentData[0].timestamp).toISOString(),
+      endTime: new Date(recentData[recentData.length - 1].timestamp).toISOString(),
+      dataCount: recentData.length,
+      klineData: recentData,
+    });
+  }, [chartData, clearCurrentChartContext, selectedStock, setCurrentChartContext, timeRange]);
+
+  useEffect(() => () => {
+    clearCurrentChartContext();
+  }, [clearCurrentChartContext]);
 
   useEffect(() => {
     if (chartRef.current) {
@@ -618,6 +663,7 @@ export function ChartPanel() {
           const selectedStartTime = new Date(ctx.klineData[0].timestamp).toISOString();
           const selectedEndTime = new Date(ctx.klineData[ctx.klineData.length - 1].timestamp).toISOString();
           setConfirmedSelectionData({
+            source: 'selection',
             stockSymbol: ctx.symbol,
             stockName: ctx.stockName,
             timeframe: ctx.timeframe,

@@ -16,11 +16,13 @@ export interface ConversationMetadata {
 }
 
 export interface ConversationKLineContext {
+  source?: 'selection' | 'chart';
   stockSymbol: string;
   stockName: string;
   timeframe: string;
   startTime: string;
   endTime: string;
+  dataCount?: number;
   data?: Array<{
     timestamp: number;
     open: number;
@@ -124,11 +126,13 @@ export interface GuidanceAttachment {
 }
 
 export interface KLineContextData {
+  source?: 'selection' | 'chart';
   stockSymbol: string;
   stockName: string;
   timeframe: string;
   startTime: string;
   endTime: string;
+  dataCount?: number;
   data?: Array<{
     timestamp: number;
     open: number;

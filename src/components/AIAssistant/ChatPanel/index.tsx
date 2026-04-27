@@ -20,7 +20,6 @@ import { useStore } from '../../../store/useStore';
 import { useChartStore } from '../../../store/useChartStore';
 import { useAIConfigStore } from '../../../store/useAIConfigStore';
 import { useConversationStore } from '../../../store/useConversationStore';
-import { stockService } from '../../../services/stockService';
 import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
@@ -45,7 +44,7 @@ type WorkflowPhase =
 
 export function ChatPanel() {
   const { selectedStock } = useStore();
-  const { setConfirmedSelectionData, clearConfirmedSelectionData } = useChartStore();
+  const { clearConfirmedSelectionData } = useChartStore();
   const {
     initialize,
     selectedSceneId,
@@ -93,57 +92,8 @@ export function ChatPanel() {
   }, [initializeDefaultConversation]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const restoreSelectionData = async () => {
-      const klineContext = activeConversation?.klineContext;
-      if (!klineContext) {
-        clearConfirmedSelectionData();
-        return;
-      }
-
-      const startDate = Date.parse(klineContext.startTime);
-      const endDate = Date.parse(klineContext.endTime);
-      if (Number.isNaN(startDate) || Number.isNaN(endDate)) {
-        setConfirmedSelectionData({
-          stockSymbol: klineContext.stockSymbol,
-          stockName: klineContext.stockName,
-          timeframe: klineContext.timeframe,
-          startTime: klineContext.startTime,
-          endTime: klineContext.endTime,
-          dataCount: 0,
-          klineData: [],
-        });
-        return;
-      }
-
-      const start = new Date(startDate).toISOString().slice(0, 10);
-      const end = new Date(endDate).toISOString().slice(0, 10);
-      const klineData = await stockService.getKLineData(
-        klineContext.stockSymbol,
-        'day',
-        start,
-        end,
-      );
-
-      if (cancelled) return;
-      setConfirmedSelectionData({
-        stockSymbol: klineContext.stockSymbol,
-        stockName: klineContext.stockName,
-        timeframe: klineContext.timeframe,
-        startTime: klineContext.startTime,
-        endTime: klineContext.endTime,
-        dataCount: klineData.length,
-        klineData,
-      });
-    };
-
-    restoreSelectionData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeConversation?.id, activeConversation?.klineContext, clearConfirmedSelectionData, setConfirmedSelectionData]);
+    clearConfirmedSelectionData();
+  }, [activeConversation?.id, clearConfirmedSelectionData]);
 
   // ── 普通消息发送 ─────────────────────────────────────────────────────────
 
@@ -153,6 +103,7 @@ export function ChatPanel() {
 
     const {
       confirmedSelectionData: selectionSnapshot,
+      currentChartContext,
       clearConfirmedSelectionData,
     } = useChartStore.getState();
 
@@ -172,14 +123,27 @@ export function ChatPanel() {
     let klineContext: KLineContextData | undefined;
     if (selectionSnapshot) {
       klineContext = {
+        source: selectionSnapshot.source,
         stockSymbol: selectionSnapshot.stockSymbol,
         stockName: selectionSnapshot.stockName,
         timeframe: selectionSnapshot.timeframe,
         startTime: selectionSnapshot.startTime,
         endTime: selectionSnapshot.endTime,
+        dataCount: selectionSnapshot.dataCount,
         data: selectionSnapshot.klineData,
       };
       clearConfirmedSelectionData();
+    } else if (currentChartContext) {
+      klineContext = {
+        source: currentChartContext.source,
+        stockSymbol: currentChartContext.stockSymbol,
+        stockName: currentChartContext.stockName,
+        timeframe: currentChartContext.timeframe,
+        startTime: currentChartContext.startTime,
+        endTime: currentChartContext.endTime,
+        dataCount: currentChartContext.dataCount,
+        data: currentChartContext.klineData,
+      };
     }
 
     await sendChatMessage({
@@ -225,20 +189,34 @@ export function ChatPanel() {
   const takeKLineContextSnapshot = () => {
     const {
       confirmedSelectionData: selectionSnapshot,
+      currentChartContext,
       clearConfirmedSelectionData,
     } = useChartStore.getState();
 
     let klineContext: KLineContextData | undefined;
     if (selectionSnapshot) {
       klineContext = {
+        source: selectionSnapshot.source,
         stockSymbol: selectionSnapshot.stockSymbol,
         stockName: selectionSnapshot.stockName,
         timeframe: selectionSnapshot.timeframe,
         startTime: selectionSnapshot.startTime,
         endTime: selectionSnapshot.endTime,
+        dataCount: selectionSnapshot.dataCount,
         data: selectionSnapshot.klineData,
       };
       clearConfirmedSelectionData();
+    } else if (currentChartContext) {
+      klineContext = {
+        source: currentChartContext.source,
+        stockSymbol: currentChartContext.stockSymbol,
+        stockName: currentChartContext.stockName,
+        timeframe: currentChartContext.timeframe,
+        startTime: currentChartContext.startTime,
+        endTime: currentChartContext.endTime,
+        dataCount: currentChartContext.dataCount,
+        data: currentChartContext.klineData,
+      };
     }
 
     return klineContext;
