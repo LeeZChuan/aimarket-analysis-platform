@@ -24,7 +24,7 @@ import { ConversationTabBar } from '../ConversationTabBar';
 import { ChatMessageList } from '../ChatMessageList';
 import { ChatInput } from '../ChatInput';
 import { ConversationHistory } from '../ConversationHistory';
-import { PlannerPanel } from '../PlannerPanel';
+import { PlannerPanel, PlannerAction } from '../PlannerPanel';
 import {
   ConversationListItem,
 } from '../../../types/conversation';
@@ -33,6 +33,7 @@ import {
   buildBaseChatRequest,
   buildPlanSystemPrompt,
   ensureConversationForChat,
+  shouldEnterPlannerClarification,
   shouldRunVerify,
   takeKLineContextSnapshot,
 } from '../chatRequestBuilder';
@@ -86,6 +87,7 @@ export function ChatPanel() {
 
   // ── 三阶段工作流状态 ────────────────────────────────────────────────────
   const [workflowPhase, setWorkflowPhase] = useState<WorkflowPhase>('idle');
+  const [plannerAction, setPlannerAction] = useState<PlannerAction | null>(null);
 
   // 初始化 AI 配置
   useEffect(() => {
@@ -141,13 +143,31 @@ export function ChatPanel() {
   // ── 普通/模板消息发送 ─────────────────────────────────────────────────────
 
   const handleSend = async (message: string) => {
-    if (isLoading || isStreaming) return;
+    if (isLoading || isStreaming || plannerAction) return;
 
     const conversationId = await ensureActiveConversationId();
     if (!conversationId) return;
 
+    if (shouldEnterPlannerClarification(selectedSceneId)) {
+      try {
+        setPlannerAction('enter');
+        await enterPlannerMode({
+          modelId: selectedModelId,
+          providerId: selectedProviderId,
+          seedMessage: message,
+        });
+        setPlanSuggestion(null);
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : '未知错误';
+        notifyError('进入规划澄清失败', detail);
+      } finally {
+        setPlannerAction(null);
+      }
+      return;
+    }
+
     await sendChatMessage(buildBaseChatRequest({
-      mode: selectedSceneId === 'general' ? 'normal' : 'template',
+      mode: 'template',
       content: message,
       modelId: selectedModelId,
       providerId: selectedProviderId,
@@ -157,12 +177,14 @@ export function ChatPanel() {
   };
 
   const handleApprovePlan = async () => {
-    if (isLoading || isStreaming) return;
+    if (isLoading || isStreaming || plannerAction) return;
+    setPlannerAction('approve');
     const approvedState = await respondPlanner({
-      action: 'approve',
-      modelId: selectedModelId,
-      providerId: selectedProviderId,
-    });
+        action: 'approve',
+        modelId: selectedModelId,
+        providerId: selectedProviderId,
+      })
+      .finally(() => setPlannerAction(null));
 
     const confirmedPlan = approvedState?.confirmedPlan;
     if (!confirmedPlan) return;
@@ -210,32 +232,66 @@ export function ChatPanel() {
     const conversationId = activeConversationId ?? (await ensureActiveConversationId());
     if (!conversationId) return;
 
-    await enterPlannerMode({
-      modelId: selectedModelId,
-      providerId: selectedProviderId,
-      seedMessage: plannerState?.lastIntentSummary || undefined,
-    });
-    setPlanSuggestion(null);
+    try {
+      setPlannerAction('enter');
+      await enterPlannerMode({
+        modelId: selectedModelId,
+        providerId: selectedProviderId,
+        seedMessage: plannerState?.lastIntentSummary || undefined,
+      });
+      setPlanSuggestion(null);
+    } finally {
+      setPlannerAction(null);
+    }
   };
 
   const handleDeclineSuggestion = async () => {
     if (!activeConversationId || isBusy) return;
-    await respondPlanner({
-      action: 'cancel',
-      modelId: selectedModelId,
-      providerId: selectedProviderId,
-    });
-    setPlanSuggestion(null);
+    try {
+      setPlannerAction('decline');
+      await respondPlanner({
+        action: 'cancel',
+        modelId: selectedModelId,
+        providerId: selectedProviderId,
+      });
+      setPlanSuggestion(null);
+    } finally {
+      setPlannerAction(null);
+    }
   };
 
   const handleCancelPlan = async () => {
     if (!activeConversationId || isBusy) return;
-    await respondPlanner({
-      action: 'cancel',
-      modelId: selectedModelId,
-      providerId: selectedProviderId,
-    });
-    setPlanSuggestion(null);
+    try {
+      setPlannerAction('cancel');
+      await respondPlanner({
+        action: 'cancel',
+        modelId: selectedModelId,
+        providerId: selectedProviderId,
+      });
+      setPlanSuggestion(null);
+    } finally {
+      setPlannerAction(null);
+    }
+  };
+
+  const handlePlannerResponse = async (
+    action: Exclude<PlannerAction, 'enter' | 'decline' | 'approve' | 'cancel'>,
+    payload: Record<string, string | undefined> = {},
+  ) => {
+    if (!activeConversationId || isBusy) return;
+    try {
+      setPlannerAction(action);
+      await respondPlanner({
+        ...payload,
+        action,
+        modelId: selectedModelId,
+        providerId: selectedProviderId,
+      });
+      setPlanSuggestion(null);
+    } finally {
+      setPlannerAction(null);
+    }
   };
 
   // ── 会话管理 ─────────────────────────────────────────────────────────────
@@ -264,7 +320,7 @@ export function ChatPanel() {
     m => m.providerId === selectedProviderId && m.modelId === selectedModelId
   );
 
-  const isBusy = isLoading || isStreaming;
+  const isBusy = isLoading || isStreaming || plannerAction !== null;
   const isExecutionWorkflowActive = workflowPhase !== 'idle';
 
   return (
@@ -316,41 +372,20 @@ export function ChatPanel() {
           suggestion={planSuggestion}
           plannerState={plannerState}
           busy={isBusy}
+          activeAction={plannerAction}
           onEnterPlan={() => void handleEnterPlan()}
           onDeclineSuggestion={() => void handleDeclineSuggestion()}
           onAnswer={(payload) => {
-            void respondPlanner({
-              ...payload,
-              action: 'answer',
-              modelId: selectedModelId,
-              providerId: selectedProviderId,
-            });
-            setPlanSuggestion(null);
+            void handlePlannerResponse('answer', payload);
           }}
           onSkip={(payload) => {
-            void respondPlanner({
-              ...payload,
-              action: 'skip',
-              modelId: selectedModelId,
-              providerId: selectedProviderId,
-            });
-            setPlanSuggestion(null);
+            void handlePlannerResponse('skip', payload);
           }}
           onRewrite={(payload) => {
-            void respondPlanner({
-              ...payload,
-              action: 'rewrite',
-              modelId: selectedModelId,
-              providerId: selectedProviderId,
-            });
-            setPlanSuggestion(null);
+            void handlePlannerResponse('rewrite', payload);
           }}
           onContinueRefine={() => {
-            void respondPlanner({
-              action: 'continue_refine',
-              modelId: selectedModelId,
-              providerId: selectedProviderId,
-            });
+            void handlePlannerResponse('continue_refine');
           }}
           onApprove={() => void handleApprovePlan()}
           onCancel={() => void handleCancelPlan()}
@@ -387,7 +422,7 @@ export function ChatPanel() {
 
         <ChatInput
           onSend={handleSend}
-          onStop={isBusy ? stopAgentRun : undefined}
+          onStop={isLoading || isStreaming ? stopAgentRun : undefined}
           isLoading={isBusy}
           // 场景选择
           selectedSceneId={selectedSceneId}

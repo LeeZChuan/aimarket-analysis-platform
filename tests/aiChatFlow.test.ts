@@ -1,5 +1,6 @@
 import {
   buildBaseChatRequest,
+  shouldEnterPlannerClarification,
   shouldRunVerify,
   takeKLineContextSnapshot,
 } from '../src/components/AIAssistant/chatRequestBuilder';
@@ -73,6 +74,16 @@ const templateRequest = buildBaseChatRequest({
 
 assertEqual(templateRequest.sceneId, 'technical', 'template request should use selected scene');
 assertEqual(templateRequest.workflowStage, undefined, 'template request should not set workflow stage');
+assertEqual(
+  shouldEnterPlannerClarification('general'),
+  true,
+  'general scene should enter planner clarification',
+);
+assertEqual(
+  shouldEnterPlannerClarification('technical'),
+  false,
+  'non-general scenes should keep template chat flow',
+);
 
 const executeRequest = buildBaseChatRequest({
   mode: 'plan_execute',

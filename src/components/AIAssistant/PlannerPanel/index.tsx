@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, ListChecks, Sparkles } from 'lucide-react';
+import { ClipboardList, ListChecks, Loader2, Sparkles } from 'lucide-react';
 import type { PlanSuggestionEvent, PlannerDraft, PlannerQuestionCard, PlannerState } from '../../../types/conversation';
+
+export type PlannerAction =
+  | 'enter'
+  | 'decline'
+  | 'answer'
+  | 'skip'
+  | 'rewrite'
+  | 'continue_refine'
+  | 'approve'
+  | 'cancel';
 
 interface PlannerPanelProps {
   suggestion: PlanSuggestionEvent | null;
   plannerState: PlannerState | null;
   busy?: boolean;
+  activeAction?: PlannerAction | null;
   onEnterPlan: () => void;
   onDeclineSuggestion: () => void;
   onAnswer: (payload: { questionId: string; choiceId: string; freeText?: string }) => void;
@@ -21,12 +32,17 @@ function SuggestionCard({
   busy,
   onEnterPlan,
   onDeclineSuggestion,
+  activeAction,
 }: {
   suggestion: PlanSuggestionEvent;
   busy?: boolean;
+  activeAction?: PlannerAction | null;
   onEnterPlan: () => void;
   onDeclineSuggestion: () => void;
 }) {
+  const isEntering = activeAction === 'enter';
+  const isDeclining = activeAction === 'decline';
+
   return (
     <div
       className="mx-4 mt-4 rounded-xl border p-4"
@@ -52,7 +68,8 @@ function SuggestionCard({
               className="px-3 py-1.5 rounded-md text-xs font-medium"
               style={{ background: 'var(--accent-primary)', color: 'var(--bg-primary)' }}
             >
-              进入规划
+              {isEntering && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+              {isEntering ? '进入中...' : '进入规划'}
             </button>
             <button
               type="button"
@@ -61,7 +78,8 @@ function SuggestionCard({
               className="px-3 py-1.5 rounded-md border text-xs"
               style={{ borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
             >
-              继续直接聊
+              {isDeclining && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+              {isDeclining ? '处理中...' : '继续直接聊'}
             </button>
           </div>
         </div>
@@ -76,9 +94,11 @@ function QuestionCard({
   onAnswer,
   onSkip,
   onRewrite,
+  activeAction,
 }: {
   question: PlannerQuestionCard;
   busy?: boolean;
+  activeAction?: PlannerAction | null;
   onAnswer: (payload: { questionId: string; choiceId: string; freeText?: string }) => void;
   onSkip: (payload: { questionId: string; freeText?: string }) => void;
   onRewrite: (payload: { rewriteText: string }) => void;
@@ -94,6 +114,10 @@ function QuestionCard({
     setRewriteText('');
     setRewriteMode(false);
   }, [question.questionId]);
+
+  const isAnswering = activeAction === 'answer';
+  const isSkipping = activeAction === 'skip';
+  const isRewriting = activeAction === 'rewrite';
 
   return (
     <div
@@ -160,7 +184,8 @@ function QuestionCard({
               className="px-3 py-1.5 rounded-md text-xs font-medium"
               style={{ background: 'var(--accent-primary)', color: 'var(--bg-primary)' }}
             >
-              提交答案
+              {isAnswering && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+              {isAnswering ? '提交中...' : '提交答案'}
             </button>
             <button
               type="button"
@@ -169,7 +194,8 @@ function QuestionCard({
               className="px-3 py-1.5 rounded-md border text-xs"
               style={{ borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
             >
-              跳过这题
+              {isSkipping && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+              {isSkipping ? '处理中...' : '跳过这题'}
             </button>
             <button
               type="button"
@@ -190,7 +216,8 @@ function QuestionCard({
               className="px-3 py-1.5 rounded-md text-xs font-medium"
               style={{ background: 'var(--accent-primary)', color: 'var(--bg-primary)' }}
             >
-              用新需求继续
+              {isRewriting && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+              {isRewriting ? '提交中...' : '用新需求继续'}
             </button>
             <button
               type="button"
@@ -214,13 +241,19 @@ function DraftCard({
   onContinueRefine,
   onApprove,
   onCancel,
+  activeAction,
 }: {
   draft: PlannerDraft;
   busy?: boolean;
+  activeAction?: PlannerAction | null;
   onContinueRefine: () => void;
   onApprove: () => void;
   onCancel: () => void;
 }) {
+  const isApproving = activeAction === 'approve';
+  const isContinuing = activeAction === 'continue_refine';
+  const isCancelling = activeAction === 'cancel';
+
   return (
     <div
       className="mx-4 mt-4 rounded-xl border p-4 space-y-3"
@@ -267,7 +300,8 @@ function DraftCard({
           className="px-3 py-1.5 rounded-md text-xs font-medium"
           style={{ background: 'var(--accent-primary)', color: 'var(--bg-primary)' }}
         >
-          确认执行
+          {isApproving && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+          {isApproving ? '确认中...' : '确认执行'}
         </button>
         <button
           type="button"
@@ -276,7 +310,8 @@ function DraftCard({
           className="px-3 py-1.5 rounded-md border text-xs"
           style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
         >
-          继续细化
+          {isContinuing && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+          {isContinuing ? '处理中...' : '继续细化'}
         </button>
         <button
           type="button"
@@ -285,7 +320,8 @@ function DraftCard({
           className="px-3 py-1.5 rounded-md border text-xs"
           style={{ borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
         >
-          取消规划
+          {isCancelling && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+          {isCancelling ? '取消中...' : '取消规划'}
         </button>
       </div>
     </div>
@@ -296,6 +332,7 @@ export function PlannerPanel({
   suggestion,
   plannerState,
   busy = false,
+  activeAction = null,
   onEnterPlan,
   onDeclineSuggestion,
   onAnswer,
@@ -310,6 +347,7 @@ export function PlannerPanel({
       <SuggestionCard
         suggestion={suggestion}
         busy={busy}
+        activeAction={activeAction}
         onEnterPlan={onEnterPlan}
         onDeclineSuggestion={onDeclineSuggestion}
       />
@@ -321,6 +359,7 @@ export function PlannerPanel({
       <QuestionCard
         question={plannerState.currentQuestion}
         busy={busy}
+        activeAction={activeAction}
         onAnswer={onAnswer}
         onSkip={onSkip}
         onRewrite={onRewrite}
@@ -333,6 +372,7 @@ export function PlannerPanel({
       <DraftCard
         draft={plannerState.draftPlan}
         busy={busy}
+        activeAction={activeAction}
         onContinueRefine={onContinueRefine}
         onApprove={onApprove}
         onCancel={onCancel}

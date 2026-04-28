@@ -12,7 +12,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Send, X, ChevronDown, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
+import { Send, X, ChevronDown, BarChart3, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
 import type { SceneConfig } from '../../../types/scene';
 
@@ -231,8 +231,9 @@ export function ChatInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
+            disabled={isLoading}
             placeholder="分析市场、技术指标或当前图表..."
-            className="w-full bg-transparent px-4 pt-3 pb-2 text-sm focus:outline-none resize-none"
+            className="w-full bg-transparent px-4 pt-3 pb-2 text-sm focus:outline-none resize-none disabled:cursor-not-allowed disabled:opacity-70"
             style={{ color: 'var(--text-primary)' }}
             rows={3}
           />
@@ -342,7 +343,11 @@ export function ChatInput({
                 }}
                 title="发送"
               >
-                <Send className="w-4 h-4" />
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             )}
           </div>

@@ -6,7 +6,7 @@
 
 AstraTrade 是股票分析与 AI 辅助决策前端。当前产品重点不是泛聊天工具，而是围绕行情图表和 K 线数据上下文，提供三类 AI 工作流：
 
-- 普通对话：用户自由提问，适合临时分析、解释指标、追问市场逻辑。
+- 通用回答：默认选项，用户输入后进入多轮澄清/规划逻辑，先明确需求再生成计划。
 - 模板/场景对话：用户选择分析模板或场景，前端传 `sceneId`，后端根据场景加载对应 prompt。
 - 规划执行：AI 先生成可确认的分析计划，用户确认后执行，再对执行结果做校验。
 
@@ -59,23 +59,23 @@ flowchart LR
 
 ## 3. AI 对话三链路
 
-### 3.1 普通对话
+### 3.1 通用回答 / 多轮澄清入口
 
 入口：`ChatInput -> ChatPanel.handleSend`
 
-语义：用户自由输入，前端构建 `mode = normal` 的请求。
+语义：`sceneId = general` 是默认选项，不再直接进入普通问答，而是进入 Planner 的多轮澄清逻辑。用户输入会作为 `seedMessage` 传给 `enterPlannerMode`，由后端判断下一步是继续追问、生成规划草案，还是进入可确认状态。
 
 请求关键字段：
 
-- `content`
 - `modelId`
 - `providerId`
-- `sceneId`
-- `expectedType = markdown`
-- `stream = true`
-- `klineContext?`
+- `seedMessage`
 
-说明：普通对话也继续携带 `sceneId`，默认场景通常为 `general`。这样后端可以统一记录和路由。
+设计原因：
+
+- “通用回答”承接用户不明确需求，适合进入澄清。
+- 其他明确模板/场景继续保持直接模板对话。
+- 前端不恢复旧 Guidance 链路，统一使用 PlannerPanel 展示澄清问题、规划草案和确认执行。
 
 ### 3.2 模板/场景对话
 
@@ -83,10 +83,16 @@ flowchart LR
 
 语义：当前“模板对话”等价于“后端场景模板对话”。前端不保存模板正文，只传 `sceneId`。
 
-请求关键字段和普通对话一致，区别是：
+请求关键字段：
 
 - `mode = template`
 - `sceneId` 为用户选择的场景 ID
+- `content`
+- `modelId`
+- `providerId`
+- `expectedType = markdown`
+- `stream = true`
+- `klineContext?`
 
 设计原因：
 

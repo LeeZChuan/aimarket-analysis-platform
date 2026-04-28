@@ -126,3 +126,7 @@ export async function ensureConversationForChat(
 export function shouldRunVerify(result: ChatRunResult): boolean {
   return result.status === 'done';
 }
+
+export function shouldEnterPlannerClarification(sceneId: string): boolean {
+  return sceneId === 'general';
+}
