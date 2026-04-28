@@ -27,10 +27,15 @@ import { ConversationHistory } from '../ConversationHistory';
 import { PlannerPanel } from '../PlannerPanel';
 import {
   ConversationListItem,
-  KLineContextData,
-  PlannerDraft,
 } from '../../../types/conversation';
 import { notifyError } from '../../../utils/notify';
+import {
+  buildBaseChatRequest,
+  buildPlanSystemPrompt,
+  ensureConversationForChat,
+  shouldRunVerify,
+  takeKLineContextSnapshot,
+} from '../chatRequestBuilder';
 
 // ── 工作流状态 ──────────────────────────────────────────────────────────────
 
@@ -95,146 +100,60 @@ export function ChatPanel() {
     clearConfirmedSelectionData();
   }, [activeConversation?.id, clearConfirmedSelectionData]);
 
-  // ── 普通消息发送 ─────────────────────────────────────────────────────────
+  const getConversationCreateParams = () => ({
+    title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
+    stockSymbol: selectedStock?.symbol,
+    stockName: selectedStock?.name,
+    stockPrice: selectedStock?.price,
+  });
 
-  const handleSend = async (message: string, images?: string[]) => {
-    void images;
+  const ensureActiveConversationId = async () => {
+    try {
+      const conversationId = await ensureConversationForChat({
+        activeConversationId,
+        createNewConversation,
+        getActiveConversationId: () => useConversationStore.getState().activeConversationId,
+        conversationParams: getConversationCreateParams(),
+      });
+
+      if (!conversationId) {
+        const state = useConversationStore.getState();
+        notifyError('创建会话失败', state.error || '请检查网络或稍后重试');
+      }
+
+      return conversationId;
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : '未知错误';
+      notifyError('创建会话失败', detail);
+      return null;
+    }
+  };
+
+  const takeCurrentKLineContext = () => {
+    const chartState = useChartStore.getState();
+    return takeKLineContextSnapshot({
+      confirmedSelectionData: chartState.confirmedSelectionData,
+      currentChartContext: chartState.currentChartContext,
+      clearConfirmedSelectionData: chartState.clearConfirmedSelectionData,
+    });
+  };
+
+  // ── 普通/模板消息发送 ─────────────────────────────────────────────────────
+
+  const handleSend = async (message: string) => {
     if (isLoading || isStreaming) return;
 
-    const {
-      confirmedSelectionData: selectionSnapshot,
-      currentChartContext,
-      clearConfirmedSelectionData,
-    } = useChartStore.getState();
-
-    let conversationId = activeConversationId;
-    if (!conversationId) {
-      await createNewConversation({
-        title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
-        stockSymbol: selectedStock?.symbol,
-        stockName: selectedStock?.name,
-        stockPrice: selectedStock?.price,
-      });
-      conversationId = useConversationStore.getState().activeConversationId;
-    }
-
+    const conversationId = await ensureActiveConversationId();
     if (!conversationId) return;
 
-    let klineContext: KLineContextData | undefined;
-    if (selectionSnapshot) {
-      klineContext = {
-        source: selectionSnapshot.source,
-        stockSymbol: selectionSnapshot.stockSymbol,
-        stockName: selectionSnapshot.stockName,
-        timeframe: selectionSnapshot.timeframe,
-        startTime: selectionSnapshot.startTime,
-        endTime: selectionSnapshot.endTime,
-        dataCount: selectionSnapshot.dataCount,
-        data: selectionSnapshot.klineData,
-      };
-      clearConfirmedSelectionData();
-    } else if (currentChartContext) {
-      klineContext = {
-        source: currentChartContext.source,
-        stockSymbol: currentChartContext.stockSymbol,
-        stockName: currentChartContext.stockName,
-        timeframe: currentChartContext.timeframe,
-        startTime: currentChartContext.startTime,
-        endTime: currentChartContext.endTime,
-        dataCount: currentChartContext.dataCount,
-        data: currentChartContext.klineData,
-      };
-    }
-
-    await sendChatMessage({
+    await sendChatMessage(buildBaseChatRequest({
+      mode: selectedSceneId === 'general' ? 'normal' : 'template',
       content: message,
       modelId: selectedModelId,
       providerId: selectedProviderId,
       sceneId: selectedSceneId,
-      expectedType: 'markdown',
-      stream: true,
-      klineContext,
-    });
-  };
-
-  // ── 确保会话 ID ──────────────────────────────────────────────────────────
-
-  const ensureConversationId = async () => {
-    let conversationId = activeConversationId;
-    if (!conversationId) {
-      try {
-        await createNewConversation({
-          title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
-          stockSymbol: selectedStock?.symbol,
-          stockName: selectedStock?.name,
-          stockPrice: selectedStock?.price,
-        });
-      } catch (e) {
-        const detail = e instanceof Error ? e.message : '未知错误';
-        notifyError('创建会话失败', detail);
-        return null;
-      }
-
-      const state = useConversationStore.getState();
-      conversationId = state.activeConversationId;
-
-      if (!conversationId) {
-        notifyError('创建会话失败', state.error || '请检查网络或稍后重试');
-        return null;
-      }
-    }
-    return conversationId;
-  };
-
-  const takeKLineContextSnapshot = () => {
-    const {
-      confirmedSelectionData: selectionSnapshot,
-      currentChartContext,
-      clearConfirmedSelectionData,
-    } = useChartStore.getState();
-
-    let klineContext: KLineContextData | undefined;
-    if (selectionSnapshot) {
-      klineContext = {
-        source: selectionSnapshot.source,
-        stockSymbol: selectionSnapshot.stockSymbol,
-        stockName: selectionSnapshot.stockName,
-        timeframe: selectionSnapshot.timeframe,
-        startTime: selectionSnapshot.startTime,
-        endTime: selectionSnapshot.endTime,
-        dataCount: selectionSnapshot.dataCount,
-        data: selectionSnapshot.klineData,
-      };
-      clearConfirmedSelectionData();
-    } else if (currentChartContext) {
-      klineContext = {
-        source: currentChartContext.source,
-        stockSymbol: currentChartContext.stockSymbol,
-        stockName: currentChartContext.stockName,
-        timeframe: currentChartContext.timeframe,
-        startTime: currentChartContext.startTime,
-        endTime: currentChartContext.endTime,
-        dataCount: currentChartContext.dataCount,
-        data: currentChartContext.klineData,
-      };
-    }
-
-    return klineContext;
-  };
-
-  const buildPlanSystemPrompt = (draft: PlannerDraft, intentSummary?: string) => {
-    const stepText = draft.steps.map((step, index) => `${index + 1}. ${step.title}：${step.focus}`).join('\n');
-    const summaryBlock = intentSummary ? `\n[用户意图摘要]\n${intentSummary}\n` : '';
-    return `[已确认分析计划]${summaryBlock}
-目标：${draft.goal}
-
-执行步骤：
-${stepText}
-
-最终输出：
-${draft.finalOutput}
-
-请严格基于以上已确认计划展开执行，并明确标注结论依据与风险提示。`;
+      klineContext: takeCurrentKLineContext(),
+    }));
   };
 
   const handleApprovePlan = async () => {
@@ -248,31 +167,36 @@ ${draft.finalOutput}
     const confirmedPlan = approvedState?.confirmedPlan;
     if (!confirmedPlan) return;
 
-    const klineContext = takeKLineContextSnapshot();
     setWorkflowPhase('executing');
 
-    await sendChatMessage({
+    const executeResult = await sendChatMessage(buildBaseChatRequest({
+      mode: 'plan_execute',
       content: '请基于已确认的分析计划，开始执行完整的股票分析。',
       modelId: selectedModelId,
       providerId: selectedProviderId,
       sceneId: selectedSceneId,
-      expectedType: 'markdown',
-      stream: true,
-      klineContext,
+      klineContext: takeCurrentKLineContext(),
       systemPrompt: buildPlanSystemPrompt(confirmedPlan, approvedState?.lastIntentSummary),
-      workflowStage: 'execute',
-    });
+    }));
+
+    if (!shouldRunVerify(executeResult)) {
+      setWorkflowPhase('idle');
+      return;
+    }
 
     setWorkflowPhase('verifying');
-    await sendChatMessage({
+    const verifyResult = await sendChatMessage(buildBaseChatRequest({
+      mode: 'plan_verify',
       content: '请对以上分析结果进行质量审查与风险校验。',
       modelId: selectedModelId,
       providerId: selectedProviderId,
       sceneId: selectedSceneId,
-      expectedType: 'markdown',
-      stream: true,
-      workflowStage: 'verify',
-    });
+    }));
+
+    if (!shouldRunVerify(verifyResult)) {
+      setWorkflowPhase('idle');
+      return;
+    }
 
     setWorkflowPhase('complete');
     // 3 秒后恢复 idle，避免遮挡
@@ -283,7 +207,7 @@ ${draft.finalOutput}
 
   const handleEnterPlan = async () => {
     if (isBusy) return;
-    const conversationId = activeConversationId ?? (await ensureConversationId());
+    const conversationId = activeConversationId ?? (await ensureActiveConversationId());
     if (!conversationId) return;
 
     await enterPlannerMode({
@@ -317,12 +241,7 @@ ${draft.finalOutput}
   // ── 会话管理 ─────────────────────────────────────────────────────────────
 
   const handleNewConversation = () => {
-    createNewConversation({
-      title: selectedStock ? `${selectedStock.symbol} 分析` : 'New Conversation',
-      stockSymbol: selectedStock?.symbol,
-      stockName: selectedStock?.name,
-      stockPrice: selectedStock?.price,
-    });
+    createNewConversation(getConversationCreateParams());
   };
 
   const handleSelectConversation = (conversation: ConversationListItem) => {

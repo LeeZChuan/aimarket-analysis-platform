@@ -14,7 +14,7 @@
  * - /components/AIAssistant/ChatPanel/index.tsx - 点击历史按钮后弹出的模态框
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Search, Trash2, Clock } from 'lucide-react';
 import { ConversationListItem, ConversationFilter } from '../../../types/conversation';
 import { useConversationStore } from '../../../store/useConversationStore';

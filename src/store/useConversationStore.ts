@@ -14,6 +14,7 @@ import {
   PlannerResponsePayload,
   PlannerState,
   PlanSuggestionEvent,
+  ChatRunResult,
 } from '../types/conversation';
 import type { AIMessage } from '../types/ai';
 import { conversationService } from '../services/conversationService';
@@ -86,7 +87,7 @@ interface ConversationState {
   /** 完成流式消息 */
   finalizeStreamingMessage: (messageId: string, fullContent: string) => void;
   /** 发送聊天消息（集成 Agent 流式处理） */
-  sendChatMessage: (request: ChatRequest) => Promise<void>;
+  sendChatMessage: (request: ChatRequest) => Promise<ChatRunResult>;
   /** 停止正在进行的 Agent 运行 */
   stopAgentRun: () => void;
   loadPlannerState: (conversationId: string) => Promise<void>;
@@ -801,12 +802,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }));
   },
 
-  sendChatMessage: async (request: ChatRequest) => {
+  sendChatMessage: async (request: ChatRequest): Promise<ChatRunResult> => {
     const { activeConversationId, addLocalUserMessage, startStreamingMessage, appendToStreamingMessage, finalizeStreamingMessage } = get();
 
     if (!activeConversationId) {
       set({ error: 'No active conversation' });
-      return;
+      return { status: 'error', error: 'No active conversation' };
     }
 
     // 显示用户原始输入
@@ -826,16 +827,24 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     const tempMessageId = `temp_${Date.now()}`;
     let hasStartedStreaming = false;
+    let timedOut = false;
+    let finalResult: ChatRunResult = { status: 'error', error: '响应未完成' };
 
     // 心跳超时检测：30s 未收到任何事件则判定断线
     let lastEventTime = Date.now();
     const heartbeatCheck = setInterval(() => {
-      if (Date.now() - lastEventTime > 30_000 && get().isStreaming) {
+      const state = get();
+      if (Date.now() - lastEventTime > 30_000 && (state.isStreaming || state.isLoading)) {
+        timedOut = true;
         clearInterval(heartbeatCheck);
         // 超时：标记错误但不重连（避免重复请求）
-        const partialContent = get().streamingContent;
-        finalizeStreamingMessage(tempMessageId, partialContent + '\n\n⚠️ 连接超时，响应可能不完整。');
+        const partialContent = state.streamingContent;
+        if (hasStartedStreaming) {
+          finalizeStreamingMessage(tempMessageId, partialContent + '\n\n⚠️ 连接超时，响应可能不完整。');
+        }
+        finalResult = { status: 'error', error: '连接超时，响应可能不完整。' };
         set({ isLoading: false, isStreaming: false, streamingMessageId: null, _abortController: null });
+        abortController.abort();
       }
     }, 5_000);
 
@@ -848,6 +857,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
           switch (event.type) {
             case 'plan_suggestion':
+              finalResult = { status: 'plan_suggested' };
               set({
                 planSuggestion: event.data,
                 plannerState: event.data.plannerState ?? {
@@ -932,11 +942,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 event.data.assistantMessageId,
                 JSON.stringify(agentContent),
               );
+              finalResult = { status: 'done', assistantMessageId: event.data.assistantMessageId };
               set({ isLoading: false, activeToolCalls: [], activeThinking: '', currentTurn: 0, _abortController: null });
               break;
             }
 
             case 'error':
+              finalResult = { status: 'error', error: event.data.message };
               notifyError('AI 响应失败', event.data.message);
               set({
                 error: event.data.message,
@@ -959,14 +971,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     } catch (error) {
       // AbortError 是用户主动停止，不显示错误 toast
       if (error instanceof Error && error.name === 'AbortError') {
-        const partialContent = get().streamingContent;
-        if (hasStartedStreaming && partialContent) {
-          finalizeStreamingMessage(tempMessageId, partialContent + '\n\n*(已停止)*');
-        } else if (hasStartedStreaming) {
-          finalizeStreamingMessage(tempMessageId, '*(已停止)*');
+        if (!timedOut) {
+          const partialContent = get().streamingContent;
+          if (hasStartedStreaming && partialContent) {
+            finalizeStreamingMessage(tempMessageId, partialContent + '\n\n*(已停止)*');
+          } else if (hasStartedStreaming) {
+            finalizeStreamingMessage(tempMessageId, '*(已停止)*');
+          }
+          finalResult = { status: 'stopped' };
         }
       } else {
         const errorMessage = error instanceof Error ? error.message : '发送消息失败';
+        finalResult = finalResult.status === 'error'
+          ? finalResult
+          : { status: 'error', error: errorMessage };
         notifyError('发送消息失败', errorMessage);
         if (hasStartedStreaming) {
           finalizeStreamingMessage(tempMessageId, `⚠️ 错误: ${errorMessage}`);
@@ -985,6 +1003,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     } finally {
       clearInterval(heartbeatCheck);
     }
+
+    return finalResult;
   },
 
   stopAgentRun: () => {

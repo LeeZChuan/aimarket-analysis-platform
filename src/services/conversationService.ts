@@ -20,7 +20,7 @@ import {
   PlannerResponsePayload,
   PlannerState,
 } from '../types/conversation';
-import { AIMessage } from '../types/ai';
+import { parseConversationMessageContent } from './messageContentParser';
 
 /** API 基础路径 */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -41,7 +41,7 @@ class ConversationService implements ConversationStorage {
     limit: number = 20,
     cursor?: string
   ): Promise<PaginatedConversations> {
-    const params: Record<string, any> = {
+    const params: Record<string, string | number> = {
       limit,
     };
 
@@ -93,8 +93,8 @@ class ConversationService implements ConversationStorage {
         return null;
       }
 
-      const raw = response.data as any;
-      const conversation = raw.conversation ?? raw;
+      const raw = response.data;
+      const conversation = 'conversation' in raw ? raw.conversation : raw;
       const messages = Array.isArray(raw.messages)
         ? raw.messages
         : Array.isArray(conversation.messages)
@@ -117,12 +117,12 @@ class ConversationService implements ConversationStorage {
         },
         createdAt: new Date(conversation.createdAt),
         updatedAt: new Date(conversation.updatedAt),
-        messages: messages.map((msg) => ({
+        messages: messages.map((msg: ConversationMessage) => ({
           ...msg,
           id: String(msg.id),
           conversationId: String(msg.conversationId ?? conversation.id),
           createdAt: new Date(msg.createdAt),
-          content: this.parseMessageContent(msg.content),
+          content: this.parseMessageContent(msg.role, msg.content),
         })),
       };
     } catch {
@@ -216,7 +216,7 @@ class ConversationService implements ConversationStorage {
       id: String(data.id),
       conversationId: String(data.conversationId),
       createdAt: new Date(data.createdAt),
-      content: this.parseMessageContent(data.content),
+      content: this.parseMessageContent(data.role, data.content),
     };
   }
 
@@ -231,7 +231,7 @@ class ConversationService implements ConversationStorage {
     limit: number = 50,
     cursor?: string
   ): Promise<ConversationMessage[]> {
-    const params: Record<string, any> = { limit };
+    const params: Record<string, string | number> = { limit };
     if (cursor) {
       params.cursor = cursor;
     }
@@ -246,23 +246,20 @@ class ConversationService implements ConversationStorage {
       id: String(msg.id),
       conversationId: String(msg.conversationId),
       createdAt: new Date(msg.createdAt),
-      content: this.parseMessageContent(msg.content),
+      content: this.parseMessageContent(msg.role, msg.content),
     }));
   }
 
   /**
    * 解析消息内容
+   * @param role - 消息角色
    * @param content - 消息内容（可能是字符串或AIMessage）
    */
-  private parseMessageContent(content: string | AIMessage): string | AIMessage {
-    if (typeof content === 'string') {
-      try {
-        return JSON.parse(content);
-      } catch {
-        return content;
-      }
-    }
-    return content;
+  private parseMessageContent(
+    role: ConversationMessage['role'],
+    content: ConversationMessage['content']
+  ): ConversationMessage['content'] {
+    return parseConversationMessageContent(role, content);
   }
 
   // ==================== Chat API ====================
@@ -349,7 +346,7 @@ class ConversationService implements ConversationStorage {
 
           if (!dataStr) continue;
 
-          let data: any;
+          let data: unknown;
           try {
             data = JSON.parse(dataStr);
           } catch {
@@ -359,43 +356,52 @@ class ConversationService implements ConversationStorage {
           // 根据事件类型触发回调（兼容 Agent 模式新增的事件类型）
           switch (currentEvent) {
             case 'meta':
-              onEvent({ type: 'meta', data });
+              onEvent({ type: 'meta', data: data as Extract<ChatSSEEvent, { type: 'meta' }>['data'] });
               break;
             case 'plan_suggestion':
-              onEvent({ type: 'plan_suggestion', data });
+              onEvent({ type: 'plan_suggestion', data: data as Extract<ChatSSEEvent, { type: 'plan_suggestion' }>['data'] });
               break;
             case 'delta':
-              onEvent({ type: 'delta', data });
+              onEvent({ type: 'delta', data: data as Extract<ChatSSEEvent, { type: 'delta' }>['data'] });
               break;
             case 'thinking':
-              onEvent({ type: 'thinking', data });
+              onEvent({ type: 'thinking', data: data as Extract<ChatSSEEvent, { type: 'thinking' }>['data'] });
               break;
             case 'tool_start':
-              onEvent({ type: 'tool_start', data });
+              onEvent({ type: 'tool_start', data: data as Extract<ChatSSEEvent, { type: 'tool_start' }>['data'] });
               break;
             case 'tool_result':
-              onEvent({ type: 'tool_result', data });
+              onEvent({ type: 'tool_result', data: data as Extract<ChatSSEEvent, { type: 'tool_result' }>['data'] });
               break;
             case 'turn_end':
-              onEvent({ type: 'turn_end', data });
+              onEvent({ type: 'turn_end', data: data as Extract<ChatSSEEvent, { type: 'turn_end' }>['data'] });
               break;
             case 'done':
-              onEvent({ type: 'done', data });
+              onEvent({ type: 'done', data: data as Extract<ChatSSEEvent, { type: 'done' }>['data'] });
               break;
             case 'error':
-              onEvent({ type: 'error', data: { message: data.message || 'Unknown error' } });
+              onEvent({ type: 'error', data: { message: this.getStreamErrorMessage(data) } });
               break;
             case 'ping':
-              onEvent({ type: 'ping', data });
+              onEvent({ type: 'ping', data: data as Extract<ChatSSEEvent, { type: 'ping' }>['data'] });
               break;
           }
         }
       }
-    } catch (error) {
-      throw error;
     } finally {
       reader.releaseLock();
     }
+  }
+
+  private getStreamErrorMessage(data: unknown): string {
+    if (data && typeof data === 'object' && 'message' in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+    }
+
+    return 'Unknown error';
   }
 
   /**
@@ -422,7 +428,7 @@ class ConversationService implements ConversationStorage {
       const messages = (response.data.messages || []).map((msg: ConversationMessage) => ({
         ...msg,
         createdAt: new Date(msg.createdAt),
-        content: this.parseMessageContent(msg.content),
+        content: this.parseMessageContent(msg.role, msg.content),
     }));
 
     return { messages };

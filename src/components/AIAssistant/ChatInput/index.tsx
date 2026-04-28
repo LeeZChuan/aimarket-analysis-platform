@@ -3,18 +3,16 @@
  *
  * 功能：
  * - 提供多行文本输入框用于用户输入消息
- * - 支持图片上传功能（可上传多张图片）
  * - AI模型选择下拉菜单（支持多供应商、多模型）
- * - 场景选择器（技术分析、基本面分析等）
+ * - 模板/场景选择器（技术分析、基本面分析等）
  * - 快捷键支持（Enter发送，Shift+Enter换行）
- * - 实时预览已上传的图片并支持删除
  *
  * 使用位置：
  * - /components/AIAssistant/ChatPanel/index.tsx - AI聊天面板（底部输入区域）
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Send, Image as ImageIcon, X, ChevronDown, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
+import { Send, X, ChevronDown, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
 import { useChartStore } from '../../../store/useChartStore';
 import type { SceneConfig } from '../../../types/scene';
 
@@ -28,7 +26,7 @@ interface ModelOption {
 }
 
 interface ChatInputProps {
-  onSend: (message: string, images?: string[]) => void;
+  onSend: (message: string) => void;
   /** 当 isLoading 时显示停止按钮，点击后调用此回调 */
   onStop?: () => void;
   isLoading: boolean;
@@ -55,7 +53,6 @@ export function ChatInput({
 }: ChatInputProps) {
   const { setTriggerRegionSelection, confirmedSelectionData, clearConfirmedSelectionData } = useChartStore();
   const [input, setInput] = useState('');
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showScenePicker, setShowScenePicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
@@ -64,7 +61,6 @@ export function ChatInput({
   const dataBarRef = useRef<HTMLDivElement>(null);
   const tooltipHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const scenePickerRef = useRef<HTMLDivElement>(null);
@@ -115,31 +111,11 @@ export function ChatInput({
     tooltipHideTimer.current = setTimeout(() => setShowDataTooltip(false), 150);
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setUploadedImages((prev) => [...prev, event.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const handleSend = () => {
-    if ((!input.trim() && uploadedImages.length === 0) || isLoading) return;
+    if (!input.trim() || isLoading) return;
 
-    onSend(input.trim() || '已上传图片', uploadedImages.length > 0 ? uploadedImages : undefined);
+    onSend(input.trim());
     setInput('');
-    setUploadedImages([]);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -227,29 +203,6 @@ export function ChatInput({
   return (
     <>
       <div className="p-4 space-y-3" style={{ borderTop: '1px solid var(--border-primary)' }}>
-        {uploadedImages.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {uploadedImages.map((img, index) => (
-              <div key={index} className="relative group">
-                <img
-                  src={img}
-                  alt={`Upload ${index + 1}`}
-                  className="w-16 h-16 object-cover rounded-lg"
-                  style={{ border: '1px solid var(--border-primary)' }}
-                />
-                <button
-                  onClick={() => removeImage(index)}
-                  className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: 'white' }}
-                  title="删除图片"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
         {confirmedSelectionData && (
           <div
             ref={dataBarRef}
@@ -278,7 +231,7 @@ export function ChatInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="分析市场、技术指标或上传图表..."
+            placeholder="分析市场、技术指标或当前图表..."
             className="w-full bg-transparent px-4 pt-3 pb-2 text-sm focus:outline-none resize-none"
             style={{ color: 'var(--text-primary)' }}
             rows={3}
@@ -286,31 +239,6 @@ export function ChatInput({
 
           <div className="flex items-center justify-between px-2 pb-2">
             <div className="flex items-center gap-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1 rounded transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-tertiary)';
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = 'var(--text-muted)';
-                }}
-                title="上传图片"
-              >
-                <ImageIcon className="w-4 h-4" />
-              </button>
-
               <button
                 onClick={handleRegionSelection}
                 className="p-1 rounded transition-colors"
@@ -341,7 +269,7 @@ export function ChatInput({
 
               <div className="h-3 w-px mx-0.5" style={{ background: 'var(--border-primary)' }} />
 
-              {/* 场景选择器 - 显示全部文字 */}
+              {/* 模板/场景选择器 - 显示全部文字 */}
               <button
                 ref={sceneButtonRef}
                 onClick={handleScenePickerToggle}
@@ -394,28 +322,28 @@ export function ChatInput({
                 </svg>
               </button>
             ) : (
-            <button
-              onClick={handleSend}
-              disabled={(!input.trim() && uploadedImages.length === 0) || isLoading}
-              className="p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                background: 'var(--accent-primary)',
-                color: 'white',
-              }}
-              onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.background = 'var(--accent-hover)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.background = 'var(--accent-primary)';
-                }
-              }}
-              title="发送"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: 'var(--accent-primary)',
+                  color: 'white',
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'var(--accent-hover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'var(--accent-primary)';
+                  }
+                }}
+                title="发送"
+              >
+                <Send className="w-4 h-4" />
+              </button>
             )}
           </div>
         </div>
@@ -435,7 +363,7 @@ export function ChatInput({
           }}
         >
           <div className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-primary)' }}>
-            分析场景
+            模板 / 场景
           </div>
           {availableScenes.map((scene) => (
             <button
