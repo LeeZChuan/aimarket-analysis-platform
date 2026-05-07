@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "node server/index.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "test:ai-chat": "node scripts/run-ai-chat-tests.mjs",
+    "test:stock-report": "node scripts/run-stock-report-tests.mjs",
+    "test:stock-report-api": "node tests/stockReportApi.test.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },

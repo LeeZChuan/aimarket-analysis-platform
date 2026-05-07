@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '../views/Layout';
 import { TradingView } from '../views/TradingView/index';
 import { StockDetailView } from '../views/StockDetailView/index';
+import { AIReportView } from '../views/AIReportView/index';
 import { LoginView } from '../views/LoginView/index';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
@@ -27,6 +28,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <StockDetailView />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'ai-report',
+        element: (
+          <ProtectedRoute>
+            <AIReportView />
           </ProtectedRoute>
         ),
       },

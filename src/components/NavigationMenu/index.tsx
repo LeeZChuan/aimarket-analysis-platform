@@ -14,7 +14,7 @@
  */
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import { TrendingUp, LogOut, User, X, BarChart3 } from 'lucide-react';
+import { TrendingUp, LogOut, User, X, BarChart3, Sparkles } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 interface NavigationMenuProps {
@@ -38,6 +38,11 @@ export function NavigationMenu({ isOpen, onClose }: NavigationMenuProps) {
       path: '/stocks',
       label: '个股列表',
       icon: BarChart3,
+    },
+    {
+      path: '/ai-report',
+      label: 'AI研判',
+      icon: Sparkles,
     },
   ];
 

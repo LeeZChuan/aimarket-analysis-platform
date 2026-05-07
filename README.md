@@ -32,8 +32,11 @@ npm run dev
 
 ```bash
 npm run dev
+npm run dev:api
 npm run build
 npm run test:ai-chat
+npm run test:stock-report
+npm run test:stock-report-api
 npm run preview
 npm run lint
 npm run typecheck
@@ -42,6 +45,9 @@ npm run typecheck
 说明：
 
 - `npm run test:ai-chat` 是当前 AI 对话三链路的轻量回归测试。
+- `npm run dev:api` 启动本地开发 API，默认监听 `http://127.0.0.1:8080`，Vite 会把 `/api` 代理到这个地址。
+- `npm run test:stock-report` 覆盖 AI研判前端请求构造和展示规则。
+- `npm run test:stock-report-api` 覆盖本地 AI研判 API 的股票识别、参数校验、结构化报告和 HTTP 集成。
 - `npm run build` 当前可通过。
 - `npm run lint` 和 `npm run typecheck` 目前仍有既有非 AI 对话链路问题，主要集中在图表、Markdown、Table 和基础 request 类型，后续需要单独清理。
 
