@@ -51,14 +51,14 @@ assertEqual(cleared, true, 'confirmed selection should be cleared after snapshot
 const normalRequest = buildBaseChatRequest({
   mode: 'normal',
   content: '分析当前走势',
-  modelId: 'deepseek-chat',
+  modelId: 'deepseek-v4-flash',
   providerId: 'deepseek',
   sceneId: 'general',
   klineContext,
 });
 
 assertEqual(normalRequest.content, '分析当前走势', 'normal request content should be preserved');
-assertEqual(normalRequest.modelId, 'deepseek-chat', 'normal request model should be preserved');
+assertEqual(normalRequest.modelId, 'deepseek-v4-flash', 'normal request model should be preserved');
 assertEqual(normalRequest.providerId, 'deepseek', 'normal request provider should be preserved');
 assertEqual(normalRequest.sceneId, 'general', 'normal request scene should be preserved');
 assertEqual(normalRequest.expectedType, 'markdown', 'normal request should request markdown output');
@@ -67,7 +67,7 @@ assertEqual(normalRequest.klineContext?.stockSymbol, 'AAPL', 'normal request sho
 const templateRequest = buildBaseChatRequest({
   mode: 'template',
   content: '按模板分析',
-  modelId: 'gpt-4o',
+  modelId: 'gpt-5.5',
   providerId: 'openai',
   sceneId: 'technical',
 });
@@ -88,7 +88,7 @@ assertEqual(
 const executeRequest = buildBaseChatRequest({
   mode: 'plan_execute',
   content: '执行计划',
-  modelId: 'deepseek-chat',
+  modelId: 'deepseek-v4-flash',
   providerId: 'deepseek',
   sceneId: 'technical',
   systemPrompt: 'plan',
@@ -100,7 +100,7 @@ assertEqual(executeRequest.systemPrompt, 'plan', 'plan execute should include sy
 const verifyRequest = buildBaseChatRequest({
   mode: 'plan_verify',
   content: '校验结果',
-  modelId: 'deepseek-chat',
+  modelId: 'deepseek-v4-flash',
   providerId: 'deepseek',
   sceneId: 'technical',
 });

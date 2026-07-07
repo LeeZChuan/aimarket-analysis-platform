@@ -173,20 +173,57 @@ export function ChatInput({
     const modelName = model.modelId;
     // 常见模型简称映射
     const shortNames: Record<string, string> = {
-      // GPT-4.1 系列（2025 新增）
+      // DeepSeek
+      'deepseek-v4-flash': 'DS-V4-flash',
+      'deepseek-v4-pro': 'DS-V4-pro',
+      // OpenAI 新
+      'gpt-5.5': '5.5',
+      'gpt-5.4': '5.4',
+      'gpt-5.4-mini': '5.4-mini',
+      // OpenAI 旧
       'gpt-4.1': '4.1',
       'gpt-4.1-mini': '4.1-mini',
-      'gpt-4.1-nano': '4.1-nano',
-      // GPT-4o 系列
       'gpt-4o': '4o',
       'gpt-4o-mini': '4o-mini',
-      // 旧版（向下兼容）
-      'gpt-4': 'GPT-4',
-      'gpt-4-turbo': '4-turbo',
-      'gpt-3.5-turbo': '3.5',
-      // DeepSeek
-      'deepseek-chat': 'DS-V3',
-      'deepseek-reasoner': 'DS-R1',
+      // Claude 新
+      'claude-fable-5': 'Fable-5',
+      'claude-sonnet-5': 'Sonnet-5',
+      'claude-opus-4-8': 'Opus-4.8',
+      // Claude 旧
+      'claude-sonnet-4-20250514': 'Sonnet-4',
+      'claude-opus-4-20250514': 'Opus-4',
+      'claude-3-7-sonnet-20250219': '3.7-Sonnet',
+      // Qwen 新
+      'qwen3.7-max': 'Q3.7-Max',
+      'qwen3.7-plus': 'Q3.7-Plus',
+      'qwen3.7-flash': 'Q3.7-Flash',
+      // Qwen 旧
+      'qwen-max': 'Q-Max',
+      'qwen-plus': 'Q-Plus',
+      'qwen-turbo': 'Q-Turbo',
+      // GLM 新
+      'glm-5.2': 'GLM-5.2',
+      'glm-5.1': 'GLM-5.1',
+      'glm-5': 'GLM-5',
+      // GLM 旧
+      'glm-4-plus': 'GLM-4+',
+      'glm-4-air': 'GLM-4-Air',
+      'glm-4-flash': 'GLM-4-Flash',
+      // Kimi 新
+      'kimi-k2.7-code': 'K2.7-Code',
+      'kimi-k2.6': 'K2.6',
+      'kimi-k2.5': 'K2.5',
+      // Kimi 旧
+      'moonshot-v1-8k': 'v1-8k',
+      'moonshot-v1-32k': 'v1-32k',
+      'moonshot-v1-128k': 'v1-128k',
+      // ERNIE 新
+      'ernie-5.1': 'ERNIE-5.1',
+      'ernie-5.0-thinking-preview': 'ERNIE-5.0T',
+      'ernie-4.5-turbo-128k-preview': 'ERNIE-4.5T',
+      // ERNIE 旧
+      'ernie-4.0-turbo-8k': 'ERNIE-4.0T',
+      'ernie-3.5-8k': 'ERNIE-3.5',
     };
     return shortNames[modelName] || modelName;
   };

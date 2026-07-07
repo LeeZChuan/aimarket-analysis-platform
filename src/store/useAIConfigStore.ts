@@ -73,7 +73,7 @@ export const useAIConfigStore = create<AIConfigState>()(
       initialized: false,
       selectedSceneId: 'general',
       selectedProviderId: 'deepseek',
-      selectedModelId: 'deepseek-chat',
+      selectedModelId: 'deepseek-v4-flash',
       scenes: [],
       providers: [],
 
@@ -104,7 +104,7 @@ export const useAIConfigStore = create<AIConfigState>()(
           enabledModels.find((m) => m.id === state.selectedModelId)?.id ||
           enabledModels[0]?.id ||
           resolvedProvider?.models[0]?.id ||
-          'deepseek-chat';
+          'deepseek-v4-flash';
 
         set({
           initialized: true,

@@ -89,7 +89,7 @@ class AIService {
   private config: AIServiceConfig = {
     defaultSceneId: 'general',
     defaultProviderId: 'deepseek',
-    defaultModelId: 'deepseek-chat',
+    defaultModelId: 'deepseek-v4-flash',
   };
 
   /**
